@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% block title %}Kalendár | Muzikuj{% endblock %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales/sk.global.min.js"></script>
+
+<section class="kalendar-wrapper" style="display: flex; gap: 2rem; padding: 2rem;">
+  
+  <!-- 🔧 ĽAVÝ STĹPEC -->
+  <div class="calendar-settings" style="flex: 1;"> <!-- ✅ CHÝBAL OTVÁRACÍ DIV -->
+    <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--hover);">
+    <h3>📋 Nadchádzajúce udalosti</h3>
+
+    {% for udalost in udalosti[:3] %}
+      <div class="udalost-box">
+        <strong>{{ udalost.nazov }}</strong><br>
+
+        <span>
+          📅 {{ udalost.datum.strftime('%d.%m.%Y') }}
+          {% if udalost.cas_od %}
+            🕒 {{ udalost.cas_od.strftime('%H:%M') }}
+            {% if udalost.cas_do %} – {{ udalost.cas_do.strftime('%H:%M') }}{% endif %}
+          {% endif %}
+        </span><br>
+
+        {% if udalost.miesto %}
+          <em>📍 {{ udalost.miesto }}</em><br>
+        {% endif %}
+
+        {% if udalost.popis %}
+          <p>{{ udalost.popis }}</p>
+        {% endif %}
+
+        {% if udalost.skupina %}
+          <small>👥 Skupina: {{ udalost.skupina.nazov }}</small>
+        {% elif udalost.pouzivatel %}
+          <small>👤 Pridal: {{ udalost.pouzivatel.prezyvka }}</small>
+        {% endif %}
+      </div>
+    {% else %}
+      <p>❌ Zatiaľ nemáš žiadne udalosti.</p>
+    {% endfor %}
+  </div>
+
+  <!-- 📅 PRAVÝ STĹPEC -->
+  <div class="calendar-view" style="flex: 2;">
+    <div id="calendar"></div>
+  </div>
+
+</section>
+
+<<!-- 📋 MODÁL -->
+<div id="modal-udalost" class="form-panel">
+  <button id="close-udalost" class="close-btn">✖</button>
+  <h3>📝 Udalosť na <span id="modal-datum"></span></h3>
+
+  <form id="formular-udalost">
+    <!-- skrytý ID -->
+    <input type="hidden" id="udalost-id" name="id">
+    <input type="hidden" name="datum" id="input-datum">
+
+    <input type="text" name="nazov" id="udalost-nazov" placeholder="Názov udalosti" required>
+
+    <label><input type="checkbox" id="celodenne" name="celodenne"> Celodenná udalosť</label>
+
+    <div id="casovy-rozsah">
+      <label>Od: <input type="time" name="od" id="od"></label>
+      <label>Do: <input type="time" name="do" id="do"></label>
+    </div>
+
+    <input type="text" name="miesto" id="miesto" placeholder="Miesto (voliteľné)">
+    <textarea name="popis" id="popis" placeholder="Popis (voliteľné)"></textarea>
+
+    <button type="submit">✅ Uložiť</button>
+    <button type="button" id="btn-zmaz" style="background-color: crimson; color: white;">❌ Zmazať</button>
+  </form>
+</div>
+
+
+  <hr>
+  <div id="udalosti-v-dni">
+    <h4>📅 Udalosti v tento deň:</h4>
+    <div id="zoznam-udalosti-v-dni"></div>
+  </div>
+</div>
+
+<script>
+  let calendar; // musí byť globálne
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('calendar');
+    if (!calendarEl) return;
+
+    calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      locale: 'sk',
+      firstDay: 1, // ← začína pondelkom
+      buttonText: {
+        today:    'Dnes',
+        month:    'Mesiac',
+        week:     'Týždeň',
+        day:      'Deň',
+        list:     'Zoznam'
+      },
+      selectable: true,
+      editable: true,
+      height: 'auto',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,listWeek'
+      },
+      events: '/kalendar/udalosti',
+
+      // 📅 Klik na prázdny deň
+      dateClick: function(info) {
+        otvorModal(info.dateStr);
+      },
+
+      // 🔁 Klik na existujúcu udalosť
+  eventClick: function(info) {
+  const id = info.event.id;
+
+  fetch(`/kalendar/nacitaj_udalost/${id}`)
+    .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        console.log("✅ Nahraná udalosť:", data);
+
+        document.getElementById("udalost-id").value = data.id;
+        document.getElementById("udalost-nazov").value = data.nazov || '';
+        document.getElementById("popis").value = data.popis || '';
+        document.getElementById("miesto").value = data.miesto || '';
+        document.getElementById("od").value = data.cas_od || '';
+        document.getElementById("do").value = data.cas_do || '';
+        document.getElementById("input-datum").value = data.datum || '';
+        document.getElementById("celodenne").checked = data.celodenne;
+
+        document.getElementById("modal-datum").textContent = data.datum;
+        document.getElementById("modal-udalost").classList.add("open");
+        document.getElementById("btn-zmaz").onclick = () => zmazUdalost(data.id);
+      })
+
+    .catch(err => {
+      console.error("❌ Chyba pri načítaní udalosti:", err);
+    });
+  }
+
+
+  }); // ← koniec new FullCalendar
+
+    calendar.render();
+
+    // Ovládanie checkboxu "celodenná udalosť"
+    document.getElementById('celodenne').addEventListener('change', function () {
+      const rozsah = document.getElementById('casovy-rozsah');
+      rozsah.style.display = this.checked ? 'none' : 'block';
+    });
+
+    // Zatvorenie modalu
+    document.getElementById("close-udalost").addEventListener("click", () => {
+      document.getElementById("modal-udalost").classList.remove("open");
+    });
+
+    // Pridanie udalosti
+    document.getElementById("formular-udalost").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const data = Object.fromEntries(formData.entries());
+      data.celodenne = document.getElementById('celodenne').checked.toString();
+
+      fetch("/kalendar/pridaj_ajax", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+      .then(res => res.json())
+      .then(() => {
+        document.getElementById("modal-udalost").classList.remove("open");
+        calendar.refetchEvents(); // Prekresli kalendár
+        location.reload(); // Pre istotu obnov aj zoznam vľavo
+      });
+    });
+  });
+
+  // 🧠 Otvor modal a načítaj udalosti na daný deň
+  function otvorModal(datumStr) {
+    const modal = document.getElementById("modal-udalost");
+    const modalDatum = document.getElementById("modal-datum");
+    const inputDatum = document.getElementById("input-datum");
+    const zoznam = document.getElementById("zoznam-udalosti-v-dni");
+
+    modal.classList.add("open");
+    modalDatum.textContent = datumStr;
+    inputDatum.value = datumStr;
+
+    zoznam.innerHTML = "<p>⏳ Načítavam...</p>";
+    fetch(`/kalendar/udalosti_v_dni/${datumStr}?t=${Date.now()}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.length === 0) {
+          zoznam.innerHTML = "<p>❌ Žiadne udalosti.</p>";
+          return;
+        }
+
+        zoznam.innerHTML = "";
+        data.forEach(udalost => {
+          const div = document.createElement("div");
+          div.innerHTML = `
+            <strong>${udalost.nazov}</strong><br>
+            <small>${udalost.miesto || ''}</small>
+            <button onclick="zmazUdalost(${udalost.id})">❌</button>
+          `;
+          zoznam.appendChild(div);
+        });
+      });
+  }
+
+  // ❌ Zmazanie udalosti
+  function zmazUdalost(id) {
+    if (!confirm("Naozaj zmazať túto udalosť?")) return;
+    fetch(`/kalendar/zmaz/${id}`, { method: "DELETE" })
+      .then(() => {
+        document.getElementById("modal-udalost").classList.remove("open");
+        calendar.refetchEvents();
+        location.reload(); // Aktualizuje aj ľavý zoznam
+      });
+  }
+</script>
+
+
+{% endblock %}

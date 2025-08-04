@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Prihlásenie{% endblock %}
+
+{% block content %}
+<section class="form-section">
+  <h2>Prihlásenie</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flash-messages">
+        {% for category, message in messages %}
+          <li class="flash {{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" action="{{ url_for('uzivatel.login') }}">
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email" autocomplete="email" required>
+
+    <label for="heslo">Heslo:</label>
+    <input type="password" id="heslo" name="heslo" autocomplete="current-password" required>
+
+    <button type="submit" class="btn">Prihlásiť sa</button>
+  </form>
+</section>
+{% endblock %}
+

@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block content %}
+
+{% if skupina is defined and skupina %}
+<section class="skupina-wrapper">
+
+  <div class="skupina-lava">
+    <!-- FOTKA SKUPINY -->
+    <div class="profil-fotka-wrapper">
+      {% if skupina.profil_fotka_skupina %}
+        <img src="{{ url_for('static', filename='profilovky_skupina/' ~ skupina.profil_fotka_skupina) }}" class="profilovka">
+        <a href="{{ url_for('skupina.odstranit_fotku_skupina') }}" class="odstranit-krizik">✖</a>
+      {% else %}
+        <img src="{{ url_for('static', filename='profilovky_skupina/default-kapela.jpg') }}" class="profilovka">
+      {% endif %}
+
+      <form id="upload-form-skupina" action="{{ url_for('skupina.upload_fotka_skupina') }}" method="post" enctype="multipart/form-data">
+        <label for="upload-input-skupina" class="upravit-fotku" title="Zmeniť fotku">✏️</label>
+        <input id="upload-input-skupina" type="file" name="profil_fotka_skupina" accept="image/*" onchange="this.form.submit()" hidden>
+      </form>
+    </div>
+
+    <!-- ZOBRAZENIE ÚDAJOV -->
+    <div id="udaje-zobraz-skupina" class="profil-skupina-info">
+      <h2>{{ skupina.nazov }}
+        <button id="editSkupinaBtn" class="edit-icon" title="Upraviť skupinu">✏️</button>
+      </h2>
+      <p><strong>Mesto:</strong> {{ skupina.mesto }}</p>
+      <p><strong>Žáner:</strong> {{ skupina.zaner }}</p>
+      <p><strong>Popis:</strong> {{ skupina.popis }}</p>
+    </div>
+
+    <!-- FORMULÁR NA ÚPRAVU -->
+    <form id="editSkupinaForm" method="POST" action="{{ url_for('skupina.upravit') }}" style="display: none;" class="formular-box">
+      <div class="form-row">
+        <label>Názov:</label>
+        <input type="text" name="nazov" value="{{ skupina.nazov }}">
+      </div>
+      <div class="form-row">
+        <label>Mesto:</label>
+        <input type="text" name="mesto" value="{{ skupina.mesto }}">
+      </div>
+      <div class="form-row">
+        <label>Žáner:</label>
+        <input type="text" name="zaner" value="{{ skupina.zaner }}">
+      </div>
+      <div class="form-row">
+        <label>Popis:</label>
+        <textarea name="popis">{{ skupina.popis }}</textarea>
+      </div>
+      <div class="form-row">
+        <button type="submit">💾 Uložiť</button>
+        <button type="button" id="cancelEditSkupina">Zrušiť</button>
+      </div>
+    </form>
+  </div> <!-- 🧠 KONIEC skupina-lava -->
+
+  <div class="skupina-prava">
+    <!-- ČLENOVIA -->
+    <div class="profil-skupina">
+      <h3>Členovia</h3>
+      <ul>
+        {% for clen in skupina.clenovia %}
+          <li>{{ clen.meno }} – {{ clen.instrument }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <!-- GALÉRIA -->
+    <section class="profil-sekcia">
+      <div class="nadpis-s-perom">
+        <h2>Galéria kapely</h2>
+        {% if skupina.galeria|length < 10 %}
+        <form method="POST" action="{{ url_for('skupina.nahraj_fotku_skupina') }}" enctype="multipart/form-data">
+          <label for="upload-foto-skupina" class="edit-icon" title="Nahrať novú fotku">✏️</label>
+          <input type="file" name="foto" id="upload-foto-skupina" accept="image/*" onchange="this.form.submit()" hidden>
+        </form>
+        {% endif %}
+      </div>
+
+      <div class="galeria-wrapper">
+        {% for obrazok in skupina.galeria %}
+          <div class="foto-blok">
+            <img src="{{ url_for('static', filename='galeria_skupina/' ~ obrazok.nazov_suboru) }}" alt="Foto kapely" class="galeria-foto">
+            <form method="POST" action="{{ url_for('skupina.zmaz_fotku_skupina', id=obrazok.id) }}" onsubmit="return confirm('Naozaj chceš zmazať túto fotku?');">
+              <button type="submit" class="zmaz-btn">✖</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+  
+  <!-- YOUTUBE VIDEÁ -->
+    <div class="profil-youtube">
+      <h3>🎥 Videá skupiny</h3>
+
+      <div class="riadok-videoform">
+        <form action="{{ url_for('skupina.pridaj_video_skupina', id=skupina.id) }}" method="POST" class="video-formular">
+          <input type="text" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
+          <input type="text" name="popis" placeholder="Krátky popis (voliteľné)">
+          <button type="submit">➕ Pridať video</button>
+        </form>
+
+        <p class="pocet-videi">🎞️ Počet videí: {{ skupina.videa | length }}</p>
+      </div>
+      <div id="video-galeria-skupina">
+        {% for video in skupina.videa %}
+          <div class="video-blok">
+            <iframe src="https://www.youtube.com/embed/{{ video.youtube_url | youtube_id }}"
+                    allowfullscreen></iframe>
+
+            {% if video.popis %}
+              <p class="popis-videa">{{ video.popis }}</p>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('skupina.zmaz_video_skupina', id=video.id) }}">
+              <button type="submit" class="zmaz-video" onclick="return confirm('Naozaj chceš zmazať video?')">✖</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div> <!-- 🧠 KONIEC skupina-prava -->
+</section>
+{% endif %}
+{% if not skupina %}
+  <section class="formular-box">
+    <h2>🎵 Založ si svoju hudobnú skupinu</h2>
+    <form method="POST" action="{{ url_for('skupina.pridaj_skupinu') }}">
+      <div class="form-row">
+        <label for="nazov">Názov skupiny:</label>
+        <input type="text" id="nazov" name="nazov" required>
+      </div>
+      <div class="form-row">
+        <label for="mesto">Mesto:</label>
+        <input type="text" id="mesto" name="mesto" required>
+      </div>
+      <div class="form-row">
+        <label for="zaner">Hudobný žáner:</label>
+        <input type="text" id="zaner" name="zaner" required>
+      </div>
+      <div class="form-row">
+        <label for="popis">Popis:</label>
+        <textarea id="popis" name="popis"></textarea>
+      </div>
+      <div class="form-row">
+        <button type="submit">🎸 Vytvoriť skupinu</button>
+      </div>
+    </form>
+  </section>
+{% endif %}
+
+{% endblock %}

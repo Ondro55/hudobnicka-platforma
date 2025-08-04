@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Dopyty{% endblock %}
+
+{% block content %}
+  <h2>Dopyty na kapely 🎤</h2>
+
+  {% for dopyt in dopyty %}
+    <div class="dopyt-box">
+      <p><strong>Typ akcie:</strong> {{ dopyt.typ_akcie }}</p>
+      <p><strong>Dátum:</strong> {{ dopyt.datum.strftime('%d.%m.%Y') }}</p>
+      <p><strong>Čas:</strong> {{ dopyt.cas_od.strftime('%H:%M') }} – {{ dopyt.cas_do.strftime('%H:%M') }}</p>
+      <p><strong>Miesto:</strong> {{ dopyt.miesto }}</p>
+      <p><strong>Rozpočet:</strong> {{ dopyt.rozpocet }} €</p>
+      <p><strong>Popis:</strong> {{ dopyt.popis }}</p>
+    </div>
+    <hr>
+  {% else %}
+    <p>Žiadne dopyty zatiaľ neboli zadané.</p>
+  {% endfor %}
+{% endblock %}

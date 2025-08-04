@@ -1,0 +1,80 @@
+<!-- ======================
+     🧍 FORMULÁR NA PRIDANIE UŽÍVATEĽA (SLIDE-IN)
+     ====================== -->
+<div id="user-form-panel" class="form-panel {% if zobraz_formular == 'uzivatel' %}open{% endif %}">
+  <button class="close-btn" id="close-user-form">❌</button>
+  <h2>Registrácia hudobníka</h2>
+
+  <div id="flash-box">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-messages" style="background-color:#f0fff0; padding:10px; border-left: 4px solid green;">
+          {% for message in messages %}
+            <p style="margin:0; font-weight:bold; color: green;">{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <form method="POST" action="{{ url_for('uzivatel.registracia') }}">
+    <label for="prezyvka">Prezývka:</label>
+    <input type="text" id="prezyvka" name="prezyvka" required value="{{ request.form.get('prezyvka', '') }}">
+
+    <label for="meno">Meno:</label>
+    <input type="text" id="meno" name="meno" value="{{ request.form.get('meno', '') }}">
+
+    <label for="priezvisko">Priezvisko:</label>
+    <input type="text" id="priezvisko" name="priezvisko" value="{{ request.form.get('priezvisko', '') }}">
+
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email" autocomplete="email" required value="{{ request.form.get('email', '') }}">
+
+    <label for="heslo">Heslo:</label>
+    <div style="position: relative;">
+      <input type="password" id="heslo" name="heslo" autocomplete="new-password" minlength="8" required title="Heslo musí mať aspoň 8 znakov">
+      <span id="toggle-heslo" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;">👁️</span>
+    </div>
+    <small style="color: gray;">Minimálne 8 znakov</small>
+
+    <label for="heslo2">Zopakuj heslo:</label>
+    <input type="password" id="heslo2" name="heslo2" required>
+
+    <label for="instrument">Hudobný nástroj:</label>
+    <select id="instrument" name="instrument" required>
+      <option value="">-- Vyber --</option>
+      <option value="klavesy" {% if request.form.get('instrument') == 'klavesy' %}selected{% endif %}>Klávesy</option>
+      <option value="gitara" {% if request.form.get('instrument') == 'gitara' %}selected{% endif %}>Gitara</option>
+      <option value="bicie" {% if request.form.get('instrument') == 'bicie' %}selected{% endif %}>Bicie</option>
+      <option value="dychove" {% if request.form.get('instrument') == 'dychove' %}selected{% endif %}>Dychové nástroje</option>
+      <option value="slacikove" {% if request.form.get('instrument') == 'slacikove' %}selected{% endif %}>Sláčikové nástroje</option>
+      <option value="ine" {% if request.form.get('instrument') == 'ine' %}selected{% endif %}>Iné</option>
+    </select>
+
+    <div id="instrument-ine" style="{% if request.form.get('instrument') == 'ine' %}display:block;{% else %}display:none;{% endif %}">
+      <label for="doplnkovy_nastroj">Doplň hudobný nástroj:</label>
+      <input type="text" id="doplnkovy_nastroj" name="doplnkovy_nastroj" value="{{ request.form.get('doplnkovy_nastroj', '') }}">
+    </div>
+
+    <label for="obec">Obec/pôsobisko:</label>
+    <input type="text" id="obec" name="obec" value="{{ request.form.get('obec', '') }}">
+
+    <button type="submit" class="btn">Registrovať</button>
+  </form>
+</div>
+
+<script>
+  // Zobrazenie inputu pri výbere "iné"
+  document.getElementById('instrument').addEventListener('change', function () {
+    const ineInput = document.getElementById('instrument-ine');
+    ineInput.style.display = this.value === 'ine' ? 'block' : 'none';
+  });
+
+  // Prepínanie zobrazenia hesla
+  document.getElementById('toggle-heslo').addEventListener('click', function () {
+    const hesloInput = document.getElementById('heslo');
+    const typ = hesloInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    hesloInput.setAttribute('type', typ);
+    this.textContent = typ === 'text' ? '🙈' : '👁️';
+  });
+</script>

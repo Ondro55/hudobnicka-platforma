@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Muzikuj{% endblock %}</title>
+
+    <!-- Štýly -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profil.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/skupina.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vyskakovacie_okno.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/kalendar.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Open+Sans&display=swap" rel="stylesheet" />
+</head>
+<body data-zobraz="{{ zobraz_formular }}">
+
+<header class="hlavicka-grid">
+  <div class="box1">
+    <div class="logo">Muzikuj.sk</div>
+  </div>
+
+  <div class="box2">
+  <div class="box2-wrapper">
+    <div class="social-icons">
+      <a href="#"><img src="{{ url_for('static', filename='fb.png') }}" alt="Facebook"></a>
+      <a href="#"><img src="{{ url_for('static', filename='ig.png') }}" alt="Instagram"></a>
+    </div>
+    <div class="user-panel">
+      {% if current_user.is_authenticated %}
+        <span class="user-info">👋 {{ current_user.prezyvka }}</span>
+        <a href="{{ url_for('uzivatel.profil') }}" class="header-btn">Moje konto</a>
+        <a href="{{ url_for('main.logout') }}" class="header-btn logout-btn">Odhlásiť sa</a>
+      {% else %}
+        <a href="javascript:void(0);" id="btn-login" class="header-btn">Prihlásiť sa</a>
+        <a href="javascript:void(0);" id="btn-register" class="header-btn">Registrovať sa</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
+  <div class="box3">
+    <button class="hamburger" onclick="toggleMenu()">☰</button>
+    <div class="nav-wrapper">
+      <nav class="main-nav">
+        <a href="{{ url_for('uzivatel.profil') }}">Domov</a>
+        <a href="{{ url_for('dopyty.zobraz_dopyty') }}">📬 Dopyty</a> 
+        <a href="#" id="show-band-form">🎵 Kapely</a>
+        <a href="#" id="show-inzerat">🛍️ Bazár</a>
+        <a href="#">Komunita</a>
+        <a href="#">e-shop</a>
+        <a href="#kontakt">Kontakt</a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<!-- HLAVNÝ OBSAH -->
+<div class="button-container">
+
+  {% if current_user.is_authenticated and request.endpoint != 'index' %}
+    <aside class="button-sidebar">
+      <a href="{{ url_for('uzivatel.profil') }}" class="sidebar-btn {% if request.endpoint == 'uzivatel.profil' %}aktivne{% endif %}">👤 Profil</a>
+      <a href="{{ url_for('skupina.skupina') }}" class="sidebar-btn {% if request.endpoint == 'skupina.skupina' %}aktivne{% endif %}">🎸 Moja skupina</a>
+      <a href="{{ url_for('kalendar.kalendar') }}" class="sidebar-btn {% if request.endpoint == 'kalendar.kalendar' %}aktivne{% endif %}">📅 Kalendár</a>
+      <a href="{{ url_for('inzerat.moj_bazar') }}" class="sidebar-btn {% if request.endpoint == 'inzerat.moj_bazar' %}aktivne{% endif %}">🛍️ Môj bazár</a>
+    </aside>
+    <main class="main-content">
+  {% else %}
+    <main class="main-no-sidebar">
+  {% endif %}
+
+  {% block content %}{% endblock %}
+  </main>
+</div>
+
+<!-- Novinky musia byť mimo main, inak rozhodia layout -->
+{% include 'includes/novinky.html' %}
+
+<!-- Flash správy -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div id="flash-container">
+      {% for category, message in messages %}
+        <div class="flash-message {{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- Vitacie okno -->
+{% if zobraz_uvitanie %}
+<div id="uvitanie-popup" class="uvitanie-box">
+  <h2>🎉 Vitaj v komunite hudobníkov, {{ zobraz_uvitanie }}!</h2>
+  <p>Tvoj účet bol úspešne vytvorený.</p>
+</div>
+{% endif %}
+
+<!-- 🕽️ MODÁLNE FORMULÁRE -->
+{% include 'modals/prihlasenie.html' %}
+{% include 'modals/registracia.html' %}
+{% include 'modals/dopyt.html' %}
+{% include 'modals/inzerat.html' %}
+
+
+<!-- 🕽️ KONTAKT -->
+<section id="kontakt" class="kontakt">
+  <h2>Kontaktujte nás</h2>
+  <p>Ak máte otázky, návrhy alebo chcete pridať svoju skupinu/kapelu, ozvite sa:</p>
+  <div class="kontakt-boxy">
+    <div class="kontakt-box">
+      <h3>Email</h3>
+      <p><a href="mailto:info@kapeluj.sk">info@muzikuj.sk</a></p>
+    </div>
+    <div class="kontakt-box">
+      <h3>Telefón</h3>
+      <p>+421 900 123 456</p>
+    </div>
+    <div class="kontakt-box">
+      <h3>Sociálne siete</h3>
+      <p><a href="#">Facebook</a> | <a href="#">Instagram</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- 🕽️ PÄTIČka -->
+<footer>
+  <p>&copy; 2025 Muzikuj.sk | Všetky práva vyhradené</p>
+</footer>
+
+<!-- JS -->
+{% if zobraz_formular == 'prihlasenie' %}
+<script>
+  window.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("modal-login").classList.add("open");
+  });
+</script>
+{% endif %}
+
+<script src="{{ url_for('static', filename='main.js') }}" defer></script>
+<script src="{{ url_for('static', filename='vyskakovacie_okno.js') }}" defer></script>
+
+</body>
+</html>

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Moje konto - Kapeluj{% endblock %}
+
+{% block content %}
+<section class="konto">
+  <h2>👤 Moje konto</h2>
+  <p><strong>Prezývka:</strong> {{ pouzivatel.prezyvka }}</p>
+  <p><strong>Meno:</strong> {{ pouzivatel.meno }}</p>
+  <p><strong>Priezvisko:</strong> {{ pouzivatel.priezvisko }}</p>
+  <p><strong>Email:</strong> {{ pouzivatel.email }}</p>
+  <p><strong>Nástroj:</strong> {{ pouzivatel.instrument }}</p>
+  <p><strong>Mesto:</strong> {{ pouzivatel.miesto }}</p>
+
+  <div class="konto-ovladanie">
+    <a href="#edit-profil" class="btn">✏️ Upraviť profil</a>
+  </div>
+</section>
+<section id="edit-profil" class="form-panel open">
+  <h3>✏️ Upraviť profil</h3>
+  <form method="POST" action="{{ url_for('konto') }}" class="form-grid">
+    <label>Prezývka:</label>
+    <input type="text" name="prezyvka" value="{{ pouzivatel.prezyvka }}">
+
+    <label>Meno:</label>
+    <input type="text" name="meno" value="{{ pouzivatel.meno }}">
+
+    <label>Priezvisko:</label>
+    <input type="text" name="priezvisko" value="{{ pouzivatel.priezvisko }}">
+
+    <label>Email:</label>
+    <input type="email" name="email" value="{{ pouzivatel.email }}">
+
+    <label>Nástroj:</label>
+    <input type="text" name="instrument" value="{{ pouzivatel.instrument }}">
+
+    <label>Mesto:</label>
+    <input type="text" name="miesto" value="{{ pouzivatel.miesto }}">
+
+    <button type="submit">Uložiť zmeny</button>
+  </form>
+</section>
+
+{% endblock %}

@@ -1,0 +1,51 @@
+<!-- modals/prihlasenie.html -->
+<div id="modal-login" class="form-panel">
+  <span id="close-login" class="close-btn">&times;</span>
+
+  <h2>Prihlásenie</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-messages">
+        {% for category, message in messages %}
+          <p class="{{ category }}">{{ message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" action="{{ url_for('uzivatel.login') }}">
+    <label for="email">Email:</label>
+    <input type="email" name="email" required>
+    
+    <label for="heslo">Heslo:</label>
+    <input type="password" name="heslo" required>
+    
+    <button type="submit" class="btn">Prihlásiť sa</button>
+  </form>
+
+  <div class="divider">alebo</div>
+
+  <div class="social-login">
+    <button class="google-btn">Prihlásiť sa cez Google</button>
+    <button class="apple-btn">Prihlásiť sa cez Apple</button>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const closeBtn = document.getElementById('close-login');
+    const modalLogin = document.getElementById('modal-login');
+
+    if (closeBtn && modalLogin) {
+      closeBtn.addEventListener('click', function () {
+        modalLogin.classList.remove('open');
+      });
+    }
+
+    const zobraz = document.body.getAttribute('data-zobraz');
+    if (zobraz === 'prihlasenie') {
+      modalLogin?.classList.add('open');
+    }
+  });
+</script>

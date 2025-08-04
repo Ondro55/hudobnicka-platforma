@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="profil-wrapper">
+  <div class="profil-lavy">
+    <h3>Moja skupina</h3>
+    <div class="profil-fotka-wrapper">
+      <img src="{{ skupina.profil_fotka_url }}" alt="Profilová fotka" class="profilovka">
+      {% if skupina.profil_fotka %}
+        <a href="{{ url_for('odstranit_fotku_skupiny') }}" class="odstranit-krizik">✖</a>
+      {% endif %}
+    </div>
+    <a href="{{ url_for('uprav_skupinu') }}" class="tlacidlo">Upraviť skupinu</a>
+  </div>
+
+  <div class="profil-pravy">
+    <div class="sekcia-profil">
+      <h4>Názov:</h4>
+      <p>{{ skupina.nazov }}</p>
+    </div>
+
+    <div class="sekcia-profil">
+      <h4>Mesto / obec:</h4>
+      <p>{{ skupina.mesto }}</p>
+    </div>
+
+    <div class="sekcia-profil">
+      <h4>Hudobný žáner:</h4>
+      <p>{{ skupina.zaner }}</p>
+    </div>
+
+    <div class="sekcia-profil">
+      <h4>Členovia:</h4>
+      <ul>
+        {% for clen in skupina.clenovia %}
+          <li>{{ clen.meno }} {{ clen.priezvisko }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="sekcia-profil">
+      <h4>O skupine:</h4>
+      <p>{{ skupina.bio or "None" }}</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

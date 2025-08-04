@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="profil-wrapper">
+  <div class="profil-lava">
+    <!-- Profilová fotka a upload -->
+    <div class="profil-fotka-wrapper">
+      {% if pouzivatel.profil_fotka %}
+        <img src="{{ url_for('static', filename='profilovky/' ~ pouzivatel.profil_fotka) }}" alt="Profilová fotka" class="profilovka">
+        <a href="{{ url_for('uzivatel.odstranit_fotku') }}" class="odstranit-krizik">✖</a>
+      {% else %}
+        <img src="{{ url_for('static', filename='profilovky/default-profil.jpg') }}" alt="Profilová fotka" class="profilovka">
+      {% endif %}
+
+      <form id="upload-form-user" action="{{ url_for('uzivatel.upload_fotka') }}" method="post" enctype="multipart/form-data">
+        <label for="upload-input-user" class="upravit-fotku" title="Zmeniť fotku">✏️</label>
+        <input id="upload-input-user" type="file" name="profil_fotka" accept="image/*" onchange="this.form.submit()" hidden>
+      </form>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flash-messages">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Zobrazenie údajov -->
+    <div id="udaje-zobraz">
+      <h2>{{ pouzivatel.prezyvka }} 
+        <button id="editButton" class="edit-icon" title="Upraviť profil">✏️</button>
+      </h2>
+      <p><strong>Meno:</strong> {{ pouzivatel.meno }} {{ pouzivatel.priezvisko }}</p>
+      <p><strong>Email:</strong> {{ pouzivatel.email }}</p>
+      <p><strong>Mesto / Obec:</strong> {{ pouzivatel.obec }}</p>
+      <p><strong>Hudobný nástroj:</strong> {{ pouzivatel.instrument }}</p>
+      <p><strong>Doplnkový nástroj:</strong> {{ pouzivatel.doplnkovy_nastroj }}</p>
+
+      <div class="profil-omne">
+        <h4>O mne:</h4>
+        <p>{{ pouzivatel.bio }}</p>
+      </div>
+    </div>
+
+    <!-- EDITAČNÝ FORMULÁR -->
+    <form id="editForm" method="POST" action="{{ url_for('uzivatel.profil') }}" style="display: none;" class="form-profil">
+      <div class="form-row">
+        <label>Prezývka:</label>
+        <input type="text" name="prezyvka" value="{{ pouzivatel.prezyvka }}" required>
+      </div>
+
+      <div class="form-row">
+        <label>Meno:</label>
+        <input type="text" name="meno" value="{{ pouzivatel.meno }}">
+      </div>
+
+      <div class="form-row">
+        <label>Priezvisko:</label>
+        <input type="text" name="priezvisko" value="{{ pouzivatel.priezvisko }}">
+      </div>
+
+      <div class="form-row">
+        <label>Email:</label>
+        <input type="email" name="email" value="{{ pouzivatel.email }}" required>
+      </div>
+
+      <div class="form-row">
+        <label>Mesto / Obec:</label>
+        <input type="text" name="obec" value="{{ pouzivatel.obec }}">
+      </div>
+
+      <div class="form-row">
+        <label>Hudobný nástroj:</label>
+        <input type="text" name="instrument" value="{{ pouzivatel.instrument }}">
+      </div>
+
+      <div class="form-row">
+        <label>Doplnkový nástroj:</label>
+        <input type="text" name="doplnkovy_nastroj" value="{{ pouzivatel.doplnkovy_nastroj }}">
+      </div>
+
+      <div class="form-row">
+        <label for="bio">O mne:</label>
+        <textarea id="bio" name="bio">{{ pouzivatel.bio or '' }}</textarea>
+      </div>
+
+      <div class="form-row">
+        <button type="submit">💾 Uložiť zmeny</button>
+        <button type="button" id="cancelEdit">Zrušiť</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="profil-prava">
+
+    <!-- 🧑‍🎤 Skupina -->
+    <div class="profil-skupina">
+      <h3>Skupina</h3>
+      <p><strong>Názov:</strong> {{ skupina.nazov }}</p>
+      <p><strong>Členovia:</strong></p>
+      <ul>
+        {% for clen in skupina.clenovia %}
+          <li>{{ clen.meno }} – {{ clen.instrument }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <!-- 🖼️ Galéria -->
+    <section class="profil-sekcia">
+      <div class="nadpis-s-perom">
+        <h2>Moja galéria</h2>
+
+        {% if pouzivatel.galeria|length < 10 %}
+        <form method="POST" action="{{ url_for('profil.nahraj_fotku') }}" enctype="multipart/form-data" id="upload-form">
+          <label for="upload-foto" class="edit-icon" title="Nahrať novú fotku">✏️</label>
+          <input type="file" name="foto" id="upload-foto" accept="image/*" onchange="this.form.submit()" hidden>
+        </form>
+        {% endif %}
+      </div>
+
+      <div class="galeria-wrapper">
+        {% for foto in pouzivatel.galeria %}
+          <div class="foto-blok">
+            <img src="{{ url_for('static', filename='galeria_pouzivatel/' ~ foto.nazov_suboru) }}" alt="Foto" class="galeria-foto">
+            <form method="POST" action="{{ url_for('profil.zmaz_fotku', id=foto.id) }}" onsubmit="return confirm('Naozaj chceš zmazať túto fotku?');">
+              <button type="submit" class="zmaz-btn">✖</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- ▶️ YouTube -->
+    
+    <div class="video-box">
+        <h3>🎥 Videá</h3>
+
+        <div class="profil-videoform-riadok">
+          <form action="{{ url_for('profil.pridaj_video') }}" method="POST" class="profil-videoform">
+            <input type="text" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
+            <input type="text" name="popis" placeholder="Krátky popis (voliteľné)">
+            <button type="submit">➕ Pridať video</button>
+          </form>
+
+          <p class="profil-pocet-videi">Počet videí: {{ youtube_videa | length }}</p>
+        </div>
+
+        <div class="profil-video-grid">
+          {% for video in youtube_videa %}
+            <div class="profil-youtube-video">
+              <iframe src="https://www.youtube.com/embed/{{ video.youtube_url | youtube_id }}"
+                      frameborder="0"
+                      allowfullscreen></iframe>
+              {% if video.popis %}
+                <p>{{ video.popis }}</p>
+              {% endif %}
+              <form action="{{ url_for('profil.zmaz_video', id=video.id) }}" method="POST">
+                <button type="submit" class="zmaz-video" onclick="return confirm('Naozaj chceš zmazať video?')">✖</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+</section>
+
+{% endblock %}
