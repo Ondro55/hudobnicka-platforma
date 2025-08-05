@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Môj bazár{% endblock %}
+
+{% block content %}
+<section class="moj-bazar" style="padding: 2rem;">
+  <h2>🛒 Môj bazár</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% if inzeraty %}
+    <div class="inzeraty-grid">
+      {% for inz in inzeraty %}
+        <div class="inzerat-box">
+          <h4>{{ inz.kategoria }} - {{ inz.typ }}</h4>
+          <p><strong>Mesto:</strong> {{ inz.mesto }}</p>
+          <p><strong>Cena:</strong> {{ inz.cena }} €</p>
+          <p>{{ inz.popis }}</p>
+
+          <form action="{{ url_for('inzerat.zmaz_inzerat', id=inz.id) }}" method="post" style="margin-top: 1rem;">
+            <button type="submit" onclick="return confirm('Naozaj zmazať tento inzerát?')">❌ Zmazať</button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>❌ Zatiaľ nemáš žiadne inzeráty.</p>
+  {% endif %}
