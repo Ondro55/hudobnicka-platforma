@@ -77,26 +77,33 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  box-sizing: border-box;
 }
 
 .inzerat-form input,
 .inzerat-form select,
 .inzerat-form textarea {
-  width: 100%;
-  padding: 0.6rem;
+  width: 90%;
+  max-width: 100%;
+  padding: 0.5rem;
   font-size: 1rem;
   border: 1px solid var(--hover);
   border-radius: 0.5rem;
+  box-sizing: border-box;
 }
 
 .inzerat-form button {
   background-color: var(--tlacidlo);
   color: white;
+  width: 300px;
   padding: 0.7rem 1rem;
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  display: block;
+  margin: 0.5rem;
+  margin-left: 190px;
 }
 
 .inzerat-form button:hover {
@@ -142,3 +149,50 @@
   text-decoration: underline;
 }
 
+.foto-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.foto-box {
+  position: relative;
+}
+
+.foto-box img {
+  width: 120px;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.foto-box form {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+}
+
+.foto-box button {
+  background: crimson;
+  border: none;
+  color: white;
+  border-radius: 50%;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.vlastne-tlacidlo {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  background-color: var(--tlacidlo);
+  color: white;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border: none;
+}
+
+.vlastne-tlacidlo:hover {
+  background-color: var(--hover);
+}

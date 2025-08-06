@@ -4,68 +4,63 @@
 {% block content %}
 <section class="pridaj-inzerat">
   <h2>📝 Pridaj nový inzerát</h2>
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <ul class="flash-messages">
-        {% for category, message in messages %}
-          <li class="flash {{ category }}">{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
-
-  <!-- 🔁 TOTO JE DÔLEŽITÉ -->
-  <div class="form-wrapper" style="display: flex; gap: 2rem; align-items: flex-start;">
-
-    <form action="" method="post" enctype="multipart/form-data" class="inzerat-form" style="flex: 1;">
+   <div class="form-wrapper">
+    <form action="{{ url_for('inzerat.moj_bazar') }}" method="post" enctype="multipart/form-data" style="display: flex; gap: 2rem; align-items: flex-start; width: 100%;">
+      
       <!-- ĽAVÁ STRANA -->
-      <label>Typ inzerátu</label>
-      <select name="typ" required>
-        <option value="" disabled selected>Vyber typ</option>
-        <option value="Predám">Predám</option>
-        <option value="Kúpim">Kúpim</option>
-        <option value="Darujem">Darujem</option>
-        <option value="Vymením">Vymením</option>
-        <option value="Hľadám">Hľadám</option>
-      </select>
+      <div class="inzerat-form" style="flex: 1;">
+        <select name="typ" required>
+          <option value="" disabled selected>Vyber typ</option>
+          <option value="Predám">Predám</option>
+          <option value="Kúpim">Kúpim</option>
+          <option value="Darujem">Darujem</option>
+          <option value="Vymením">Vymením</option>
+          <option value="Hľadám">Hľadám</option>
+        </select>
 
-      <label>Kategória</label>
-      <select name="kategoria" required>
-        <option value="" disabled selected>Vyber kategóriu</option>
-        <!-- tvoje kategórie -->
-      </select>
+        <select name="kategoria" required>
+          <option value="" disabled selected>Vyber kategóriu</option>
+          {% for kategoria in kategorie %}
+            <option value="{{ kategoria }}">{{ kategoria }}</option>
+          {% endfor %}
+        </select>
+        
+        <label>Popis</label>
+        <textarea name="popis" rows="5"></textarea>
+        
+        <select id="mesto" name="mesto_id" required>
+          <option value="">-- Vyber mesto --</option>
+          {% for mesto in mesta %}
+            <option value="{{ mesto.id }}">{{ mesto.nazov }}</option>
+          {% endfor %}
+        </select>
 
-      <label for="mesto">Mesto</label>
-      <select id="mesto" name="mesto_id" required>
-        <option value="">-- Vyber mesto --</option>
-        {% for mesto in mesta %}
-          <option value="{{ mesto.id }}">{{ mesto.nazov }}</option>
-        {% endfor %}
-      </select>
+        <select name="doprava" required>
+          <option value="" disabled selected>Vyber spôsob doručenia</option>
+          <option value="Osobne">Osobne</option>
+          <option value="Poštou">Poštou</option>
+          <option value="Kuriér">Kuriér</option>
+        </select>
 
-      <label>Doprava</label>
-      <select name="doprava">
-        <option value="Osobne">Osobne</option>
-        <option value="Poštou">Poštou</option>
-        <option value="Kuriér">Kuriér</option>
-      </select>
+        <input type="number" step="10" name="cena" placeholder="Cena (€)">
+        <button type="submit">💾 Pridať inzerát</button>
+      </div>
 
-      <label>Cena (€)</label>
-      <input type="number" step="0.01" name="cena">
+      <!-- 📷 PRAVÁ STRANA -->
+      <div class="foto-panel" style="flex: 1;">
+        <h3>📸 Fotky k inzerátu</h3>
 
-      <label>Popis</label>
-      <textarea name="popis" rows="5"></textarea>
+        <!-- Skrytý input + štýlové tlačidlo -->
+        <input type="file" id="fotky-input" accept="image/*" multiple style="display: none;">
+        <label for="fotky-input" class="vlastne-tlacidlo">📁 Vybrať fotky</label>
 
-      <button type="submit">💾 Pridať inzerát</button>
+        <p style="font-size: 0.9rem;">Max. 5 fotiek. Formáty: JPG, PNG.</p>
+
+        <!-- Náhľady a skryté inputy -->
+        <div id="nahlady-fotiek" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1rem;"></div>
+        <div id="realne-fotky"></div>
+      </div>
     </form>
-
-    <!-- PRAVÁ STRANA - fotky -->
-    <div class="fotky" style="flex: 1;">
-      <h3>📸 Fotky k inzerátu</h3>
-      <input type="file" name="fotky" accept="image/*" multiple>
-      <p style="font-size: 0.9rem;">Max. 5 fotiek. Formát JPG, PNG.</p>
-    </div>
   </div>
 </section>
 
@@ -78,11 +73,19 @@
     {% for inzerat in inzeraty %}
       <div class="inzerat-box">
         <div class="inzerat-header">
-          {{ inzerat.typ }} – {{ inzerat.kategoria }}
+            {{ inzerat.typ }} – {{ inzerat.kategoria }}
         </div>
         <p>{{ inzerat.popis }}</p>
         <p>📍 {{ inzerat.mesto.nazov }} | 💶 {{ inzerat.cena }} €</p>
         <small>🕒 Pridané: {{ inzerat.datum.strftime('%d.%m.%Y') }}</small>
+        {% if inzerat.fotky %}
+          <div class="inzerat-fotky">
+            {% for foto in inzerat.fotky %}
+              <img src="{{ url_for('static', filename='galeria_inzerat/' ~ foto.nazov_suboru) }}" alt="Náhľad" style="width: 150px; border-radius: 6px; margin: 5px;">
+            {% endfor %}
+          </div>
+        {% endif %}
+
 
         <div class="inzerat-akcie">
           <a href="{{ url_for('inzerat.uprav_inzerat', inzerat_id=inzerat.id) }}">✏️ Upraviť</a>
@@ -95,6 +98,59 @@
   <p>Nemáš zatiaľ žiadne inzeráty.</p>
 {% endif %}
 
+<script>
+  const input = document.getElementById('fotky-input');
+  const nahlady = document.getElementById('nahlady-fotiek');
+  const realne = document.getElementById('realne-fotky');
+  let ulozeneFotky = [];
 
+  input.addEventListener('change', function () {
+    const noveFotky = Array.from(this.files);
 
+    // Pridaj nové, ale max 5
+    ulozeneFotky = ulozeneFotky.concat(noveFotky).slice(0, 5);
+
+    zobrazNahlady();
+    obnovSkryteInputy();
+    this.value = '';
+  });
+
+  function zobrazNahlady() {
+    nahlady.innerHTML = '';
+    ulozeneFotky.forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const box = document.createElement('div');
+        box.style.position = 'relative';
+        box.innerHTML = `
+          <img src="${e.target.result}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 6px;">
+          <button type="button" onclick="odstranitFotku(${index})" style="position: absolute; top: 2px; right: 2px; background: crimson; color: white; border: none; border-radius: 50%; cursor: pointer;">✖</button>
+        `;
+        nahlady.appendChild(box);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function odstranitFotku(index) {
+    ulozeneFotky.splice(index, 1);
+    zobrazNahlady();
+    obnovSkryteInputy();
+  }
+
+  function obnovSkryteInputy() {
+    realne.innerHTML = '';
+    ulozeneFotky.forEach((file) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.name = 'fotky';
+      input.multiple = false; // každý input = 1 súbor
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      input.style.display = 'none';
+      realne.appendChild(input);
+    });
+  }
+</script>
 {% endblock %}

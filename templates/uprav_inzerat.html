@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Upraviť inzerát{% endblock %}
+
+{% block content %}
+<section class="uprav-inzerat">
+  <h2>✏️ Upraviť inzerát</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flash-messages">
+        {% for category, message in messages %}
+          <li class="flash {{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <form action="" method="post" class="inzerat-form">
+    <label>Typ inzerátu</label>
+    <select name="typ" required>
+      {% for t in ['Predám', 'Kúpim', 'Darujem', 'Vymením', 'Hľadám'] %}
+        <option value="{{ t }}" {% if inzerat.typ == t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Kategória</label>
+    <input type="text" name="kategoria" value="{{ inzerat.kategoria }}" required>
+
+    <label for="mesto">Mesto</label>
+    <select id="mesto" name="mesto_id" required>
+      {% for mesto in mesta %}
+        <option value="{{ mesto.id }}" {% if mesto.id == inzerat.mesto_id %}selected{% endif %}>{{ mesto.nazov }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Doprava</label>
+    <select name="doprava">
+      {% for d in ['Osobne', 'Poštou', 'Kuriér'] %}
+        <option value="{{ d }}" {% if inzerat.doprava == d %}selected{% endif %}>{{ d }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Cena (€)</label>
+    <input type="number" step="0.01" name="cena" value="{{ inzerat.cena }}">
+
+    <label>Popis</label>
+    <textarea name="popis" rows="5">{{ inzerat.popis }}</textarea>
+
+    <button type="submit">💾 Uložiť zmeny</button>
+  </form>
+</section>
+{% endblock %}
