@@ -48,8 +48,19 @@ class Inzerat(db.Model):
     popis = db.Column(db.Text)
     datum = db.Column(db.DateTime, default=datetime.utcnow)
 
+    mesto_id = db.Column(db.Integer, db.ForeignKey('mesto.id', name='fk_inzerat_mesto'), nullable=True)
+    mesto_objekt = db.relationship('Mesto', backref='inzeraty')
+
     pouzivatel_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False)
     pouzivatel = db.relationship('Pouzivatel', backref='inzeraty')
+
+    fotky = db.relationship('FotoInzerat', backref='inzerat', cascade='all, delete-orphan')
+
+
+class FotoInzerat(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nazov_suboru = db.Column(db.String(200), nullable=False)
+    inzerat_id = db.Column(db.Integer, db.ForeignKey('inzerat.id'), nullable=False)
 
 
 # 🧩 Pomocná tabuľka pre Many-to-Many medzi skupina a Pouzivatel
@@ -150,3 +161,11 @@ class Udalost(db.Model):
     skupina_id = db.Column(db.Integer, db.ForeignKey('skupina.id'), nullable=True)
     skupina = db.relationship('Skupina', backref='udalosti')
 
+class Mesto(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nazov = db.Column(db.String(100), nullable=False)
+    okres = db.Column(db.String(100), nullable=True)
+    kraj = db.Column(db.String(100), nullable=True)
+
+    def __repr__(self):
+        return f"{self.nazov} ({self.okres}, {self.kraj})"
