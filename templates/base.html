@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/kalendar.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/inzerat.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/inzerat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/komunita.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Open+Sans&display=swap" rel="stylesheet" />
 </head>
 <body data-zobraz="{{ zobraz_formular }}">
@@ -50,7 +51,7 @@
         <a href="{{ url_for('dopyty.zobraz_dopyty') }}">📬 Dopyty</a> 
         <a href="#" id="show-band-form">🎵 Kapely</a>
         <a href="#" id="show-inzerat">🛍️ Bazár</a>
-        <a href="#">Komunita</a>
+        <a href="{{ url_for('komunita.komunita') }}">Komunita</a>
         <a href="#">e-shop</a>
         <a href="#kontakt">Kontakt</a>
       </nav>

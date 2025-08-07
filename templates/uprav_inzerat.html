@@ -5,48 +5,121 @@
 <section class="uprav-inzerat">
   <h2>✏️ Upraviť inzerát</h2>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <ul class="flash-messages">
-        {% for category, message in messages %}
-          <li class="flash {{ category }}">{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
+  <div class="form-wrapper">
+    <form action="" method="post" enctype="multipart/form-data" style="display: flex; gap: 2rem; align-items: flex-start; width: 100%;">
 
-  <form action="" method="post" class="inzerat-form">
-    <label>Typ inzerátu</label>
-    <select name="typ" required>
-      {% for t in ['Predám', 'Kúpim', 'Darujem', 'Vymením', 'Hľadám'] %}
-        <option value="{{ t }}" {% if inzerat.typ == t %}selected{% endif %}>{{ t }}</option>
-      {% endfor %}
-    </select>
+      <!-- ĽAVÁ STRANA -->
+      <div class="inzerat-form" style="flex: 1;">
+        <select name="typ" required>
+          {% for t in ['Predám', 'Kúpim', 'Darujem', 'Vymením', 'Hľadám'] %}
+            <option value="{{ t }}" {% if inzerat.typ == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
 
-    <label>Kategória</label>
-    <input type="text" name="kategoria" value="{{ inzerat.kategoria }}" required>
+        <select name="kategoria" required>
+          {% for kategoria in kategorie %}
+            <option value="{{ kategoria }}" {% if inzerat.kategoria == kategoria %}selected{% endif %}>{{ kategoria }}</option>
+          {% endfor %}
+        </select>
 
-    <label for="mesto">Mesto</label>
-    <select id="mesto" name="mesto_id" required>
-      {% for mesto in mesta %}
-        <option value="{{ mesto.id }}" {% if mesto.id == inzerat.mesto_id %}selected{% endif %}>{{ mesto.nazov }}</option>
-      {% endfor %}
-    </select>
+        <label>Popis</label>
+        <textarea name="popis" rows="5">{{ inzerat.popis }}</textarea>
 
-    <label>Doprava</label>
-    <select name="doprava">
-      {% for d in ['Osobne', 'Poštou', 'Kuriér'] %}
-        <option value="{{ d }}" {% if inzerat.doprava == d %}selected{% endif %}>{{ d }}</option>
-      {% endfor %}
-    </select>
+        <select id="mesto" name="mesto_id" required>
+          {% for mesto in mesta %}
+            <option value="{{ mesto.id }}" {% if mesto.id == inzerat.mesto_id %}selected{% endif %}>{{ mesto.nazov }}</option>
+          {% endfor %}
+        </select>
 
-    <label>Cena (€)</label>
-    <input type="number" step="0.01" name="cena" value="{{ inzerat.cena }}">
+        <select name="doprava" required>
+          {% for d in ['Osobne', 'Poštou', 'Kuriér'] %}
+            <option value="{{ d }}" {% if inzerat.doprava == d %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
 
-    <label>Popis</label>
-    <textarea name="popis" rows="5">{{ inzerat.popis }}</textarea>
+        <input type="number" step="10" name="cena" placeholder="Cena (€)" value="{{ inzerat.cena }}">
+        <button type="submit">💾 Uložiť zmeny</button>
+      </div>
 
-    <button type="submit">💾 Uložiť zmeny</button>
-  </form>
+      <!-- PRAVÁ STRANA – Fotky -->
+      <div class="foto-panel" style="flex: 1;">
+        <h3>📸 Fotky k inzerátu</h3>
+
+        <!-- 📂 Nové fotky -->
+        <input type="file" id="fotky-input" accept="image/*" multiple style="display: none;">
+        <label for="fotky-input" class="vlastne-tlacidlo">📁 Vybrať nové fotky</label>
+        <p style="font-size: 0.9rem;">Max. 5 fotiek. Formáty: JPG, PNG.</p>
+
+        <div id="nahlady-fotiek" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1rem;"></div>
+        <div id="realne-fotky"></div>
+
+        <!-- Už nahrané fotky -->
+        {% if inzerat.fotky %}
+          <h4>🖼️ Existujúce fotky</h4>
+          <div class="existujuce-fotky" style="display: flex; flex-wrap: wrap; gap: 10px;">
+            {% for foto in inzerat.fotky %}
+              <div style="position: relative;">
+                <img src="{{ url_for('static', filename='galeria_inzerat/' ~ foto.nazov_suboru) }}" alt="Náhľad" style="width: 100px; border-radius: 6px;">
+                <a href="{{ url_for('inzerat.zmaz_fotku', foto_id=foto.id) }}" onclick="return confirm('Zmazať túto fotku?')" style="position: absolute; top: 2px; right: 2px; background: crimson; color: white; border: none; border-radius: 50%; padding: 2px 6px; text-decoration: none;">✖</a>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </form>
+  </div>
 </section>
+
+<script>
+  const input = document.getElementById('fotky-input');
+  const nahlady = document.getElementById('nahlady-fotiek');
+  const realne = document.getElementById('realne-fotky');
+  let ulozeneFotky = [];
+
+  input.addEventListener('change', function () {
+    const noveFotky = Array.from(this.files);
+    ulozeneFotky = ulozeneFotky.concat(noveFotky).slice(0, 5);
+    zobrazNahlady();
+    obnovSkryteInputy();
+    this.value = '';
+  });
+
+  function zobrazNahlady() {
+    nahlady.innerHTML = '';
+    ulozeneFotky.forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const box = document.createElement('div');
+        box.style.position = 'relative';
+        box.innerHTML = `
+          <img src="${e.target.result}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 6px;">
+          <button type="button" onclick="odstranitFotku(${index})" style="position: absolute; top: 2px; right: 2px; background: crimson; color: white; border: none; border-radius: 50%; cursor: pointer;">✖</button>
+        `;
+        nahlady.appendChild(box);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function odstranitFotku(index) {
+    ulozeneFotky.splice(index, 1);
+    zobrazNahlady();
+    obnovSkryteInputy();
+  }
+
+  function obnovSkryteInputy() {
+    realne.innerHTML = '';
+    ulozeneFotky.forEach((file) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.name = 'fotky';
+      input.multiple = false;
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      input.style.display = 'none';
+      realne.appendChild(input);
+    });
+  }
+</script>
 {% endblock %}

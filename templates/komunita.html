@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Komunita hudobníkov | Muzikuj{% endblock %}
+
+{% block content %}
+<section class="komunita-wrapper" style="padding: 2rem;">
+  <h2 style="margin-bottom: 1rem;">🎵 Komunita hudobníkov</h2>
+
+  <!-- 🔍 Vyhľadávací formulár -->
+  <form method="GET" action="{{ url_for('komunita.komunita') }}" style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+    <input type="text" name="hladaj_meno" placeholder="Hľadaj podľa mena..." value="{{ request.args.get('hladaj_meno', '') }}" style="flex: 1; padding: 0.5rem;">
+    
+    <select name="nastroj" style="padding: 0.5rem;">
+      <option value="">🎸 Všetky nástroje</option>
+      <option value="gitara" {% if request.args.get('nastroj') == 'gitara' %}selected{% endif %}>Gitara</option>
+      <option value="klavesy" {% if request.args.get('nastroj') == 'klavesy' %}selected{% endif %}>Klavír / Klávesy</option>
+      <option value="bicie" {% if request.args.get('nastroj') == 'bicie' %}selected{% endif %}>Bicie</option>
+      <option value="dychové" {% if request.args.get('nastroj') == 'dychové' %}selected{% endif %}>Dychové</option>
+      <option value="sláčikové" {% if request.args.get('nastroj') == 'sláčikové' %}selected{% endif %}>Sláčikové</option>
+      <option value="iné" {% if request.args.get('nastroj') == 'iné' %}selected{% endif %}>Iné</option>
+    </select>
+
+    <button type="submit" style="padding: 0.5rem 1rem;">🔎 Hľadaj</button>
+  </form>
+
+  <!-- 👥 Zoznam používateľov -->
+  <div class="komunita-list" style="max-height: 70vh; overflow-y: auto;">
+    {% for uzivatel in uzivatelia %}
+      <div class="komunita-box">
+            <div class="kom-nickname">{{ uzivatel.prezyvka }}</div>
+
+            <div>
+                {% if uzivatel.profil_fotka %}
+                <img src="{{ url_for('static', filename='profilovky/' ~ uzivatel.profil_fotka) }}" alt="Profilová fotka" class="kom-fotka">
+                {% else %}
+                <img src="{{ url_for('static', filename='default.png') }}" alt="Bez fotky" class="kom-fotka">
+                {% endif %}
+            </div>
+
+            <div class="kom-skupina">
+                {% if uzivatel.skupiny %}
+                    {{ uzivatel.skupiny }}
+                {% else %}
+                    ❌ Žiadna
+                {% endif %}
+            </div>
+
+            <div class="kom-nastroj">{{ uzivatel.instrument }}</div>
+        </div>
+    {% else %}
+      <p>😢 Nenašli sa žiadni hudobníci podľa tvojho filtra.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

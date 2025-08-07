@@ -12,6 +12,7 @@ from modules.inzerat import inzerat
 from modules.login import login_bp
 from modules.register import register_bp
 from modules.kalendar import kalendar_bp
+from modules.komunita import komunita_bp
 from routes import bp as main_blueprint
 
 
@@ -24,6 +25,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'instance', 'muzikuj.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'profilovky')
+app.config['UPLOAD_FOLDER_INZERAT'] = os.path.join(app.root_path, 'static', 'galeria_inzerat')
 
 
 # Databáza a migrácia
@@ -48,7 +50,7 @@ app.register_blueprint(login_bp)
 app.register_blueprint(register_bp)
 app.register_blueprint(main_blueprint)
 app.register_blueprint(kalendar_bp, url_prefix='/kalendar')
-
+app.register_blueprint(komunita_bp)
 
 # Spustenie
 if __name__ == "__main__":

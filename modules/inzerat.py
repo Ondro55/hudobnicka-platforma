@@ -107,6 +107,7 @@ def uprav_inzerat(inzerat_id):
         return redirect(url_for('inzerat.moj_bazar'))
 
     if request.method == 'POST':
+        # 🔁 Uloženie textových údajov
         inzerat.typ = request.form.get('typ')
         inzerat.kategoria = request.form.get('kategoria')
         inzerat.mesto_id = request.form.get('mesto_id')
@@ -114,9 +115,56 @@ def uprav_inzerat(inzerat_id):
         inzerat.cena = float(request.form.get('cena', 0))
         inzerat.popis = request.form.get('popis')
 
+        # 📸 Pridanie nových fotiek
+        fotky = request.files.getlist('fotky')
+        ulozene = len(inzerat.fotky)
+
+        for fotka in fotky:
+            if ulozene >= 5:
+                break
+            if fotka and fotka.filename != '':
+                ext = os.path.splitext(fotka.filename)[1].lower()
+                filename = f"{uuid.uuid4().hex}{ext}"
+                cesta = os.path.join(UPLOAD_FOLDER, filename)
+
+                try:
+                    obrazok = Image.open(fotka)
+                    obrazok.thumbnail((800, 800))
+                    obrazok.save(cesta)
+
+                    nova_fotka = FotoInzerat(nazov_suboru=filename, inzerat_id=inzerat.id)
+                    db.session.add(nova_fotka)
+                    ulozene += 1
+                except Exception as e:
+                    print("Chyba pri ukladaní fotky:", e)
+                    continue
+
         db.session.commit()
         flash("✅ Inzerát bol úspešne upravený!", "success")
         return redirect(url_for('inzerat.moj_bazar'))
 
+    # Zobrazenie edit formu
     mesta = Mesto.query.order_by(Mesto.nazov).all()
     return render_template('uprav_inzerat.html', inzerat=inzerat, mesta=mesta, kategorie=KATEGORIE)
+@inzerat.route('/zmaz-fotku/<int:foto_id>')
+@login_required
+def zmaz_fotku(foto_id):
+    fotka = FotoInzerat.query.get_or_404(foto_id)
+    inzerat = Inzerat.query.get_or_404(fotka.inzerat_id)
+
+    if inzerat.pouzivatel_id != current_user.id:
+        flash("Nemáš oprávnenie zmazať túto fotku.", "danger")
+        return redirect(url_for('inzerat.moj_bazar'))
+
+    # Zmaž súbor zo súborového systému
+    cesta = os.path.join(UPLOAD_FOLDER, fotka.nazov_suboru)
+    if os.path.exists(cesta):
+        os.remove(cesta)
+
+    # Zmaž z databázy
+    db.session.delete(fotka)
+    db.session.commit()
+
+    flash("🗑️ Fotka bola odstránená.", "success")
+    return redirect(url_for('inzerat.uprav_inzerat', inzerat_id=inzerat.id))
+
