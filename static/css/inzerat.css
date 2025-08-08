@@ -1,198 +1,257 @@
-.moj-bazar {
-  padding: 2rem;
-}
-
-.inzeraty-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.inzerat-box {
-  padding: 1rem;
-  border: 1px solid var(--hover);
-  border-radius: 10px;
-  background-color: #fff;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-
-.inzerat-box h4 {
-  margin-top: 0;
-  font-size: 1.2rem;
-}
-
-.inzerat-box p {
-  margin: 0.3rem 0;
-}
-
-.inzerat-box button {
-  padding: 0.5rem 1rem;
-  background-color: crimson;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.inzerat-box button:hover {
-  background-color: darkred;
-}
-.foto-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+/* ====== SPOLOČNÉ ====== */
+.zoznam-inzeratov {
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   margin-top: 1rem;
 }
 
-.foto-box {
-  position: relative;
-  border: 1px solid var(--hover);
-  border-radius: 0.5rem;
-  overflow: hidden;
+/* =======================
+   📦 FORMULÁR INZERÁTU (Pridať / Upraviť)
+   ======================= */
+.uprav-inzerat, 
+.pridaj-inzerat {
+  padding: 2rem;
 }
 
-.foto-box img {
-  width: 100%;
-  height: auto;
-  display: block;
+.uprav-inzerat h2,
+.pridaj-inzerat h2 {
+  margin-bottom: 1rem;
 }
 
-.foto-ovladanie {
-  position: absolute;
-  top: 0.2rem;
-  right: 0.2rem;
+.form-wrapper {
   display: flex;
-  gap: 0.2rem;
+  gap: 2rem;
+  align-items: flex-start;
+  width: 100%;
 }
 
-.foto-ovladanie button {
-  background: rgba(255, 255, 255, 0.8);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  padding: 2px 5px;
-}
+/* Ľavá strana formulár */
 .inzerat-form {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-sizing: border-box;
 }
 
-.inzerat-form input,
 .inzerat-form select,
+.inzerat-form input,
 .inzerat-form textarea {
-  width: 90%;
-  max-width: 100%;
+  width: 100%;
   padding: 0.5rem;
-  font-size: 1rem;
   border: 1px solid var(--hover);
-  border-radius: 0.5rem;
-  box-sizing: border-box;
+  border-radius: 6px;
+  font-size: 1rem;
 }
 
 .inzerat-form button {
-  background-color: var(--tlacidlo);
+  background: var(--tlacidlo);
   color: white;
-  width: 300px;
-  padding: 0.7rem 1rem;
+  padding: 0.6rem;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  display: block;
-  margin: 0.5rem;
-  margin-left: 190px;
 }
 
 .inzerat-form button:hover {
-  background-color: var(--hover);
+  background: var(--hover);
+}
+
+/* Pravá strana – Fotky */
+.foto-panel {
+  flex: 1;
+}
+
+.foto-panel h3 {
+  margin-bottom: 0.5rem;
+}
+
+.vlastne-tlacidlo {
+  display: inline-block;
+  background: var(--tlacidlo);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.vlastne-tlacidlo:hover {
+  background: var(--hover);
+}
+
+#nahlady-fotiek img,
+.existujuce-fotky img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--hover);
+}
+
+/* Kontajner na náhľady */
+#nahlady-fotiek,
+.existujuce-fotky {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* =======================
+   📜 MOJE AKTÍVNE INZERÁTY
+   ======================= */
+.moj-bazar {
+  padding: 2rem;
 }
 
 .zoznam-inzeratov {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  margin-top: 1rem;
-}
-
-.inzerat-box {
-  border: 1px solid var(--hover);
-  border-radius: 10px;
-  padding: 1rem;
-  background-color: #fff;
-  box-shadow: 0 0 8px rgba(0,0,0,0.05);
-}
-
-.inzerat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-
-.inzerat-akcie {
-  margin-top: 0.8rem;
-  display: flex;
   gap: 1rem;
 }
 
+.inzerat-rozlozenie {
+  display: flex;
+  justify-content: space-between;
+  border: 1px solid var(--hover);
+  border-radius: 8px;
+  padding: 1rem;
+  gap: 1rem;
+  background: white;
+}
+
+.inzerat-info {
+  flex: 1;
+}
+
+.inzerat-fotky-prava {
+  display: flex;
+  gap: 10px;
+}
+
+.inzerat-fotky-prava img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--hover);
+}
+
+.inzerat-akcie {
+  margin-top: 0.5rem;
+}
+
 .inzerat-akcie a {
+  display: inline-block;
+  margin-right: 0.5rem;
   color: var(--tlacidlo);
   text-decoration: none;
-  font-weight: bold;
 }
 
 .inzerat-akcie a:hover {
   text-decoration: underline;
 }
 
-.foto-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-top: 1rem;
+
+/* ===== MÔJ BAZÁR – rovnaký layout ako bazár, bez profilu ===== */
+.moj-bazar .bazar-card3 {
+  display: grid;
+  grid-template-columns: 180px 1fr 320px; /* ľavý | stred | fotky */
+  gap: .75rem;
+  padding: .7rem .9rem;
+  border: 1px solid var(--hover);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(0,0,0,.04);
+  align-items: start;
+  line-height: 1.25;
+}
+@media (max-width: 1200px){ .moj-bazar .bazar-card3{ grid-template-columns:160px 1fr 260px; } }
+@media (max-width: 960px) { .moj-bazar .bazar-card3{ grid-template-columns:140px 1fr; } }
+@media (max-width: 760px) { .moj-bazar .bazar-card3{ grid-template-columns:1fr; } }
+
+.moj-bazar .bazar-card3 p,
+.moj-bazar .bazar-card3 h1,
+.moj-bazar .bazar-card3 h2,
+.moj-bazar .bazar-card3 h3,
+.moj-bazar .bazar-card3 h4{ margin:0; }
+
+.moj-bazar .bazar-col1 { display:grid; gap:.4rem; }
+.moj-bazar .bazar-meta { display:flex; gap:.8rem; flex-wrap:wrap; font-size:.9rem; color:#6b7280; }
+.moj-bazar .bazar-chip{ display:inline-flex; align-items:center; gap:.35rem; }
+
+.moj-bazar .bazar-col2{ display:grid; gap:.35rem; }
+.moj-bazar .bazar-topline{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:.5rem; }
+.moj-bazar .bazar-title{ font-weight:700; font-size:.98rem; }
+.moj-bazar .bazar-price{ white-space:nowrap; font-weight:600; }
+.moj-bazar .bazar-desc{
+  font-size:.92rem; color:#374151;
+  display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;
 }
 
-.foto-box {
-  position: relative;
+/* fotky vpravo */
+.moj-bazar .bazar-col3{ display:flex; justify-content:flex-end; align-items:center; gap:.5rem; overflow:hidden; }
+.moj-bazar .bazar-col3 img{ width:56px; height:56px; object-fit:cover; border-radius:6px; border:1px solid #e5e7eb; }
+
+/* tlačidlá Upraviť/Zmazať v druhom stĺpci */
+.moj-bazar .inzerat-akcie{
+  display:flex; gap:.6rem; margin-top:.4rem;
+}
+.moj-bazar .inzerat-akcie a{
+  padding:.35rem .55rem; border-radius:8px; border:1px solid #e5e7eb;
+  text-decoration:none; color:var(--tlacidlo); font-weight:600; font-size:.92rem;
+}
+.moj-bazar .inzerat-akcie a:hover{ background:#fafafa; border-color:#d1d5db; }
+
+
+/* ====== VEREJNÝ BAZÁR (kompaktné 3-stĺpcové karty) – scoped ====== */
+.bazar-page .inzerat-link { display: block; color: inherit; text-decoration: none; }
+
+.bazar-page .bazar-card3 {
+  display: grid;
+  grid-template-columns: 250px 1fr 350px;
+  gap: 0.75rem;
+  padding: .7rem .9rem;
+  border: 1px solid var(--hover);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(0,0,0,.04);
+  align-items: start;
+  line-height: 1.25;
+}
+@media (max-width: 1200px) { .bazar-page .bazar-card3 { grid-template-columns: 160px 1fr 260px; } }
+@media (max-width: 960px)  { .bazar-page .bazar-card3 { grid-template-columns: 140px 1fr; } }
+@media (max-width: 760px)  { .bazar-page .bazar-card3 { grid-template-columns: 1fr; } }
+
+.bazar-page .bazar-card3 p,
+.bazar-page .bazar-card3 h1,
+.bazar-page .bazar-card3 h2,
+.bazar-page .bazar-card3 h3,
+.bazar-page .bazar-card3 h4,
+.bazar-page .bazar-card3 h5,
+.bazar-page .bazar-card3 h6 { margin: 0; }
+
+.bazar-page .bazar-col1 { display: grid; grid-template-rows: auto auto; gap: .4rem; }
+.bazar-page .bazar-profile { display: flex; align-items: center; gap: .5rem; }
+.bazar-page .bazar-profile img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1px solid #e5e7eb; }
+.bazar-page .bazar-nick { font-size: .9rem; color: #6b7280; }
+.bazar-page .bazar-meta { display: flex; gap: .8rem; align-items: center; flex-wrap: wrap; font-size: .9rem; color: #6b7280; }
+.bazar-page .bazar-chip { display: inline-flex; align-items: center; gap: .35rem; }
+
+.bazar-page .bazar-col2 { display: grid; gap: .35rem; }
+.bazar-page .bazar-topline { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .5rem; }
+.bazar-page .bazar-title { font-weight: 700; font-size: .98rem; }
+.bazar-page .bazar-price { white-space: nowrap; font-weight: 600; }
+.bazar-page .bazar-desc {
+  font-size: .92rem; color: #374151;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
 
-.foto-box img {
-  width: 120px;
-  height: auto;
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+.bazar-page .bazar-col3 { display: flex; justify-content: flex-end; align-items: center; gap: .5rem; overflow: hidden; }
+.bazar-page .bazar-col3 img { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; }
+.bazar-page .more-badge {
+  display:flex; align-items:center; justify-content:center;
+  width:56px; height:56px; border:1px dashed #d1d5db; border-radius:6px; font-size:.85rem; color:#6b7280;
 }
 
-.foto-box form {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-}
-
-.foto-box button {
-  background: crimson;
-  border: none;
-  color: white;
-  border-radius: 50%;
-  padding: 4px 8px;
-  cursor: pointer;
-}
-.vlastne-tlacidlo {
-  display: inline-block;
-  padding: 0.6rem 1.2rem;
-  background-color: var(--tlacidlo);
-  color: white;
-  font-weight: bold;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border: none;
-}
-
-.vlastne-tlacidlo:hover {
-  background-color: var(--hover);
-}

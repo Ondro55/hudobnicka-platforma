@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Bazár | Muzikuj{% endblock %}
+
+{% block content %}
+<section class="komunita-wrapper bazar-page" style="padding: 2rem;">
+  <h2>🛒 Bazár</h2>
+
+  <!-- Filtre -->
+  <form method="GET" action="{{ url_for('inzerat.bazar_verejny') }}"
+        style="display:flex; gap:1rem; flex-wrap:wrap; margin: 1rem 0;">
+    <select name="typ">
+      <option value="">Typ (všetko)</option>
+      {% for t in typy %}
+        <option value="{{ t }}" {% if vybrany_typ == t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="kategoria">
+      <option value="">Kategória (všetko)</option>
+      {% for k in kategorie %}
+        <option value="{{ k }}" {% if vybrana_kategoria == k %}selected{% endif %}>{{ k }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="mesto">
+      <option value="">Mesto (všetko)</option>
+      {% for m in mesta %}
+        <option value="{{ m.id }}" {% if vybrane_mesto == m.id %}selected{% endif %}>{{ m.nazov }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit">Filtrovať</button>
+  </form>
+
+  {% if inzeraty %}
+  <div class="zoznam-inzeratov">
+    {% for inzerat in inzeraty %}
+      <a href="{{ url_for('inzerat.detail', inzerat_id=inzerat.id) }}" class="inzerat-link">
+        <div class="bazar-card3">
+          <!-- STĹPEC 1: hore nick+avatar, dole mesto+dátum -->
+          <div class="bazar-col1">
+            <div class="bazar-profile">
+              <img src="{{ url_for('static', filename='profilovky/' ~ inzerat.pouzivatel.profil_fotka) }}" alt="Profilová fotka" class="profilovka">
+
+              <span class="bazar-nick">@{{ inzerat.pouzivatel.prezyvka }}</span>
+            </div>
+            <div class="bazar-meta">
+              <span class="bazar-chip">📍 {{ inzerat.mesto_objekt.nazov if inzerat.mesto_objekt else inzerat.mesto }}</span>
+              <span class="bazar-chip">🕒 {{ inzerat.datum.strftime('%d.%m.%Y') }}</span>
+            </div>
+          </div>
+
+          <!-- STĹPEC 2: názov + cena, pod tým popis -->
+          <div class="bazar-col2">
+            <div class="bazar-topline">
+              <h4 class="bazar-title">{{ inzerat.typ }} – {{ inzerat.kategoria }}</h4>
+              <div class="bazar-price">💶 {{ '%.2f'|format(inzerat.cena or 0) }} €</div>
+            </div>
+            <p class="bazar-desc">{{ inzerat.popis }}</p>
+          </div>
+
+          <!-- STĹPEC 3: fotky -->
+          <div class="bazar-col3">
+            {% if inzerat.fotky %}
+              {% for foto in inzerat.fotky[:5] %}
+                <img src="{{ url_for('static', filename='galeria_inzerat/' ~ foto.nazov_suboru) }}" alt="foto">
+              {% endfor %}
+              {% if inzerat.fotky|length > 5 %}
+                <div class="more-badge">+{{ inzerat.fotky|length - 5 }}</div>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>Zatiaľ žiadne inzeráty podľa zvolených filtrov.</p>
+{% endif %}
+
+</section>
+{% endblock %}
+

@@ -50,7 +50,7 @@
         <a href="{{ url_for('uzivatel.profil') }}">Domov</a>
         <a href="{{ url_for('dopyty.zobraz_dopyty') }}">📬 Dopyty</a> 
         <a href="#" id="show-band-form">🎵 Kapely</a>
-        <a href="#" id="show-inzerat">🛍️ Bazár</a>
+        <a href="{{ url_for('inzerat.bazar_verejny') }}">🛒 Bazár</a>
         <a href="{{ url_for('komunita.komunita') }}">Komunita</a>
         <a href="#">e-shop</a>
         <a href="#kontakt">Kontakt</a>
@@ -104,7 +104,7 @@
 {% include 'modals/prihlasenie.html' %}
 {% include 'modals/registracia.html' %}
 {% include 'modals/dopyt.html' %}
-{% include 'modals/inzerat.html' %}
+
 
 
 <!-- 🕽️ KONTAKT -->

@@ -168,3 +168,47 @@ def zmaz_fotku(foto_id):
     flash("🗑️ Fotka bola odstránená.", "success")
     return redirect(url_for('inzerat.uprav_inzerat', inzerat_id=inzerat.id))
 
+@inzerat.route('/bazar')
+def bazar_verejny():
+    # vstupy z query stringu
+    page = request.args.get('page', 1, type=int)
+    typ = (request.args.get('typ') or '').strip() or None
+    kategoria = (request.args.get('kategoria') or '').strip() or None
+    mesto_id = request.args.get('mesto', type=int)
+
+    q = Inzerat.query
+
+    if typ:
+        q = q.filter(Inzerat.typ == typ)
+    if kategoria:
+        q = q.filter(Inzerat.kategoria == kategoria)
+    if mesto_id:
+        q = q.filter(Inzerat.mesto_id == mesto_id)
+
+    q = q.order_by(Inzerat.datum.desc())
+
+    # error_out=False -> nevyhodí 404 pri zlej page, dá prázdny výsledok
+    pagination = q.paginate(page=page, per_page=12, error_out=False)
+    inzeraty = pagination.items
+
+    # dáta pre filtre
+    typy = [t[0] for t in db.session.query(Inzerat.typ).distinct().all()]
+    kategorie = [k[0] for k in db.session.query(Inzerat.kategoria).distinct().all()]
+    mesta = Mesto.query.order_by(Mesto.nazov.asc()).all()
+
+    return render_template(
+        'bazar.html',
+        inzeraty=inzeraty,
+        pagination=pagination,
+        typy=typy,
+        kategorie=kategorie,
+        mesta=mesta,
+        vybrany_typ=typ,
+        vybrana_kategoria=kategoria,
+        vybrane_mesto=mesto_id
+    )
+
+@inzerat.route('/bazar/<int:inzerat_id>')
+def detail(inzerat_id):
+    inz = Inzerat.query.get_or_404(inzerat_id)
+    return render_template('detail_inzeratu.html', inzerat=inz)

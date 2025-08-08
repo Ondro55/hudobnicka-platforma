@@ -66,37 +66,54 @@
 
 <hr>
 
-<h2>Moje aktívne inzeráty</h2>
+<section class="moj-bazar">
+  <h2>Moje aktívne inzeráty</h2>
 
-{% if inzeraty %}
-  <div class="zoznam-inzeratov">
-    {% for inzerat in inzeraty %}
-      <div class="inzerat-box">
-        <div class="inzerat-header">
-            {{ inzerat.typ }} – {{ inzerat.kategoria }}
-        </div>
-        <p>{{ inzerat.popis }}</p>
-        <p>📍 {{ inzerat.mesto.nazov }} | 💶 {{ inzerat.cena }} €</p>
-        <small>🕒 Pridané: {{ inzerat.datum.strftime('%d.%m.%Y') }}</small>
-        {% if inzerat.fotky %}
-          <div class="inzerat-fotky">
-            {% for foto in inzerat.fotky %}
-              <img src="{{ url_for('static', filename='galeria_inzerat/' ~ foto.nazov_suboru) }}" alt="Náhľad" style="width: 150px; border-radius: 6px; margin: 5px;">
-            {% endfor %}
+  {% if inzeraty %}
+    <div class="zoznam-inzeratov">
+      {% for inzerat in inzeraty %}
+        <div class="bazar-card3">
+          
+          <!-- STĹPEC 1: meta údaje -->
+          <div class="bazar-col1">
+            <div class="bazar-meta">
+              <span class="bazar-chip">📍 {{ inzerat.mesto_objekt.nazov if inzerat.mesto_objekt else inzerat.mesto }}</span>
+              <span class="bazar-chip">🕒 {{ inzerat.datum.strftime('%d.%m.%Y') }}</span>
+            </div>
           </div>
-        {% endif %}
 
+          <!-- STĹPEC 2: názov, cena, popis, akcie -->
+          <div class="bazar-col2">
+            <div class="bazar-topline">
+              <h4 class="bazar-title">{{ inzerat.typ }} – {{ inzerat.kategoria }}</h4>
+              <div class="bazar-price">💶 {{ '%.2f'|format(inzerat.cena or 0) }} €</div>
+            </div>
 
-        <div class="inzerat-akcie">
-          <a href="{{ url_for('inzerat.uprav_inzerat', inzerat_id=inzerat.id) }}">✏️ Upraviť</a>
-          <a href="{{ url_for('inzerat.zmaz_inzerat', inzerat_id=inzerat.id) }}" onclick="return confirm('Naozaj chceš zmazať tento inzerát?')">🗑️ Zmazať</a>
+            <p class="bazar-desc">{{ inzerat.popis }}</p>
+
+            <div class="inzerat-akcie">
+              <a href="{{ url_for('inzerat.uprav_inzerat', inzerat_id=inzerat.id) }}">✏️ Upraviť</a>
+              <a href="{{ url_for('inzerat.zmaz_inzerat', inzerat_id=inzerat.id) }}"
+                 onclick="return confirm('Naozaj chceš zmazať tento inzerát?')">🗑️ Zmazať</a>
+            </div>
+          </div>
+
+          <!-- STĹPEC 3: fotky -->
+          <div class="bazar-col3">
+            {% if inzerat.fotky %}
+              {% for foto in inzerat.fotky %}
+                <img src="{{ url_for('static', filename='galeria_inzerat/' ~ foto.nazov_suboru) }}" alt="foto">
+              {% endfor %}
+            {% endif %}
+          </div>
+
         </div>
-      </div>
-    {% endfor %}
-  </div>
-{% else %}
-  <p>Nemáš zatiaľ žiadne inzeráty.</p>
-{% endif %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>Nemáš zatiaľ žiadne inzeráty.</p>
+  {% endif %}
+</section>
 
 <script>
   const input = document.getElementById('fotky-input');
