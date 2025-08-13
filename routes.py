@@ -26,8 +26,9 @@ def allowed_file(filename):
 # ✅ HLAVNÁ STRÁNKA
 @bp.route('/')
 def index():
-    print(">>> routes.py - index <<<")
-    return render_template('index.html', skupina=None)
+    zobraz_formular = request.args.get('zobraz_formular')
+    return render_template('index.html', skupina=None, zobraz_formular=zobraz_formular)
+
 
 
 # ✅ PRIHLÁSENIE

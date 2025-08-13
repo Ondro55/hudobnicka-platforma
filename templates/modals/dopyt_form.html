@@ -1,0 +1,158 @@
+<!-- templates/modals/dopyt_form.html -->
+<section class="komunita-wrapper dopyt-form-page" style="padding:2rem;">
+  <h2>🔎 Pridať dopyt</h2>
+  <p style="opacity:.85; margin:.25rem 0 1rem;">
+    Vyplň čo hľadáš (kapela, DJ, moderátor…), termín a miesto. Registrovaní členovia si tvoj dopyt uvidia a môžu reagovať.
+  </p>
+
+  <form method="POST" action="{{ url_for('dopyty.pridaj_dopyt') }}" novalidate>
+    <!-- Čo hľadáš -->
+    <label for="typ_akcie">Čo hľadáš? <span style="color:crimson;">*</span></label>
+    <input type="text" id="typ_akcie" name="typ_akcie" placeholder="Kapela, DJ, moderátor, tanečník…" required>
+
+    <!-- Termín -->
+    <div class="row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:.75rem;">
+      <div>
+        <label for="datum">Dátum</label>
+        <input type="date" id="datum" name="datum">
+      </div>
+      <div>
+        <label for="cas_od">Čas od</label>
+        <input type="time" id="cas_od" name="cas_od">
+      </div>
+      <div>
+        <label for="cas_do">Čas do</label>
+        <input type="time" id="cas_do" name="cas_do">
+      </div>
+    </div>
+
+    <!-- Miesto (kraj/okres/obec) -->
+    <div class="row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:.75rem;">
+      <div>
+        <label for="kraj">Kraj</label>
+        <input type="text" id="kraj" name="kraj" placeholder="Bratislavský">
+      </div>
+      <div>
+        <label for="okres">Okres</label>
+        <input type="text" id="okres" name="okres" placeholder="BA I">
+      </div>
+      <div>
+        <label for="obec">Obec/Mesto</label>
+        <input type="text" id="obec" name="obec" placeholder="Gelnica / Očová">
+      </div>
+    </div>
+
+    <!-- Rozpočet -->
+    <label for="rozpocet" style="margin-top:.75rem;">Rozpočet (max, €)</label>
+    <input type="number" id="rozpocet" name="rozpocet" min="0" step="1" placeholder="napr. 500">
+
+    <!-- Popis -->
+    <label for="popis" style="margin-top:.75rem;">Popis</label>
+    <textarea id="popis" name="popis" rows="5" placeholder="Napíš detaily: typ akcie, žáner, dĺžka vystúpenia…"></textarea>
+
+    <!-- Kontakt -->
+    <div class="row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:.75rem;">
+      <div>
+        <label for="meno">Meno <span style="color:crimson;">*</span></label>
+        <input type="text" id="meno" name="meno"
+               value="{% if current_user.is_authenticated %}{{ current_user.prezyvka or '' }}{% endif %}"
+               required>
+      </div>
+      <div>
+        <label for="email">Email <span style="color:crimson;">*</span></label>
+        <input type="email" id="email" name="email"
+               value="{% if current_user.is_authenticated %}{{ current_user.email or '' }}{% endif %}"
+               required>
+      </div>
+    </div>
+
+    <!-- Anti-spam (honeypot) -->
+    <input type="text" name="website" autocomplete="off" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;">
+
+    <div class="actions" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;">
+      <button type="submit" class="btn primary">Odoslať dopyt</button>
+      <a href="{{ url_for('dopyty.zobraz_dopyty') }}" class="btn">Zrušiť</a>
+    </div>
+  </form>
+</section>
+
+<script>
+(function(){
+  const form = document.querySelector('.dopyt-form-page form');
+  if (!form) return;
+
+  const submitBtn = form.querySelector('.actions .btn.primary');
+
+  function clearError(input){
+    input.removeAttribute('aria-invalid');
+    const next = input.nextElementSibling;
+    if (next && next.classList.contains('field-error')) next.remove();
+  }
+  function setError(input, msg){
+    clearError(input);
+    const hint = document.createElement('div');
+    hint.className = 'field-error';
+    hint.textContent = msg;
+    hint.style.color = 'crimson';
+    hint.style.fontSize = '.9rem';
+    hint.style.marginTop = '.25rem';
+    input.setAttribute('aria-invalid','true');
+    input.insertAdjacentElement('afterend', hint);
+  }
+
+  function validate(){
+    let ok = true;
+
+    const typ = form.typ_akcie;
+    const meno = form.meno;
+    const email = form.email;
+    const rozpocet = form.rozpocet;
+    const casOd = form.cas_od;
+    const casDo = form.cas_do;
+    const honeypot = form.website;
+
+    [typ, meno, email, rozpocet, casOd, casDo].forEach(i => i && clearError(i));
+
+    // honeypot
+    if (honeypot && honeypot.value.trim() !== '') ok = false;
+
+    // povinné polia
+    if (!typ.value.trim()){ setError(typ, 'Prosím, napíš čo hľadáš.'); ok = false; }
+    if (!meno.value.trim()){ setError(meno, 'Prosím, uveď meno.'); ok = false; }
+
+    const emailVal = email.value.trim();
+    if (!emailVal){ setError(email, 'Prosím, uveď email.'); ok = false; }
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)){ setError(email, 'Email nemá správny tvar.'); ok = false; }
+
+    // rozpočet (ak je, musí byť ≥ 0)
+    if (rozpocet.value.trim()){
+      const v = Number(rozpocet.value.replace(',', '.'));
+      if (isNaN(v) || v < 0){ setError(rozpocet, 'Rozpočet musí byť číslo ≥ 0.'); ok = false; }
+      else rozpocet.value = String(v);
+    }
+
+    // poradie časov
+    if (casOd.value && casDo.value && casOd.value >= casDo.value){
+      setError(casDo, 'Čas „do“ musí byť neskôr ako „od“.'); ok = false;
+    }
+
+    return ok;
+  }
+
+  form.addEventListener('submit', function(e){
+    if (!validate()){
+      e.preventDefault();
+      const firstErr = form.querySelector('.field-error');
+      if (firstErr){
+        (firstErr.previousElementSibling || firstErr).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+    // zabráň dvojitému odoslaniu
+    const origText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Odosielam…';
+    setTimeout(() => { try { submitBtn.disabled = false; submitBtn.textContent = origText; } catch(_){} }, 10000);
+  });
+})();
+</script>

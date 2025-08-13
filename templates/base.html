@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html lang="sk">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Muzikuj{% endblock %}</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Muzikuj{% endblock %}</title>
 
-    <!-- Štýly -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/profil.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/skupina.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/vyskakovacie_okno.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/kalendar.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/inzerat.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/inzerat.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/komunita.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Open+Sans&display=swap" rel="stylesheet" />
+  <!-- Štýly -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/profil.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/skupina.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vyskakovacie_okno.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/kalendar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/inzerat.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/komunita.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Open+Sans&display=swap" rel="stylesheet" />
 </head>
+
 <body data-zobraz="{{ zobraz_formular }}">
 
 <header class="hlavicka-grid">
@@ -24,44 +24,53 @@
   </div>
 
   <div class="box2">
-  <div class="box2-wrapper">
-    <div class="social-icons">
-      <a href="#"><img src="{{ url_for('static', filename='fb.png') }}" alt="Facebook"></a>
-      <a href="#"><img src="{{ url_for('static', filename='ig.png') }}" alt="Instagram"></a>
-    </div>
-    <div class="user-panel">
-      {% if current_user.is_authenticated %}
-        <span class="user-info">👋 {{ current_user.prezyvka }}</span>
-        <a href="{{ url_for('uzivatel.profil') }}" class="header-btn">Moje konto</a>
-        <a href="{{ url_for('main.logout') }}" class="header-btn logout-btn">Odhlásiť sa</a>
-      {% else %}
-        <a href="javascript:void(0);" id="btn-login" class="header-btn">Prihlásiť sa</a>
-        <a href="javascript:void(0);" id="btn-register" class="header-btn">Registrovať sa</a>
-      {% endif %}
+    <div class="box2-wrapper">
+      <div class="social-icons">
+        <a href="#"><img src="{{ url_for('static', filename='fb.png') }}" alt="Facebook"></a>
+        <a href="#"><img src="{{ url_for('static', filename='ig.png') }}" alt="Instagram"></a>
+      </div>
+
+      <div class="user-panel">
+        {% if current_user.is_authenticated %}
+          <span class="user-info">👋 {{ current_user.prezyvka }}</span>
+          <a href="{{ url_for('uzivatel.profil') }}" class="header-btn">Moje konto</a>
+          <a href="{{ url_for('main.logout') }}" class="header-btn logout-btn">Odhlásiť sa</a>
+        {% else %}
+          <!-- TLAČIDLÁ: bez href, otváranie cez data-modal-open -->
+          <button type="button" class="header-btn" data-modal-open="#modal-login">Prihlásiť sa</button>
+          <button type="button" class="header-btn" data-modal-open="#user-form-panel">Registrovať sa</button>
+        {% endif %}
+      </div>
     </div>
   </div>
-</div>
-
 
   <div class="box3">
     <button class="hamburger" onclick="toggleMenu()">☰</button>
     <div class="nav-wrapper">
       <nav class="main-nav">
         <a href="{{ url_for('uzivatel.profil') }}">Domov</a>
-        <a href="{{ url_for('dopyty.zobraz_dopyty') }}">📬 Dopyty</a> 
-        <a href="#" id="show-band-form">🎵 Kapely</a>
-        <a href="{{ url_for('inzerat.bazar_verejny') }}">🛒 Bazár</a>
-        <a href="{{ url_for('komunita.komunita') }}">Komunita</a>
-        <a href="#">e-shop</a>
-        <a href="#kontakt">Kontakt</a>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('dopyty.zobraz_dopyty') }}">📬 Dopyty</a>
+          <a href="#" id="show-band-form">🎵 Kapely</a>
+          <a href="{{ url_for('inzerat.bazar_verejny') }}">🛒 Bazár</a>
+          <a href="{{ url_for('komunita.komunita') }}">Komunita</a>
+          <a href="#">e-shop</a>
+          <a href="#kontakt">Kontakt</a>
+        {% else %}
+          <!-- “Sivé” odkazy otvoria login modal -->
+          <a href="#" class="disabled-link" data-modal-open="#modal-login">📬 Dopyty</a>
+          <a href="#" class="disabled-link" data-modal-open="#modal-login">🎵 Kapely</a>
+          <a href="#" class="disabled-link" data-modal-open="#modal-login">🛒 Bazár</a>
+          <a href="#" class="disabled-link" data-modal-open="#modal-login">Komunita</a>
+          <a href="#">e-shop</a>
+          <a href="#kontakt">Kontakt</a>
+        {% endif %}
       </nav>
     </div>
   </div>
 </header>
 
-<!-- HLAVNÝ OBSAH -->
 <div class="button-container">
-
   {% if current_user.is_authenticated and request.endpoint != 'index' %}
     <aside class="button-sidebar">
       <a href="{{ url_for('uzivatel.profil') }}" class="sidebar-btn {% if request.endpoint == 'uzivatel.profil' %}aktivne{% endif %}">👤 Profil</a>
@@ -73,15 +82,12 @@
   {% else %}
     <main class="main-no-sidebar">
   {% endif %}
-
-  {% block content %}{% endblock %}
-  </main>
+      {% block content %}{% endblock %}
+    </main>
 </div>
 
-<!-- Novinky musia byť mimo main, inak rozhodia layout -->
 {% include 'includes/novinky.html' %}
 
-<!-- Flash správy -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     <div id="flash-container">
@@ -92,29 +98,37 @@
   {% endif %}
 {% endwith %}
 
-<!-- Vitacie okno -->
 {% if zobraz_uvitanie %}
-<div id="uvitanie-popup" class="uvitanie-box">
-  <h2>🎉 Vitaj v komunite hudobníkov, {{ zobraz_uvitanie }}!</h2>
-  <p>Tvoj účet bol úspešne vytvorený.</p>
-</div>
+  <div id="uvitanie-popup" class="uvitanie-box">
+    <h2>🎉 Vitaj v komunite hudobníkov, {{ zobraz_uvitanie }}!</h2>
+    <p>Tvoj účet bol úspešne vytvorený.</p>
+  </div>
 {% endif %}
 
-<!-- 🕽️ MODÁLNE FORMULÁRE -->
+<!-- MODÁLNE FORMULÁRE -->
 {% include 'modals/prihlasenie.html' %}
 {% include 'modals/registracia.html' %}
-{% include 'modals/dopyt.html' %}
 
+<!-- 🧹 Dedup: ak by sa modaly vložili 2×, ponechaj poslednú -->
+<script>
+  (function () {
+    ['modal-login', 'user-form-panel', 'form-hladam-kapelu', 'form-inzerat'].forEach(id => {
+      const all = document.querySelectorAll('#' + id);
+      if (all.length > 1) {
+        all.forEach((el, i) => { if (i < all.length - 1) el.remove(); });
+        console.warn('⚠️ Removed duplicate modal:', id, 'had', all.length, 'copies');
+      }
+    });
+  })();
+</script>
 
-
-<!-- 🕽️ KONTAKT -->
 <section id="kontakt" class="kontakt">
   <h2>Kontaktujte nás</h2>
   <p>Ak máte otázky, návrhy alebo chcete pridať svoju skupinu/kapelu, ozvite sa:</p>
   <div class="kontakt-boxy">
     <div class="kontakt-box">
       <h3>Email</h3>
-      <p><a href="mailto:info@kapeluj.sk">info@muzikuj.sk</a></p>
+      <p><a href="mailto:info@muzikuj.sk">info@muzikuj.sk</a></p>
     </div>
     <div class="kontakt-box">
       <h3>Telefón</h3>
@@ -127,22 +141,80 @@
   </div>
 </section>
 
-<!-- 🕽️ PÄTIČka -->
 <footer>
   <p>&copy; 2025 Muzikuj.sk | Všetky práva vyhradené</p>
 </footer>
 
-<!-- JS -->
-{% if zobraz_formular == 'prihlasenie' %}
 <script>
-  window.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("modal-login").classList.add("open");
-  });
-</script>
-{% endif %}
+  // hamburger
+  function toggleMenu(){
+    const nav = document.querySelector('.main-nav');
+    if (nav) nav.classList.toggle('active');
+  }
 
+  // ✅ JEDEN správca modálov (delegácia + ESC + backdrop)
+  (function () {
+    const $  = (s, r=document) => r.querySelector(s);
+    const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+
+    // otvor POSLEDNÚ kópiu podľa selektora (ak by sa niekde ešte duplikovalo)
+    function openModal(selOrEl) {
+      let m = null;
+      if (typeof selOrEl === 'string') {
+        const all = $$(selOrEl);
+        m = all[all.length - 1] || null;
+      } else {
+        m = selOrEl;
+      }
+      if (!m) return;
+      m.classList.add('open');
+      requestAnimationFrame(() => {
+        const r = m.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) document.body.style.overflow = 'hidden';
+      });
+    }
+
+    function closeModal(el) {
+      const m = el?.closest?.('.modal-root') || el;
+      if (!m) return;
+      m.classList.remove('open');
+      if (!$('.modal-root.open')) document.body.style.overflow = '';
+    }
+
+    // Delegované kliky
+    document.addEventListener('click', (e) => {
+      const openBtn  = e.target.closest('[data-modal-open]');
+      const closeBtn = e.target.closest('[data-modal-close], .modal-close');
+      if (openBtn) { e.preventDefault(); openModal(openBtn.getAttribute('data-modal-open')); return; }
+      if (closeBtn){ e.preventDefault(); closeModal(closeBtn); return; }
+      // klik priamo na backdrop
+      if (e.target.classList && e.target.classList.contains('modal-root')) {
+        e.preventDefault(); closeModal(e.target);
+      }
+    });
+
+    // ESC zatvorí všetky otvorené
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') $$('.modal-root.open').forEach(m => closeModal(m));
+    });
+
+    // Auto-open podľa data-zobraz
+    document.addEventListener('DOMContentLoaded', () => {
+      const z = document.body.getAttribute('data-zobraz');
+      if (z === 'prihlasenie') openModal('#modal-login');
+      if (z === 'uzivatel')    openModal('#user-form-panel');
+
+      // ak existuje tlačidlo „Nájdi kapelu“ a panel, prepoj ho
+      const bandBtn = document.getElementById('show-band-form');
+      if (bandBtn && $('#form-hladam-kapelu')) {
+        bandBtn.setAttribute('data-modal-open', '#form-hladam-kapelu');
+      }
+    });
+  })();
+</script>
+
+<!-- projektové skripty -->
 <script src="{{ url_for('static', filename='main.js') }}" defer></script>
 <script src="{{ url_for('static', filename='vyskakovacie_okno.js') }}" defer></script>
-
 </body>
 </html>

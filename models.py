@@ -169,3 +169,16 @@ class Mesto(db.Model):
 
     def __repr__(self):
         return f"{self.nazov} ({self.okres}, {self.kraj})"
+
+class Sprava(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    obsah = db.Column(db.Text, nullable=False)
+    datum = db.Column(db.DateTime, default=datetime.utcnow)
+
+    od_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False)
+    komu_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False)
+    inzerat_id = db.Column(db.Integer, db.ForeignKey('inzerat.id'), nullable=False)
+
+    od = db.relationship('Pouzivatel', foreign_keys=[od_id])
+    komu = db.relationship('Pouzivatel', foreign_keys=[komu_id])
+    inzerat = db.relationship('Inzerat', backref='spravy')

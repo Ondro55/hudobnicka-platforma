@@ -3,7 +3,83 @@
 
 {% block content %}
 <section class="komunita-wrapper bazar-page" style="padding: 2rem;">
-  <h2>🛒 Bazár</h2>
+  <h2>🛒 Detail inzerátu</h2>
+
+  {% if detail_inz %}
+    <a href="{{ url_for('inzerat.bazar_verejny') }}" class="link-spat">← Späť na bazár</a>
+    <header class="detail-head">
+    <h1>{{ detail_inz.typ }} – {{ detail_inz.kategoria }}</h1>
+    <div class="meta">
+      <span>💶 {{ '%.2f'|format(detail_inz.cena or 0) }} €</span>
+      <span>📍 {{ detail_inz.mesto_objekt.nazov if detail_inz.mesto_objekt else detail_inz.mesto }}</span>
+      <span>🚚 {{ detail_inz.doprava or '—' }}</span>
+      <span>🕒 {{ detail_inz.datum.strftime('%d.%m.%Y') }}</span>
+    </div>
+
+    <div class="cta-wrap">
+      {% if current_user.is_authenticated %}
+        {% if current_user.id != detail_inz.pouzivatel_id %}
+          <button type="button" class="btn primary" id="btn-reakcia">✉️ Poslať správu</button>
+        {% endif %}
+      {% else %}
+        <a class="btn primary" href="{{ url_for('uzivatel.login') }}">✉️ Prihlás sa a reaguj</a>
+      {% endif %}
+    </div>
+  </header>
+
+  {# MODÁL – len pre prihlásených a nie vlastný inzerát #}
+  {% if current_user.is_authenticated and current_user.id != detail_inz.pouzivatel_id %}
+  <div class="modal" id="modal-reakcia" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <h3>Správa pre @{{ detail_inz.pouzivatel.prezyvka }}</h3>
+        <button type="button" class="modal__close" aria-label="Zavrieť">✖</button>
+      </div>
+      <form method="POST" action="{{ url_for('inzerat.poslat_spravu', inzerat_id=detail_inz.id) }}">
+        <textarea name="obsah" rows="5" placeholder="Dobrý deň, mám záujem o váš inzerát..." required></textarea>
+        <div class="modal__actions">
+          <button type="submit" class="btn primary">Odoslať</button>
+          <button type="button" class="btn" id="modal-cancel">Zrušiť</button>
+        </div>
+      </form>
+    </div>
+    <div class="modal__backdrop"></div>
+  </div>
+  {% endif %}
+
+
+    {% if detail_inz.popis %}
+      <article class="popis" style="margin:1rem 0 1.5rem;">
+        <h3>Popis</h3>
+        <p>{{ detail_inz.popis }}</p>
+      </article>
+    {% endif %}
+
+    <section class="galeria">
+      <h3>Fotky</h3>
+      <div class="thumbs">
+        {% if detail_inz.fotky %}
+          {% for f in detail_inz.fotky %}
+            <img class="thumb"
+                src="{{ url_for('static', filename='galeria_inzerat/' ~ f.nazov_suboru) }}"
+                alt="Foto {{ loop.index }}"
+                data-idx="{{ loop.index0 }}">
+          {% endfor %}
+        {% else %}
+          <p>Žiadne fotky.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    {# Lightbox overlay #}
+    <div id="lb" class="lb" aria-hidden="true">
+      <button type="button" class="lb-close" aria-label="Zavrieť">✖</button>
+      <button type="button" class="lb-btn lb-prev" aria-label="Predošlá">‹</button>
+      <img id="lb-img" alt="Náhľad">
+      <button type="button" class="lb-btn lb-next" aria-label="Ďalšia">›</button>
+    </div>
+
+  {% else %}
 
   <!-- Filtre -->
   <form method="GET" action="{{ url_for('inzerat.bazar_verejny') }}"
@@ -35,13 +111,12 @@
   {% if inzeraty %}
   <div class="zoznam-inzeratov">
     {% for inzerat in inzeraty %}
-      <a href="{{ url_for('inzerat.detail', inzerat_id=inzerat.id) }}" class="inzerat-link">
+      <a href="{{ url_for('inzerat.bazar_detail', inzerat_id=inzerat.id) }}" class="inzerat-link">
         <div class="bazar-card3">
           <!-- STĹPEC 1: hore nick+avatar, dole mesto+dátum -->
           <div class="bazar-col1">
             <div class="bazar-profile">
               <img src="{{ url_for('static', filename='profilovky/' ~ inzerat.pouzivatel.profil_fotka) }}" alt="Profilová fotka" class="profilovka">
-
               <span class="bazar-nick">@{{ inzerat.pouzivatel.prezyvka }}</span>
             </div>
             <div class="bazar-meta">
@@ -74,10 +149,74 @@
       </a>
     {% endfor %}
   </div>
-{% else %}
-  <p>Zatiaľ žiadne inzeráty podľa zvolených filtrov.</p>
-{% endif %}
+  {% else %}
+    <p>Zatiaľ žiadne inzeráty podľa zvolených filtrov.</p>
+  {% endif %}
+
+  {% endif %}  {# ← TOTO zatvára {% if detail_inz %} #}
 
 </section>
+<script>
+(function(){
+  const thumbs = Array.from(document.querySelectorAll('.thumbs .thumb'));
+  if (!thumbs.length) return;
+
+  const lb = document.getElementById('lb');
+  const lbImg = document.getElementById('lb-img');
+  const btnClose = lb.querySelector('.lb-close');
+  const btnPrev = lb.querySelector('.lb-prev');
+  const btnNext = lb.querySelector('.lb-next');
+  const sources = thumbs.map(t => t.getAttribute('src'));
+  let i = 0;
+
+  function openAt(idx){
+    i = idx;
+    lbImg.src = sources[i];
+    lb.classList.add('open');
+    lb.setAttribute('aria-hidden','false');
+    document.body.style.overflow = 'hidden';
+  }
+  function close(){
+    lb.classList.remove('open');
+    lb.setAttribute('aria-hidden','true');
+    lbImg.src = '';
+    document.body.style.overflow = '';
+  }
+  function prev(){ i = (i - 1 + sources.length) % sources.length; lbImg.src = sources[i]; }
+  function next(){ i = (i + 1) % sources.length; lbImg.src = sources[i]; }
+
+  thumbs.forEach(t => t.addEventListener('click', e => openAt(parseInt(t.dataset.idx, 10))));
+  btnClose.addEventListener('click', close);
+  btnPrev.addEventListener('click', prev);
+  btnNext.addEventListener('click', next);
+  lb.addEventListener('click', e => { if (e.target === lb) close(); });
+  document.addEventListener('keydown', e => {
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') prev();
+    if (e.key === 'ArrowRight') next();
+  });
+})();
+</script>
+<script>
+(function(){
+  const btn = document.getElementById('btn-reakcia');
+  const modal = document.getElementById('modal-reakcia');
+  if (!btn || !modal) return;
+
+  const closeBtn = modal.querySelector('.modal__close');
+  const cancelBtn = document.getElementById('modal-cancel');
+  const backdrop = modal.querySelector('.modal__backdrop');
+
+  function open(){ modal.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function close(){ modal.classList.remove('open'); document.body.style.overflow = ''; }
+
+  btn.addEventListener('click', open);
+  [closeBtn, cancelBtn, backdrop].forEach(el => el && el.addEventListener('click', close));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('open')) close(); });
+})();
+</script>
+
 {% endblock %}
+
 

@@ -209,6 +209,52 @@ def bazar_verejny():
     )
 
 @inzerat.route('/bazar/<int:inzerat_id>')
-def detail(inzerat_id):
+def bazar_detail(inzerat_id):
+    detail_inz = Inzerat.query.get_or_404(inzerat_id)
+    # dáta pre filtre (rovnaké ako v bazar_verejny)
+    typy = [t[0] for t in db.session.query(Inzerat.typ).distinct().all()]
+    kategorie = [k[0] for k in db.session.query(Inzerat.kategoria).distinct().all()]
+    mesta = Mesto.query.order_by(Mesto.nazov.asc()).all()
+
+    # prázdna paginácia/zoznam, lebo ideme zobraziť detail
+    return render_template(
+        'bazar.html',
+        inzeraty=[],
+        pagination=None,
+        typy=typy,
+        kategorie=kategorie,
+        mesta=mesta,
+        vybrany_typ=None,
+        vybrana_kategoria=None,
+        vybrane_mesto=None,
+        detail_inz=detail_inz    # ← kľúčové
+    )
+
+@inzerat.route('/bazar/<int:inzerat_id>/sprava', methods=['POST'])
+@login_required
+def poslat_spravu(inzerat_id):
+    from models import Sprava, Inzerat, db
     inz = Inzerat.query.get_or_404(inzerat_id)
-    return render_template('detail_inzeratu.html', inzerat=inz)
+
+    # nedovoľ poslať správu sám sebe
+    if inz.pouzivatel_id == current_user.id:
+        flash("Na vlastný inzerát nie je potrebné reagovať 😉", "info")
+        return redirect(url_for('inzerat.bazar_detail', inzerat_id=inz.id))
+
+    obsah = (request.form.get('obsah') or '').strip()
+    if not obsah:
+        flash("Správa nemôže byť prázdna.", "warning")
+        return redirect(url_for('inzerat.bazar_detail', inzerat_id=inz.id))
+
+    s = Sprava(
+        obsah=obsah,
+        od_id=current_user.id,
+        komu_id=inz.pouzivatel_id,
+        inzerat_id=inz.id
+    )
+    db.session.add(s)
+    db.session.commit()
+    flash("Správa bola odoslaná.", "success")
+    return redirect(url_for('inzerat.bazar_detail', inzerat_id=inz.id))
+
+

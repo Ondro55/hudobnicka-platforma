@@ -1,0 +1,60 @@
+/* Dopyt – formulár (dopyt.html) */
+.dopyt-form-page {
+  padding: 2rem;
+}
+
+/* Karta formulára */
+.dopyt-form-page form {
+  max-width: 880px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid var(--hover, #e6e6e6);
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,.06);
+}
+
+/* Nadpis + popis */
+.dopyt-form-page h2 {
+  margin: 0 0 .5rem 0;
+}
+.dopyt-form-page p {
+  max-width: 880px;
+  margin: .25rem auto 1rem auto;
+}
+
+/* Labely + polia */
+.dopyt-form-page label {
+  display: block;
+  font-weight: 600;
+  margin: .5rem 0 .35rem 0;
+}
+
+.dopyt-form-page input[type="text"],
+.dopyt-form-page input[type="email"],
+.dopyt-form-page input[type="date"],
+.dopyt-form-page input[type="time"],
+.dopyt-form-page input[type="number"],
+.dopyt-form-page textarea {
+  width: 100%;
+  border: 1px solid var(--hover, #dadada);
+  border-radius: 10px;
+  padding: .6rem .75rem;
+  font-size: 1rem;
+  line-height: 1.3;
+  background: #fff;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.dopyt-form-page textarea {
+  min-height: 140px;
+}
+
+.dopyt-form-page input:focus,
+.dopyt-form-page textarea:focus {
+  outline: none;
+  border-color: var(--tlacidlo, #2b7cff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tlacidlo, #2b7cff) 20%, transparent);
+}
+
+/* Riadky (grid) –*

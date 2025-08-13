@@ -1,52 +1,6 @@
-<!-- modals/dopyt.html -->
-<div id="form-hladam-kapelu" class="form-panel">
-  <span id="close-hladam-kapelu" class="close">&times;</span>
 
-  <form method="POST" action="{{ url_for('dopyty.pridaj_dopyt') }}">
-    <label for="typ_akcie">Typ akcie:</label>
-    <select name="typ_akcie" required>
-      <option value="">-- Vyber typ akcie --</option>
-      <option>Svadba</option>
-      <option>Oslava</option>
-      <option>Festival</option>
-      <option>Firemná akcia</option>
-      <option>Iné</option>
-    </select>
+{% block title %}Pridať dopyt | Muzikuj{% endblock %}
 
-    <label for="datum">Dátum:</label>
-    <input type="date" name="datum">
-
-    <label for="cas_od">Čas od:</label>
-    <input type="time" name="cas_od">
-
-    <label for="cas_do">Čas do:</label>
-    <input type="time" name="cas_do">
-
-    <label for="kraj">Kraj:</label>
-    <select name="kraj" required>
-      <option value="">-- Vyber kraj --</option>
-      <option>Bratislavský</option>
-      <option>Trnavský</option>
-      <option>Trenčiansky</option>
-      <option>Nitriansky</option>
-      <option>Žilinský</option>
-      <option>Banskobystrický</option>
-      <option>Prešovský</option>
-      <option>Košický</option>
-    </select>
-
-    <label for="okres">Okres:</label>
-    <input type="text" name="okres">
-
-    <label for="obec">Obec / Mesto:</label>
-    <input type="text" name="obec">
-
-    <label for="rozpocet">Rozpočet (€):</label>
-    <input type="number" name="rozpocet" min="0" step="10">
-
-    <label for="popis">Popis:</label>
-    <textarea name="popis" rows="4"></textarea>
-
-    <button type="submit">Odoslať dopyt</button>
-  </form>
-</div>
+{% block content %}
+  {% include 'modals/dopyt_form.html' %}
+{% endblock %}

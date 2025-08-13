@@ -7,8 +7,17 @@
      🏠 HERO SEKCIA – ÚVOD
      ====================== -->
 <section class="hero-grid">
-  <div class="pulzujuci-kruh" id="show-dopyt-form" role="button" tabindex="0">
+  <!-- spúšťač v hero -->
+  <div class="pulzujuci-kruh" role="button" tabindex="0" data-modal-open="#form-hladam-kapelu">
     🔍 Nájdi si kapelu<br>Zadaj dopyt
+  </div>
+
+  <!-- NÁJDI KAPELU (HĽADÁM KAPELU) – MODAL -->
+  <div id="form-hladam-kapelu" class="modal-root" aria-hidden="true">
+    <div class="modal-card">
+      <button class="modal-close" aria-label="Zavrieť">×</button>
+      {% include 'modals/dopyt_form.html' %}
+    </div>
   </div>
 
   <div class="hero-uvod">
@@ -21,64 +30,6 @@
   </div>
 </section>
 
-<!-- ======================
-     🎶 FORMULÁR: HĽADÁM KAPELU
-     ====================== -->
-<div id="form-hladam-kapelu" class="form-panel">
-  {% include 'modals/dopyt.html' %}
-  <span id="close-hladam-kapelu" class="close-button">✖</span>
-</div>
 
-<!-- ======================
-     📢 FORMULÁR NA INZERÁT
-     ====================== -->
-<div id="form-inzerat" class="form-panel">
-  <button class="close-btn" id="close-inzerat">❌</button>
-  <h2>Pridať inzerát</h2>
-
-  <div class="auth-info">
-    <p>
-      Nie ste prihlásený? <a href="#" id="btn-login">Prihláste sa</a> alebo <a href="#" id="btn-register">zaregistrujte</a> sa.
-    </p>
-  </div>
-
-  <form method="POST" action="{{ url_for('inzerat.moj_bazar') }}">
-    <label for="typ">Typ inzerátu:</label>
-    <select id="typ" name="typ">
-      <option value="kupim">Kúpim</option>
-      <option value="predam">Predám</option>
-      <option value="vymenim">Vymením</option>
-    </select>
-
-    <label for="kategoria">Kategória:</label>
-    <select id="kategoria" name="kategoria">
-      <option value="klavesove">Klávesové nástroje</option>
-      <option value="strunove">Strunové nástroje</option>
-      <option value="dychove">Dychové nástroje</option>
-      <option value="bicie">Bicie nástroje</option>
-      <option value="ine">Iné</option>
-    </select>
-
-    <label for="fotky">Fotky (max 5):</label>
-    <input type="file" id="fotky" name="fotky" accept="image/*" multiple>
-
-    <label for="mesto">Mesto:</label>
-    <input type="text" id="mesto" name="mesto" required>
-
-    <label for="doprava">Doprava:</label>
-    <select id="doprava" name="doprava">
-      <option value="osobne">Osobne</option>
-      <option value="posta">Poštou/Kuriérom</option>
-    </select>
-
-    <label for="cena">Cena (€):</label>
-    <input type="number" id="cena" name="cena" min="0" step="0.01" required>
-
-    <label for="popis">Popis:</label>
-    <textarea id="popis" name="popis"></textarea>
-
-    <button type="submit" class="btn">Odoslať</button>
-  </form>
-</div>
 
 {% endblock %}

@@ -1,166 +1,80 @@
-console.log("🟢 main.js sa načítal!");
+// ======================
+// 🧰 Helpers
+// ======================
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+const show = el => el && el.classList.add('open');
+const hide = el => el && el.classList.remove('open');
+const closeAll = () => $$('.form-panel.open').forEach(hide);
 
-document.addEventListener("DOMContentLoaded", function () {
-  // ✅ VITANIE
-  const popup = document.getElementById("uvitanie-popup");
-  if (popup) {
-    setTimeout(() => popup.remove(), 6000);
-    document.addEventListener("click", () => popup.remove(), { once: true });
-  }
+// hamburger
+function toggleMenu(){ const n=$('.main-nav'); if(n) n.classList.toggle('active'); }
+window.toggleMenu = toggleMenu;
 
-  // ✅ HĽADÁM KAPELU
-  const showDopytBtn = document.querySelector("#show-dopyt-form");
-  const formDopyt = document.querySelector("#form-hladam-kapelu");
-  const closeDopytBtn = document.querySelector("#close-hladam-kapelu");
+// ======================
+// 🚀 Init
+// ======================
+document.addEventListener('DOMContentLoaded', () => {
+  // ------- DOPYT (Nájdi si kapelu) -------
+  const dopytBtn   = $('#show-dopyt-form');
+  const dopytPanel = $('#form-hladam-kapelu');
+  const dopytClose = $('#close-hladam-kapelu');
 
-  if (showDopytBtn && formDopyt) {
-    showDopytBtn.addEventListener("click", () => formDopyt.classList.add("open"));
-    showDopytBtn.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        formDopyt.classList.add("open");
-      }
+  if (dopytBtn && dopytPanel) {
+    on(dopytBtn, 'click', (e)=>{ e.preventDefault(); closeAll(); show(dopytPanel); });
+    on(dopytBtn, 'keydown', (e)=>{
+      if (e.key==='Enter' || e.key===' ') { e.preventDefault(); closeAll(); show(dopytPanel); }
     });
   }
-
-  if (closeDopytBtn && formDopyt) {
-    closeDopytBtn.addEventListener("click", () => formDopyt.classList.remove("open"));
-    window.addEventListener("click", (e) => {
-      if (e.target === formDopyt) {
-        formDopyt.classList.remove("open");
-      }
-    });
+  if (dopytPanel) {
+    on(dopytPanel, 'click', (e)=>{ if(e.target===dopytPanel) hide(dopytPanel); });
+    on(dopytClose, 'click', ()=> hide(dopytPanel));
   }
 
-  // ✅ REGISTRÁCIA UŽÍVATEĽA
-  const registerBtn = document.getElementById('btn-register');
-  const userFormPanel = document.getElementById('user-form-panel');
-  const closeUserForm = document.getElementById('close-user-form');
+  // ------- PRIHLÁSENIE -------
+  const btnLoginHdr = $('#btn-login');           // v hlavičke
+  const loginPanel  = $('#modal-login');
+  const closeLogin  = $('#close-login');
 
-  if (registerBtn && userFormPanel && closeUserForm) {
-    registerBtn.addEventListener('click', () => userFormPanel.classList.add('open'));
-    closeUserForm.addEventListener('click', () => userFormPanel.classList.remove('open'));
-    window.addEventListener('click', (e) => {
-      if (e.target === userFormPanel) {
-        userFormPanel.classList.remove('open');
-      }
-    });
+  if (btnLoginHdr && loginPanel) {
+    on(btnLoginHdr, 'click', (e)=>{ e.preventDefault(); closeAll(); show(loginPanel); });
+  }
+  // odkazy vo vnútri stránok (už bez ID)
+  $$('.open-login').forEach(a => on(a, 'click', (e)=>{ e.preventDefault(); closeAll(); show(loginPanel); }));
+
+  if (loginPanel) {
+    on(loginPanel, 'click', (e)=>{ if (e.target===loginPanel) hide(loginPanel); });
+    on(closeLogin, 'click', ()=> hide(loginPanel));
   }
 
-  // ✅ REGISTRÁCIA Skupiny
-  const showFormBtn = document.querySelector("#show-form");
-  const formPanel = document.querySelector("#form-panel");
-  const closeFormBtn = document.querySelector("#close-form");
+  // ------- REGISTRÁCIA -------
+  const btnRegHdr = $('#btn-register');          // v hlavičke
+  const regPanel  = $('#user-form-panel');
+  const closeReg  = $('#close-user-form');
 
-  if (showFormBtn && formPanel && closeFormBtn) {
-    showFormBtn.addEventListener("click", () => formPanel.classList.add("open"));
-    closeFormBtn.addEventListener("click", () => formPanel.classList.remove("open"));
-    window.addEventListener("click", function (e) {
-      if (e.target === formPanel) {
-        formPanel.classList.remove("open");
-      }
-    });
+  if (btnRegHdr && regPanel) {
+    on(btnRegHdr, 'click', (e)=>{ e.preventDefault(); closeAll(); show(regPanel); });
+  }
+  $$('.open-register').forEach(a => on(a, 'click', (e)=>{ e.preventDefault(); closeAll(); show(regPanel); }));
+
+  if (regPanel) {
+    on(regPanel, 'click', (e)=>{ if (e.target===regPanel) hide(regPanel); });
+    on(closeReg, 'click', ()=> hide(regPanel));
   }
 
-// ✅ ÚPRAVA SKUPINY – prepínanie zobrazenia a formulára
-  const editSkupinaBtn = document.querySelector("#editSkupinaBtn");
-  const editSkupinaForm = document.querySelector("#editSkupinaForm");
-  const udajeSkupina = document.querySelector("#udaje-zobraz-skupina");
-  const cancelEditSkupina = document.querySelector("#cancelEditSkupina");
+  // ------- Šedé linky pre neprihlásených -------
+  $$('.disabled-link').forEach(a => on(a, 'click', (e)=>{
+    e.preventDefault();
+    closeAll();
+    show(loginPanel);
+  }));
 
-  if (editSkupinaBtn && editSkupinaForm && udajeSkupina && cancelEditSkupina) {
-    editSkupinaBtn.addEventListener("click", function () {
-      editSkupinaForm.style.display = "block";
-      udajeSkupina.style.display = "none";
-    });
+  // ------- Auto-open z body[data-zobraz] -------
+  const flag = document.body.getAttribute('data-zobraz');
+  if (flag==='prihlasenie' && loginPanel){ closeAll(); show(loginPanel); }
+  if (flag==='uzivatel'    && regPanel)  { closeAll(); show(regPanel);  }
 
-    cancelEditSkupina.addEventListener("click", function () {
-      editSkupinaForm.style.display = "none";
-      udajeSkupina.style.display = "block";
-    });
-  }
-
-
-  // ✅ INZERÁT
-  const showInzeratBtn = document.querySelector("#show-inzerat");
-  const formInzerat = document.querySelector("#form-inzerat");
-  const closeInzeratBtn = document.querySelector("#close-inzerat");
-
-  if (showInzeratBtn && formInzerat && closeInzeratBtn) {
-    showInzeratBtn.addEventListener("click", () => formInzerat.classList.add("open"));
-    closeInzeratBtn.addEventListener("click", () => formInzerat.classList.remove("open"));
-    window.addEventListener("click", (e) => {
-      if (e.target === formInzerat) {
-        formInzerat.classList.remove("open");
-      }
-    });
-  }
-
-  // ✅ HESLO – prepínač
-  const toggleHeslo = document.querySelector("#toggle-heslo");
-  const hesloInput = document.querySelector("#heslo");
-
-  if (toggleHeslo && hesloInput) {
-    toggleHeslo.addEventListener("click", function () {
-      const typ = hesloInput.type === "password" ? "text" : "password";
-      hesloInput.type = typ;
-      this.textContent = typ === "text" ? "🙈" : "👁️";
-    });
-  }
-
-  // ✅ Výber iného nástroja
-  const instrumentSelect = document.querySelector("#instrument");
-  const ineBox = document.querySelector("#instrument-ine");
-
-  if (instrumentSelect && ineBox) {
-    instrumentSelect.addEventListener("change", function () {
-      if (this.value === "ine") {
-        ineBox.style.display = "block";
-      } else {
-        ineBox.style.display = "none";
-        const input = document.querySelector("#instrument_dalsi");
-        if (input) input.value = "";
-      }
-    });
-  }
-
-  // ✅ PRIHLÁSENIE
-  const loginBtn = document.getElementById('btn-login');
-  const loginModal = document.getElementById('modal-login');
-  const closeLoginBtn = document.getElementById('close-login');
-
-  if (loginBtn && loginModal && closeLoginBtn) {
-    loginBtn.addEventListener('click', () => loginModal.classList.add('open'));
-    closeLoginBtn.addEventListener('click', () => loginModal.classList.remove('open'));
-    window.addEventListener('click', (e) => {
-      if (e.target === loginModal) {
-        loginModal.classList.remove('open');
-      }
-    });
-  }
-
-  // ✅ PROFIL
-  const editBtn = document.getElementById('editButton');
-  const cancelBtn = document.getElementById('cancelEdit');
-  const zobraz = document.getElementById('udaje-zobraz');
-  const form = document.getElementById('editForm');
-
-  if (editBtn && cancelBtn && zobraz && form) {
-    editBtn.addEventListener('click', () => {
-      zobraz.style.display = 'none';
-      form.style.display = 'block';
-    });
-
-    cancelBtn.addEventListener('click', () => {
-      form.style.display = 'none';
-      zobraz.style.display = 'block';
-    });
-  }
-
-  console.log("✅ main.js načítaný!");
+  // ESC zatvorí ktorýkoľvek otvorený panel
+  on(document, 'keydown', (e)=>{ if (e.key==='Escape') closeAll(); });
 });
-
-// ✅ RESPONSÍVNE MENU
-function toggleMenu() {
-  const nav = document.querySelector('.main-nav');
-  nav.classList.toggle('active');
-}

@@ -1,21 +1,34 @@
 {% extends 'base.html' %}
-
-{% block title %}Dopyty{% endblock %}
+{% block title %}Dopyty | Muzikuj{% endblock %}
 
 {% block content %}
-  <h2>Dopyty na kapely 🎤</h2>
+<section class="komunita-wrapper dopyty-page" style="padding:2rem;">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+    <h2>🔎 Dopyty</h2>
+    <a href="{{ url_for('dopyty.formular_dopyt') }}" class="btn primary">Pridať dopyt</a>
+  </div>
 
-  {% for dopyt in dopyty %}
-    <div class="dopyt-box">
-      <p><strong>Typ akcie:</strong> {{ dopyt.typ_akcie }}</p>
-      <p><strong>Dátum:</strong> {{ dopyt.datum.strftime('%d.%m.%Y') }}</p>
-      <p><strong>Čas:</strong> {{ dopyt.cas_od.strftime('%H:%M') }} – {{ dopyt.cas_do.strftime('%H:%M') }}</p>
-      <p><strong>Miesto:</strong> {{ dopyt.miesto }}</p>
-      <p><strong>Rozpočet:</strong> {{ dopyt.rozpocet }} €</p>
-      <p><strong>Popis:</strong> {{ dopyt.popis }}</p>
+  {% if dopyty %}
+    <div class="zoznam-dopytov" style="margin-top:1rem;display:grid;gap:1rem;">
+      {% for d in dopyty %}
+        <article class="dopyt-karta" style="padding:1rem;border:1px solid var(--hover);border-radius:10px;background:#fff;">
+          <header style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+            <strong>{{ d.typ_akcie or 'Nešpecifikované' }}</strong>
+            <span style="opacity:.85;">🕒 {{ d.datum.strftime('%d.%m.%Y') if d.datum else '—' }}</span>
+          </header>
+          <div style="margin-top:.35rem;opacity:.9;">
+            📍 {{ d.miesto or '—' }}{% if d.rozpocet %} · 💶 do {{ '%.2f'|format(d.rozpocet) }} €{% endif %}
+          </div>
+          {% if d.popis %}<p style="margin-top:.5rem;">{{ d.popis }}</p>{% endif %}
+          <footer style="margin-top:.5rem;opacity:.8;font-size:.95rem;">
+            Kontakt: {{ d.meno or '—' }} · {{ d.email or '—' }}
+          </footer>
+        </article>
+      {% endfor %}
     </div>
-    <hr>
   {% else %}
-    <p>Žiadne dopyty zatiaľ neboli zadané.</p>
-  {% endfor %}
+    <p style="margin-top:1rem;">Zatiaľ žiadne dopyty.</p>
+  {% endif %}
+</section>
 {% endblock %}
+
