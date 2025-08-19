@@ -1,3 +1,8 @@
+<style>
+  #mesto_id { appearance:auto !important; }
+  .choices, .select2, .custom-select { display:none !important; } /* ak používaš niečo takéto */
+</style>
+
 <!-- templates/modals/dopyt_form.html -->
 <section class="komunita-wrapper dopyt-form-page" style="padding:2rem;">
   <h2>🔎 Pridať dopyt</h2>
@@ -5,10 +10,17 @@
     Vyplň čo hľadáš (kapela, DJ, moderátor…), termín a miesto. Registrovaní členovia si tvoj dopyt uvidia a môžu reagovať.
   </p>
 
-  <form method="POST" action="{{ url_for('dopyty.pridaj_dopyt') }}" novalidate>
+<form method="POST" action="{{ url_for('dopyty.pridaj_dopyt_post') }}" novalidate>
     <!-- Čo hľadáš -->
-    <label for="typ_akcie">Čo hľadáš? <span style="color:crimson;">*</span></label>
-    <input type="text" id="typ_akcie" name="typ_akcie" placeholder="Kapela, DJ, moderátor, tanečník…" required>
+    <label for="typ_akcie">Typ akcie <span style="color:crimson;">*</span></label>
+    <select id="typ_akcie" name="typ_akcie" required>
+      <option value="">Vyber typ…</option>
+      <option value="svadba">Svadba</option>
+      <option value="oslava">Oslava</option>
+      <option value="firemna">Firemná akcia</option>
+      <option value="ine">Iné</option>
+    </select>
+
 
     <!-- Termín -->
     <div class="row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:.75rem;">
@@ -26,21 +38,38 @@
       </div>
     </div>
 
-    <!-- Miesto (kraj/okres/obec) -->
-    <div class="row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:.75rem;">
+    <!-- Miesto (píš a filtruj cez datalist) -->
+    <div class="row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:.75rem;">
       <div>
-        <label for="kraj">Kraj</label>
-        <input type="text" id="kraj" name="kraj" placeholder="Bratislavský">
-      </div>
-      <div>
-        <label for="okres">Okres</label>
-        <input type="text" id="okres" name="okres" placeholder="BA I">
-      </div>
-      <div>
-        <label for="obec">Obec/Mesto</label>
-        <input type="text" id="obec" name="obec" placeholder="Gelnica / Očová">
+        <label for="mesto_label">Miesto konania <span style="color:crimson;">*</span></label>
+
+        {% set obce = mesta_all|sort(attribute='nazov') %}
+        <!-- viditeľné pole na písanie -->
+        <input
+          type="text"
+          id="mesto_label"
+          name="mesto_label"
+          list="mesta_datalist"
+          placeholder="Začni písať (napr. Gelnica)"
+          autocomplete="off"
+          required
+        >
+
+        <!-- ponuka možností -->
+        <datalist id="mesta_datalist">
+          {% for m in obce %}
+            <option
+              data-id="{{ m.id }}"
+              value="{{ m.nazov }}{% if m.okres %} — {{ m.okres }}{% endif %}{% if m.kraj %} — {{ m.kraj }}{% endif %}">
+            </option>
+          {% endfor %}
+        </datalist>
+
+        <!-- skryté ID, ktoré sa odošle do backendu -->
+        <input type="hidden" id="mesto_id" name="mesto_id">
       </div>
     </div>
+
 
     <!-- Rozpočet -->
     <label for="rozpocet" style="margin-top:.75rem;">Rozpočet (max, €)</label>
@@ -79,6 +108,35 @@
 <script>
 (function(){
   const form = document.querySelector('.dopyt-form-page form');
+  const inputLabel = form.querySelector('#mesto_label');
+  const hiddenId   = form.querySelector('#mesto_id');
+  const dataList   = document.getElementById('mesta_datalist');
+
+  function normalize(s){
+    return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  }
+  function findMestoIdByLabel(label){
+    const want = normalize(label);
+    if (!want) return '';
+    let best = '';
+    const opts = dataList ? dataList.options : [];
+    for (let i = 0; i < opts.length; i++){
+      const opt = opts[i];
+      const val = opt.value || '';
+      const id  = opt.getAttribute('data-id') || '';
+      const n   = normalize(val);
+      if (n === want) return id;           // presná zhoda
+      if (!best && n.startsWith(want)) best = id;  // prvá vhodná
+    }
+    return best;
+  }
+  function syncMestoId(){
+    hiddenId.value = findMestoIdByLabel(inputLabel.value);
+  }
+  inputLabel.addEventListener('input', () => { hiddenId.value = ''; });
+  inputLabel.addEventListener('change', syncMestoId);
+  inputLabel.addEventListener('blur',   syncMestoId);
+  
   if (!form) return;
 
   const submitBtn = form.querySelector('.actions .btn.primary');
@@ -101,43 +159,55 @@
   }
 
   function validate(){
-    let ok = true;
+  let ok = true;
 
-    const typ = form.typ_akcie;
-    const meno = form.meno;
-    const email = form.email;
-    const rozpocet = form.rozpocet;
-    const casOd = form.cas_od;
-    const casDo = form.cas_do;
-    const honeypot = form.website;
+  const typ = form.typ_akcie;
+  const meno = form.meno;
+  const email = form.email;
+  const mesto = form.mesto_id;
+  const rozpocet = form.rozpocet;
+  const casOd = form.cas_od;
+  const casDo = form.cas_do;
+  const honeypot = form.website;
 
-    [typ, meno, email, rozpocet, casOd, casDo].forEach(i => i && clearError(i));
+  [typ, meno, email, rozpocet, casOd, casDo, mesto].forEach(i => i && clearError(i));
 
-    // honeypot
-    if (honeypot && honeypot.value.trim() !== '') ok = false;
+  // honeypot
+  if (honeypot && honeypot.value.trim() !== '') ok = false;
 
-    // povinné polia
-    if (!typ.value.trim()){ setError(typ, 'Prosím, napíš čo hľadáš.'); ok = false; }
-    if (!meno.value.trim()){ setError(meno, 'Prosím, uveď meno.'); ok = false; }
+  // povinné polia
+  if (!typ || !typ.value.trim()){ setError(typ, 'Prosím, napíš čo hľadáš.'); ok = false; }
+  if (!meno || !meno.value.trim()){ setError(meno, 'Prosím, uveď meno.'); ok = false; }
+  if (!mesto || !mesto.value){ setError(mesto, 'Prosím, vyber miesto.'); ok = false; }
 
-    const emailVal = email.value.trim();
-    if (!emailVal){ setError(email, 'Prosím, uveď email.'); ok = false; }
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)){ setError(email, 'Email nemá správny tvar.'); ok = false; }
-
-    // rozpočet (ak je, musí byť ≥ 0)
-    if (rozpocet.value.trim()){
-      const v = Number(rozpocet.value.replace(',', '.'));
-      if (isNaN(v) || v < 0){ setError(rozpocet, 'Rozpočet musí byť číslo ≥ 0.'); ok = false; }
-      else rozpocet.value = String(v);
-    }
-
-    // poradie časov
-    if (casOd.value && casDo.value && casOd.value >= casDo.value){
-      setError(casDo, 'Čas „do“ musí byť neskôr ako „od“.'); ok = false;
-    }
-
-    return ok;
+  // email
+  const emailVal = (email && email.value ? email.value.trim() : '');
+  if (!emailVal){
+    setError(email, 'Prosím, uveď email.'); ok = false;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)){
+    setError(email, 'Email nemá správny tvar.'); ok = false;
+  } else {
+    email.value = emailVal; // normalizuj
   }
+
+  // rozpočet (ak je zadaný, musí byť číslo ≥ 0)
+  if (rozpocet && rozpocet.value && rozpocet.value.trim()){
+    const v = Number(rozpocet.value.replace(',', '.'));
+    if (Number.isNaN(v) || v < 0){
+      setError(rozpocet, 'Rozpočet musí byť číslo ≥ 0.'); ok = false;
+    } else {
+      rozpocet.value = String(v);
+    }
+  }
+
+  // poradie časov
+  if (casOd && casDo && casOd.value && casDo.value && casOd.value >= casDo.value){
+    setError(casDo, 'Čas „do“ musí byť neskôr ako „od“.'); ok = false;
+  }
+
+  return ok;
+}
+
 
   form.addEventListener('submit', function(e){
     if (!validate()){

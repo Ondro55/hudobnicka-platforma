@@ -82,8 +82,13 @@ class Dopyt(db.Model):
     popis = db.Column(db.Text)
     rozpocet = db.Column(db.Float)
 
-    pouzivatel_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False)
+    # ✅ NOVÉ (voliteľné FK – kvôli preklepom budeme používať select)
+    mesto_id = db.Column(db.Integer, db.ForeignKey('mesto.id'), nullable=True)
+    mesto = db.relationship('Mesto')
+
+    pouzivatel_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=True)
     pouzivatel = db.relationship('Pouzivatel', backref='dopyty')
+
 
 
 class Skupina(db.Model):

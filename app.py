@@ -15,23 +15,35 @@ from modules.kalendar import kalendar_bp
 from modules.komunita import komunita_bp
 from routes import bp as main_blueprint
 
-
-
 # Aplikácia
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.config['SECRET_KEY'] = 'tajnykluc123'
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'instance', 'muzikuj.db')}"
+
+# ✅ vytvor priečinok instance/, ak chýba
+os.makedirs(os.path.join(basedir, 'instance'), exist_ok=True)
+
+# ✅ DB cesta identická so seederom + normalizácia lomítok
+db_path = os.path.join(basedir, 'instance', 'muzikuj.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path.replace('\\', '/')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'profilovky')
 app.config['UPLOAD_FOLDER_INZERAT'] = os.path.join(app.root_path, 'static', 'galeria_inzerat')
-
 
 # Databáza a migrácia
 db.init_app(app)
 migrate = Migrate(app, db)
 
+@app.context_processor
+def inject_mesta_all():
+    try:
+        from models import Mesto
+        mesta = Mesto.query.order_by(Mesto.kraj, Mesto.okres, Mesto.nazov).all()
+    except Exception:
+        mesta = []
+    return dict(mesta_all=mesta)
 # Login
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -57,5 +69,3 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(debug=True)
-
-

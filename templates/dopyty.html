@@ -2,33 +2,136 @@
 {% block title %}Dopyty | Muzikuj{% endblock %}
 
 {% block content %}
-<section class="komunita-wrapper dopyty-page" style="padding:2rem;">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
-    <h2>🔎 Dopyty</h2>
-    <a href="{{ url_for('dopyty.formular_dopyt') }}" class="btn primary">Pridať dopyt</a>
-  </div>
+<section class="bazar-wrapper dopyty-wrapper" style="padding: 2rem; max-width: 1100px; margin: 0 auto;">
 
-  {% if dopyty %}
-    <div class="zoznam-dopytov" style="margin-top:1rem;display:grid;gap:1rem;">
+  <!-- HLAVIČKA -->
+  <header class="bazar-header" style="margin-bottom: 1.5rem;">
+    <h1 style="margin: 0;">🎯 Dopyty</h1>
+    <p style="margin: .25rem 0 0 0;">Zoznam požiadaviek na hudbu vytvorených verejným formulárom.</p>
+  </header>
+
+  <!-- FILTRE (jednoduchý základ; ak ešte nechceš filtre, nechaj action "", odošle sa na tú istú URL) -->
+  <section class="bazar-filter filter-panel" style="margin-bottom: 1.5rem; border: 1px solid var(--hover); border-radius: 12px; padding: 1rem;">
+    <form method="GET" action="{{ url_for('dopyty.zobraz_dopyty') }}"
+          style="display:grid;grid-template-columns:1fr 2fr 1fr auto;gap:.75rem;align-items:end;">
+
+      <!-- 1) Typ akcie -->
+      <div>
+        <label for="typ_akcie" class="label">Typ akcie</label>
+        <select id="typ_akcie" name="typ_akcie" class="select" style="width:100%;">
+          <option value="">Všetko</option>
+          {% for val, label in [('svadba','Svadba'),('oslava','Oslava'),('firemna','Firemná akcia'),('ine','Iné')] %}
+            <option value="{{ val }}" {% if request.args.get('typ_akcie')==val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- 2) Miesto (presné z DB) -->
+      <div>
+        <label for="mesto_id" class="label">Miesto</label>
+        <select id="mesto_id" name="mesto_id" class="select" style="width:100%;">
+          <option value="">Všetky</option>
+          {% for m in mesta %}
+            <option value="{{ m.id }}" {% if request.args.get('mesto_id', type=int)==m.id %}selected{% endif %}>
+              {{ m.nazov }}{% if m.okres %}, {{ m.okres }}{% endif %}{% if m.kraj %}, {{ m.kraj }}{% endif %}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- 3) Dátum -->
+      <div>
+        <label for="datum" class="label">Dátum</label>
+        <input id="datum" name="datum" type="date"
+              value="{{ request.args.get('datum','') }}" class="input" style="width:100%;">
+      </div>
+
+      <div style="display:flex; gap:.5rem;">
+        <button type="submit" class="btn">Filtrovať</button>
+        <a class="btn" href="{{ url_for('dopyty.zobraz_dopyty') }}">Zrušiť</a>
+      </div>
+    </form>
+  </section>
+
+
+  <!-- ZOZNAM DOPYTOV (štýl ako v bazári) -->
+  <section class="bazar-list dopyty-list" style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+    {% if dopyty and dopyty|length %}
       {% for d in dopyty %}
-        <article class="dopyt-karta" style="padding:1rem;border:1px solid var(--hover);border-radius:10px;background:#fff;">
-          <header style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
-            <strong>{{ d.typ_akcie or 'Nešpecifikované' }}</strong>
-            <span style="opacity:.85;">🕒 {{ d.datum.strftime('%d.%m.%Y') if d.datum else '—' }}</span>
-          </header>
-          <div style="margin-top:.35rem;opacity:.9;">
-            📍 {{ d.miesto or '—' }}{% if d.rozpocet %} · 💶 do {{ '%.2f'|format(d.rozpocet) }} €{% endif %}
+        <article class="inzerat-card dopyt-card" style="border: 1px solid var(--hover); border-radius: 12px; padding: 1rem;">
+          <div class="card-top" style="display:flex; justify-content:space-between; gap:1rem; flex-wrap: wrap;">
+            <h3 style="margin:0;">
+              {{ d.typ_akcie|title if d.typ_akcie else 'Dopyt' }}
+            </h3>
+            <div class="card-date" style="opacity:.8;">
+              {% if d.datum %}📅 {{ d.datum.strftime('%d.%m.%Y') }}{% endif %}
+              {% if d.cas_od or d.cas_do %}
+                &nbsp;•&nbsp; ⏰ {{ d.cas_od.strftime('%H:%M') if d.cas_od else '—' }} – {{ d.cas_do.strftime('%H:%M') if d.cas_do else '—' }}
+              {% endif %}
+            </div>
           </div>
-          {% if d.popis %}<p style="margin-top:.5rem;">{{ d.popis }}</p>{% endif %}
-          <footer style="margin-top:.5rem;opacity:.8;font-size:.95rem;">
-            Kontakt: {{ d.meno or '—' }} · {{ d.email or '—' }}
-          </footer>
+
+          <div class="card-meta" style="margin-top:.5rem; display:flex; gap:1rem; flex-wrap:wrap; opacity:.9;">
+
+            {# 1) Miesto – najprv z FK, inak fallback na text #}
+            {% if d.mesto %}
+              <span>📍 {{ d.mesto.nazov }}{% if d.mesto.okres %}, {{ d.mesto.okres }}{% endif %}{% if d.mesto.kraj %}, {{ d.mesto.kraj }}{% endif %}</span>
+            {% elif d.miesto %}
+              <span>📍 {{ d.miesto }}</span>
+            {% endif %}
+
+            {# 2) Rozpočet – zobraz aj 0, ak by bol #}
+            {% if d.rozpocet is not none %}
+              <span>💶 {{ '%.0f'|format(d.rozpocet) }} €</span>
+            {% endif %}
+
+            {# 3) Meno zadávateľa (ak chceš ukazovať) #}
+            {% if d.meno %}
+              <span>👤 {{ d.meno }}</span>
+            {% endif %}
+          </div>
+
+          {% if d.popis %}
+            <p class="card-desc" style="margin-top:.75rem;">
+              {{ d.popis | truncate(220, True, '…') }}
+            </p>
+          {% endif %}
+
+          <div class="card-actions" style="display:flex; gap:.5rem; margin-top:.75rem; flex-wrap:wrap;">
+            <!-- Ak budeš mať detail, pridáme sem link -->
+            <button
+              class="btn"
+              data-open="sprava-modal"
+              data-dopyt-id="{{ d.id }}"
+              data-dopyt-typ="{{ d.typ_akcie }}"
+              data-dopyt-datum="{{ d.datum.strftime('%d.%m.%Y') if d.datum }}"
+              data-dopyt-miesto="{{ d.miesto }}"
+              data-dopyt-meno="{{ d.meno }}"
+              data-dopyt-email="{{ d.email }}"
+            >
+              Reagovať
+            </button>
+          </div>
         </article>
       {% endfor %}
-    </div>
-  {% else %}
-    <p style="margin-top:1rem;">Zatiaľ žiadne dopyty.</p>
+    {% else %}
+      <div class="empty-state" style="text-align:center; padding: 2rem; border:1px dashed var(--hover); border-radius: 12px;">
+        <p>Zatiaľ žiadne dopyty podľa zvolených filtrov.</p>
+        <a class="btn" href="{{ url_for('dopyty.zobraz_dopyty') }}">Zobraziť všetko</a>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- PAGINÁCIA (ak ju neskôr pridáš) -->
+  {# 
+  {% if pagination %}
+    <nav class="bazar-pagination" aria-label="Stránkovanie" style="margin-top: 1rem; display:flex; gap:.5rem; justify-content:center;">
+      {% if pagination.prev_url %}<a class="btn" href="{{ pagination.prev_url }}">&larr; Predošlá</a>{% endif %}
+      <span style="padding:.5rem .75rem; opacity:.8;">Strana {{ pagination.page }} / {{ pagination.pages }}</span>
+      {% if pagination.next_url %}<a class="btn" href="{{ pagination.next_url }}">Ďalšia &rarr;</a>{% endif %}
+    </nav>
   {% endif %}
+  #}
+
 </section>
 {% endblock %}
-

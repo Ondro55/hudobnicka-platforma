@@ -140,6 +140,35 @@
     </div>
   </div>
 </section>
+<div id="sprava-modal" class="modal" hidden aria-hidden="true" role="dialog" aria-labelledby="sprava-title">
+  <div class="modal-backdrop" data-close="sprava-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);"></div>
+  <div class="modal-panel" style="position:fixed;inset:10% auto auto 50%;transform:translateX(-50%);
+       max-width:620px;width:calc(100% - 2rem);background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);">
+    <form id="sprava-form" method="POST"
+          action="#"
+          style="padding:1rem;">
+      <h3 id="sprava-title" style="margin:0 0 .5rem 0;">Napísať reakciu</h3>
+
+      <input type="hidden" name="dopyt_id">
+      <div style="display:grid;gap:.75rem;">
+        <label>Komu
+          <input type="email" name="to" placeholder="prijímateľ" required>
+        </label>
+        <label>Predmet
+          <input type="text" name="subject" required>
+        </label>
+        <label>Správa
+          <textarea name="message" rows="6" placeholder="Tvoja ponuka, dostupnosť, cena…" required></textarea>
+        </label>
+      </div>
+
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
+        <button type="button" class="btn" data-close="sprava-modal">Zavrieť</button>
+        <button type="submit" class="btn primary">Odoslať</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <footer>
   <p>&copy; 2025 Muzikuj.sk | Všetky práva vyhradené</p>
