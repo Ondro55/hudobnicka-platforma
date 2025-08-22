@@ -188,6 +188,9 @@ class Sprava(db.Model):
     komu_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=True)  # <- zmenené na True
     komu_email = db.Column(db.String(255), nullable=True)  # <- NOVÉ
 
+    deleted_by_sender    = db.Column(db.Boolean, default=False)
+    deleted_by_recipient = db.Column(db.Boolean, default=False)
+
     inzerat_id = db.Column(db.Integer, db.ForeignKey('inzerat.id'), nullable=True)
     dopyt_id   = db.Column(db.Integer, db.ForeignKey('dopyt.id'),   nullable=True)
 

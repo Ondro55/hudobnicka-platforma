@@ -2,58 +2,355 @@
 {% block title %}Správy | Muzikuj{% endblock %}
 
 {% block content %}
-<section style="padding:2rem;">
-  <div style="display:flex; justify-content:space-between; align-items:center;">
+<section class="spravy-page">
+  <div class="spravy-header">
     <h2>Správy</h2>
-    <a href="{{ url_for('spravy.napisat') }}" class="btn">Nová správa</a>
   </div>
 
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-top:1rem;">
-    <!-- PRIJATÉ -->
-    <div>
-      <h3>📥 Prijaté</h3>
-      {% if prijate and prijate|length %}
-        {% for s in prijate %}
-          <article style="border:1px solid var(--hover); border-radius:.75rem; padding:.75rem; margin-bottom:.6rem;">
-            <div style="display:flex; justify-content:space-between; gap:.5rem;">
-              <strong>od #{{ s.od_id }}</strong>
-              <small style="opacity:.75;">{{ s.datum.strftime('%d.%m.%Y %H:%M') }}</small>
-            </div>
-            {% if s.dopyt_id %}<small style="opacity:.75;">(dopyt #{{ s.dopyt_id }})</small>{% endif %}
-            {% if s.inzerat_id %}<small style="opacity:.75;">(inzerát #{{ s.inzerat_id }})</small>{% endif %}
-            <p style="margin:.5rem 0 0; white-space:pre-wrap;">{{ s.obsah }}</p>
-          </article>
-        {% endfor %}
-      {% else %}
-        <p class="muted">Žiadne prijaté správy.</p>
-      {% endif %}
-    </div>
+  <div class="spravy-grid">
+    <!-- ĽAVO: Taby + zoznam -->
+    <aside>
+      {# ktorý zoznam sa má vľavo zobrazovať #}
+      {% set list_mode = active_tab if active_tab in ['prijate','odoslane'] else 'prijate' %}
 
-    <!-- ODOSLANÉ -->
-    <div>
-      <h3>📤 Odoslané</h3>
-      {% if odoslane and odoslane|length %}
-        {% for s in odoslane %}
-          <article style="border:1px solid var(--hover); border-radius:.75rem; padding:.75rem; margin-bottom:.6rem;">
-            <div style="display:flex; justify-content:space-between; gap:.5rem;">
-              <strong>
-                komu:
-                {% if s.komu_id %}#{{ s.komu_id }}
-                {% elif s.komu_email %}{{ s.komu_email }}
-                {% else %}—{% endif %}
-              </strong>
-              <small style="opacity:.75;">{{ s.datum.strftime('%d.%m.%Y %H:%M') }}</small>
+      <nav class="msg-tabs" id="msg-tabs">
+        <a class="msg-tab {{ 'active' if active_tab=='prijate' else '' }}"
+          href="{{ url_for('spravy.inbox', tab='prijate') }}">
+          📥 Prijaté
+          {% if unread_prijate and unread_prijate>0 %}<span class="chip">{{ unread_prijate }}</span>{% endif %}
+        </a>
+
+        <a class="msg-tab {{ 'active' if active_tab=='odoslane' else '' }}"
+          href="{{ url_for('spravy.inbox', tab='odoslane') }}">📤 Odoslané</a>
+
+        <a href="#" class="msg-tab ghost" id="ms-toggle">✔️ Označiť viac</a>
+
+        <a class="msg-tab danger {{ 'active' if active_tab=='nova' else '' }}"
+          href="{{ url_for('spravy.inbox', tab='nova') }}">✍️ Nová správa</a>
+      </nav>
+
+      <!-- panel hromadných akcií: default skrytý (ukáže sa po „Označiť viac“) -->
+      <div class="bulk-controls" id="bulk-controls">
+        <button type="button" class="btn tiny" id="ms-select-all">Označiť všetko</button>
+        <form id="ms-form" method="post" action="{{ url_for('spravy.zmazat') }}">
+          <!-- dôležité: posielame TAB zoznamu, nie active_tab -->
+          <input type="hidden" name="tab" value="{{ list_mode }}">
+          <button type="submit" class="btn danger tiny" id="ms-delete-selected" disabled>
+            Zmazať označené
+          </button>
+        </form>
+        <button type="button" class="btn tiny light" id="ms-cancel">Zrušiť</button>
+      </div>
+
+      <!-- zoznam správ: vždy zobrazený; pri „nova“ zobrazí prijaté -->
+      <div id="msg-list-wrap" class="list-scroll">
+        <ul class="msg-list">
+          {% set zoznam = prijate if list_mode=='prijate' else odoslane %}
+          {% if zoznam %}
+            {% for s in zoznam %}
+            <li class="msg-li">
+              <div class="msg-row">
+                <input type="checkbox" class="msg-cb" name="ids" form="ms-form" value="{{ s.id }}">
+
+                <a href="{{ url_for('spravy.inbox', tab=list_mode, id=s.id) }}"
+                  class="msg-item{% if list_mode=='prijate' and not s.precitane %} unread{% endif %}">
+                  <div class="row-top">
+                    <strong class="who">
+                      {% if list_mode=='prijate' %}
+                        {{ s.od.prezyvka or s.od.email if s.od else '(neznámy)' }}
+                      {% else %}
+                        {% if s.komu %}{{ s.komu.prezyvka or s.komu.email }}
+                        {% elif s.komu_email %}{{ s.komu_email }}
+                        {% else %}(neznámy){% endif %}
+                      {% endif %}
+                    </strong>
+                    <small class="dt">{{ s.datum|localtime }}</small>
+                  </div>
+                  {% if s.dopyt_id or s.inzerat_id %}
+                    <small class="ctx">
+                      {% if s.dopyt_id %}dopyt #{{ s.dopyt_id }}{% endif %}
+                      {% if s.inzerat_id %}{% if s.dopyt_id %} • {% endif %}inzerát #{{ s.inzerat_id }}{% endif %}
+                    </small>
+                  {% endif %}
+                  <div class="preview">{{ s.obsah.strip().splitlines()[0] if s.obsah else '' }}</div>
+                </a>
+
+                <!-- malé zmazanie vpravo dole -->
+                <form method="post" action="{{ url_for('spravy.zmazat') }}"
+                      class="inline-del" onsubmit="return confirm('Zmazať túto správu?');">
+                  <input type="hidden" name="id" value="{{ s.id }}">
+                  <input type="hidden" name="tab" value="{{ list_mode }}">
+                  <button type="submit" class="icon-btn" title="Zmazať správu">🗑️</button>
+                </form>
+              </div>
+            </li>
+            {% endfor %}
+          {% else %}
+            <p class="muted">Žiadne správy.</p>
+          {% endif %}
+        </ul>
+      </div>
+    </aside>
+
+    <!-- PRAVO: Detail / Nová správa -->
+    <main class="msg-view">
+      {% if active_tab == 'nova' %}
+        <h3 class="view-title">✍️ Nová správa</h3>
+
+        <form class="compose compose--new" method="post" action="{{ url_for('spravy.odoslat') }}">
+          <input type="hidden" name="kontekst" value="direct">
+
+          <div class="form-grid">
+            <!-- Vyhľadávanie podľa nicku -->
+            <div class="form-field">
+              <label for="search-komu">Komu (nick)</label>
+              <div class="searchwrap">
+                <input id="search-komu"
+                      class="input"
+                      type="text"
+                      placeholder="začni písať nick (min. 2 znaky)"
+                      autocomplete="off"
+                      data-url="{{ url_for('spravy.find_user') }}">
+                <input type="hidden" name="komu_id" id="komu_id">
+                <div id="search-komu-dd" class="suggestions" hidden></div>
+              </div>
+
+              <div id="komu-picked" class="picked" hidden>
+                <span class="tag" id="picked-label"></span>
+                <button type="button" class="link-btn" id="picked-clear">Zmeniť</button>
+              </div>
             </div>
-            {% if s.dopyt_id %}<small style="opacity:.75;">(dopyt #{{ s.dopyt_id }})</small>{% endif %}
-            {% if s.inzerat_id %}<small style="opacity:.75;">(inzerát #{{ s.inzerat_id }})</small>{% endif %}
-            <p style="margin:.5rem 0 0; white-space:pre-wrap;">{{ s.obsah }}</p>
-          </article>
-        {% endfor %}
+
+            <!-- Fallback e-mail -->
+            <div class="form-field">
+              <label for="komu_email">alebo E-mail</label>
+              <input id="komu_email" class="input" type="email" name="komu_email" placeholder="napr. niekto@domena.sk">
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="compose-text">Správa</label>
+            <textarea id="compose-text" class="textarea" name="obsah" rows="8" required placeholder="Napíš správu…"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn danger">Odoslať</button>
+          </div>
+        </form>
+
+          {% elif vybrana %}
+        <header class="view-head">
+          <div class="fromto">
+            <div class="lbl">Od:</div>
+            <div class="val">
+              <strong>{{ vybrana.od.prezyvka or vybrana.od.email if vybrana.od else '(neznámy)' }}</strong>
+            </div>
+
+            <div class="lbl">Komu:</div>
+            <div class="val">
+              {% if vybrana.komu %}<strong>{{ vybrana.komu.prezyvka or vybrana.komu.email }}</strong>
+              {% elif vybrana.komu_email %}<strong>{{ vybrana.komu_email }}</strong>
+              {% else %}(neznámy){% endif %}
+            </div>
+
+            <div class="lbl">Dátum:</div>
+            <div class="val"><small class="dt">{{ vybrana.datum|localtime }}</small></div>
+
+            {% if vybrana.dopyt_id or vybrana.inzerat_id %}
+              <div class="lbl">Kontext:</div>
+              <div class="val">
+                {% if vybrana.dopyt_id %}<span class="pill">dopyt #{{ vybrana.dopyt_id }}</span>{% endif %}
+                {% if vybrana.inzerat_id %}<span class="pill">inzerát #{{ vybrana.inzerat_id }}</span>{% endif %}
+              </div>
+            {% endif %}
+          </div>
+
+          <form method="post" action="{{ url_for('spravy.zmazat') }}"
+                class="head-actions" onsubmit="return confirm('Zmazať túto správu?');">
+            <input type="hidden" name="id"  value="{{ vybrana.id }}">
+            <input type="hidden" name="tab" value="{{ active_tab }}">
+            <button type="submit" class="btn light">🗑️ Zmazať</button>
+          </form>
+        </header>
+
+        <hr class="view-sep">
+
+        <article class="view-body">{{ vybrana.obsah }}</article>
+
+        <form class="quick-reply" method="post" action="{{ url_for('spravy.odoslat') }}">
+          <input type="hidden" name="kontekst" value="{{ 'dopyt' if vybrana.dopyt_id else ('inzerat' if vybrana.inzerat_id else 'direct') }}">
+          <input type="hidden" name="kontekst_id" value="{{ vybrana.dopyt_id or vybrana.inzerat_id }}">
+          {% set reply_to_id = (vybrana.od_id if vybrana.komu_id == current_user.id else vybrana.komu_id) %}
+          <input type="hidden" name="komu_id"    value="{{ reply_to_id or '' }}">
+          <input type="hidden" name="komu_email" value="{{ ('' if reply_to_id else (vybrana.komu_email or '')) }}">
+
+          <label for="qr" class="qr-label">Rýchla odpoveď</label>
+          <textarea id="qr" name="obsah" class="qr-textarea" rows="5" required placeholder="Napíš stručnú odpoveď…"></textarea>
+          <div class="align-right"><button type="submit" class="btn danger">Odoslať</button></div>
+        </form>
       {% else %}
-        <p class="muted">Žiadne odoslané správy.</p>
+
+        <p class="muted">Vyber si správu zo zoznamu vľavo alebo klikni „Nová správa“.</p>
       {% endif %}
-    </div>
+    </main>
   </div>
 </section>
-{% endblock %}
 
+<script>
+(function(){
+  const input  = document.getElementById('search-komu');
+  const dd     = document.getElementById('search-komu-dd');
+  const komuId = document.getElementById('komu_id');
+  const picked = document.getElementById('komu-picked');
+  const pickedLabel = document.getElementById('picked-label');
+  const pickedClear = document.getElementById('picked-clear');
+  if (!input || !dd) return;
+
+  const url = input.dataset.url;
+  let timer = null, idx = -1, items = [];
+
+  function hideDD(){ dd.hidden = true; dd.innerHTML=''; idx = -1; items = []; }
+  function showDD(){ dd.hidden = false; }
+  function render(list){
+    dd.innerHTML = list.map((u,i)=>`
+      <div class="sugg-item" data-i="${i}">
+        <span class="nick">${u.prezyvka || '(bez nicku)'}</span>
+        <span class="em">${u.email || ''}</span>
+      </div>`).join('');
+    items = Array.from(dd.querySelectorAll('.sugg-item'));
+    idx = (items.length ? 0 : -1);
+    highlight();
+    showDD();
+  }
+  function highlight(){
+    items.forEach((el,i)=>el.classList.toggle('active', i===idx));
+    if (idx>=0) items[idx].scrollIntoView({block:'nearest'});
+  }
+  function pick(i){
+    const u = items.length ? i>=0 && i<items.length ? items[i] : null : null;
+    if (!u) return;
+    const data = JSON.parse(u.dataset.payload || '{}');
+  }
+
+  dd.addEventListener('mouseenter', () => { idx = -1; highlight(); });
+
+  // klik na návrh
+  dd.addEventListener('click', (e)=>{
+    const el = e.target.closest('.sugg-item'); if (!el) return;
+    const i = parseInt(el.dataset.i,10);
+    const u = JSON.parse(el.dataset.u);
+    selectUser(u);
+  });
+
+  function selectUser(u){
+    komuId.value = u.id;
+    pickedLabel.textContent = `${u.prezyvka} (${u.email||'bez e-mailu'})`;
+    picked.hidden = false;
+    input.value = '';
+    hideDD();
+  }
+  pickedClear?.addEventListener('click', () => {
+    komuId.value = '';
+    picked.hidden = true;
+    input.focus();
+  });
+
+  // načítanie návrhov (debounce)
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    komuId.value = ''; // pri písaní rušíme predchádzajúci výber
+    if (q.length < 2){ hideDD(); return; }
+    clearTimeout(timer);
+    timer = setTimeout(async ()=>{
+      try{
+        const res = await fetch(`${url}?q=${encodeURIComponent(q)}`, {headers:{'X-Requested-With':'fetch'}});
+        const data = await res.json();
+        if (!Array.isArray(data) || data.length===0){ hideDD(); return; }
+        // ulož JSON do data atribútu pre rýchly výber
+        dd.innerHTML = data.map((u,i)=>(
+          `<div class="sugg-item" data-i="${i}" data-u='${JSON.stringify(u)}'>
+             <span class="nick">${u.prezyvka||'(bez nicku)'}</span>
+             <span class="em">${u.email||''}</span>
+           </div>`
+        )).join('');
+        items = Array.from(dd.querySelectorAll('.sugg-item'));
+        idx = 0; highlight(); showDD();
+      }catch(e){ hideDD(); }
+    }, 180);
+  });
+
+  // klávesnica: ↑ ↓ Enter Esc
+  input.addEventListener('keydown', (e)=>{
+    if (dd.hidden) return;
+    if (e.key === 'ArrowDown'){ e.preventDefault(); if (idx < items.length-1){ idx++; highlight(); } }
+    if (e.key === 'ArrowUp'){ e.preventDefault(); if (idx > 0){ idx--; highlight(); } }
+    if (e.key === 'Enter'){ e.preventDefault(); if (idx>=0){ const u = JSON.parse(items[idx].dataset.u); selectUser(u); } }
+    if (e.key === 'Escape'){ hideDD(); }
+  });
+
+  // klik mimo – zavrie dropdown
+  document.addEventListener('click', (e)=>{
+    if (!dd.hidden && !e.target.closest('.searchwrap')) hideDD();
+  });
+})();
+</script>
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
+
+  const wrap   = $('msg-list-wrap');        // kontajner zoznamu
+  const toggle = $('ms-toggle');            // tlačidlo „Označiť viac“
+  const bulk   = $('bulk-controls');        // panel: Označiť všetko / Zmazať označené / Zrušiť
+  const delSel = $('ms-delete-selected');   // „Zmazať označené“
+  const cancel = $('ms-cancel');            // „Zrušiť“
+
+  if (!wrap || !toggle || !bulk) return;
+
+  const anyChecked = () => !!wrap.querySelector('.msg-cb:checked');
+  const updateDel  = () => { if (delSel) delSel.disabled = !anyChecked(); };
+
+  function enterMulti(){
+    wrap.classList.add('ms-mode');
+    bulk.classList.add('show');
+    toggle.textContent = '✖️ Zrušiť výber';
+    updateDel();
+  }
+  function exitMulti(){
+    wrap.classList.remove('ms-mode');
+    bulk.classList.remove('show');
+    toggle.textContent = '✔️ Označiť viac';
+    wrap.querySelectorAll('.msg-cb').forEach(cb => cb.checked = false);
+    updateDel();
+  }
+
+  toggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    wrap.classList.contains('ms-mode') ? exitMulti() : enterMulti();
+  });
+
+  cancel && cancel.addEventListener('click', (e) => {
+    e.preventDefault();
+    exitMulti();
+  });
+
+  // Aktivácia „Zmazať označené“ podľa zaškrtnutí
+  document.addEventListener('change', (e) => {
+    if (e.target.classList.contains('msg-cb')) updateDel();
+  });
+
+  // V multi-režime klik na kartu len prepína checkbox (bez prechodu do detailu)
+  wrap.addEventListener('click', (e) => {
+    if (!wrap.classList.contains('ms-mode')) return;
+    const card = e.target.closest('.msg-item');
+    if (!card) return;
+    e.preventDefault();
+    const cb = card.closest('.msg-li')?.querySelector('.msg-cb');
+    if (cb){
+      cb.checked = !cb.checked;
+      updateDel();
+    }
+  });
+})();
+</script>
+
+{% endblock %}

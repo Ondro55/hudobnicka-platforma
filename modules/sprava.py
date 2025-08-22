@@ -1,25 +1,64 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from models import db, Pouzivatel, Sprava
 from datetime import datetime
 import smtplib
 from email.message import EmailMessage
 from flask import current_app
-
+from sqlalchemy import func
 
 spravy_bp = Blueprint("spravy", __name__, url_prefix="/spravy")
+
+from sqlalchemy import or_, and_
 
 @spravy_bp.route("/", methods=["GET"], endpoint="inbox")
 @login_required
 def inbox():
     uid = current_user.id
-    prijate = Sprava.query.filter_by(komu_id=uid).order_by(Sprava.datum.desc()).all()
-    odoslane = Sprava.query.filter_by(od_id=uid).order_by(Sprava.datum.desc()).all()
+    tab = request.args.get("tab") or "prijate"
+    msg_id = request.args.get("id", type=int)
 
-    Sprava.query.filter_by(komu_id=uid, precitane=False).update({Sprava.precitane: True}, synchronize_session=False)
-    db.session.commit()
+    # zoznamy: zobraz len to, čo NEbolo zmazané na mojej strane
+    prijate  = (Sprava.query
+                .filter_by(komu_id=uid, deleted_by_recipient=False)
+                .order_by(Sprava.datum.desc()).all())
+    odoslane = (Sprava.query
+                .filter_by(od_id=uid, deleted_by_sender=False)
+                .order_by(Sprava.datum.desc()).all())
 
-    return render_template("spravy.html", prijate=prijate, odoslane=odoslane)
+    # vybraný detail – len ak patrí userovi a nie je „zmazaný na jeho strane“
+    vybrana = None
+    if msg_id:
+        cond = or_(
+            and_(Sprava.komu_id == uid, Sprava.deleted_by_recipient == False),
+            and_(Sprava.od_id   == uid, Sprava.deleted_by_sender    == False),
+        )
+        vybrana = Sprava.query.filter(Sprava.id == msg_id, cond).first()
+
+        # označ ako prečítané (len prijaté a nie už zmazané na mojej strane)
+        if vybrana and vybrana.komu_id == uid and not vybrana.precitane:
+            vybrana.precitane = True
+            db.session.commit()
+
+    # pre badge v taboch
+    unread_prijate = Sprava.query.filter_by(
+        komu_id=uid, precitane=False, deleted_by_recipient=False
+    ).count()
+
+    active_tab = tab if tab in ("prijate","odoslane","nova") else "prijate"
+    return render_template("spravy.html",
+        prijate=prijate, odoslane=odoslane,
+        active_tab=active_tab, unread_prijate=unread_prijate,
+        vybrana=vybrana)
+
+
+# (voliteľne) pekná URL /spravy/sprava/<id> → presmeruje do inboxu s tabuľkou zachovanou
+@spravy_bp.route("/sprava/<int:sprava_id>", methods=["GET"], endpoint="detail")
+@login_required
+def detail(sprava_id):
+    # default do prijatých
+    return redirect(url_for("spravy.inbox", tab="prijate", id=sprava_id))
+
 
 
 @spravy_bp.route("/napisat", methods=["GET"], endpoint="napisat")
@@ -109,4 +148,68 @@ def odoslat():
 
     return redirect(url_for("spravy.inbox"))
 
+# Jednotlivé aj hromadné mazanie (soft delete)
+from sqlalchemy import or_
 
+@spravy_bp.route("/zmazat", methods=["POST"], endpoint="zmazat")
+@login_required
+def zmazat():
+    uid = current_user.id
+    tab = (request.form.get("tab") or "prijate").strip()
+
+    ids = request.form.getlist("ids")
+    if not ids:
+        one = request.form.get("id")
+        if one: ids = [one]
+
+    # bezpečný cast
+    try:
+        ids = [int(x) for x in ids if str(x).strip().isdigit()]
+    except Exception:
+        ids = []
+
+    if not ids:
+        flash("Neboli vybrané žiadne správy.", "warning")
+        return redirect(url_for("spravy.inbox", tab=tab))
+
+    msgs = Sprava.query.filter(Sprava.id.in_(ids)).all()
+    count = 0
+    for s in msgs:
+        touched = False
+        if s.od_id == uid and not s.deleted_by_sender:
+            s.deleted_by_sender = True
+            touched = True
+        if s.komu_id == uid and not s.deleted_by_recipient:
+            s.deleted_by_recipient = True
+            touched = True
+        if touched: count += 1
+
+    if count:
+        db.session.commit()
+        flash(f"Zmazané {count} správy.", "success")
+    else:
+        flash("Nič sa nezmazalo.", "info")
+
+    return redirect(url_for("spravy.inbox", tab=tab))
+
+
+
+@spravy_bp.route("/find-user")
+@login_required
+def find_user():
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify([])
+
+    users = (Pouzivatel.query
+             .filter(Pouzivatel.id != current_user.id)
+             .filter(func.lower(Pouzivatel.prezyvka).like(f"%{q.lower()}%"))
+             .order_by(Pouzivatel.prezyvka.asc())
+             .limit(8)
+             .all())
+
+    return jsonify([{
+        "id": u.id,
+        "prezyvka": u.prezyvka,
+        "email": u.email
+    } for u in users])

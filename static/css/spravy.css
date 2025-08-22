@@ -1,138 +1,220 @@
-/* nech je text a badge pekne zarovnané */
-.sidebar-btn { display:flex; align-items:center; justify-content:space-between; }
-.sidebar-btn .badge{
-  display:inline-block; min-width:1.5em; padding:0 .45em;
-  border-radius:999px; font-size:.75rem; line-height:1.6;
-  background: var(--tlacidlo); color:#fff;
-}
-.muted { opacity: .8; font-size: .95rem; }
+/* =========================
+   Správy – zjednotený štýl
+   ========================= */
 
-/* Ikonka správ v hlavičke (box2) */
-.msg-indicator{
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  padding: .35rem .55rem;
-  border-radius: .7rem;
-  text-decoration: none;
-  color: inherit;
-}
+/* helpers */
+.muted { opacity:.8; font-size:.95rem; }
+.align-right { text-align:right; }
 
-/* Badge s počtom */
-.msg-indicator .badge{
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 1.2rem;
-  height: 1.2rem;
-  padding: 0 .35rem;
-  border-radius: 999px;
-  font-size: .75rem;
-  line-height: 1.2rem;
-  text-align: center;
-  font-weight: 600;
-  background: var(--danger, #e53935);
-  color: #fff;
-  border: 1px solid rgba(0,0,0,.06);
-}
+/* bezpečný box model iba v sekcii správ */
+.spravy-page, .spravy-page * { box-sizing: border-box; }
 
-/* "Svietenie", keď sú neprečítané */
-.msg-indicator.has-unread{
-  color: var(--danger, #e53935);
-}
-.msg-indicator.has-unread .icon{
-  animation: msg-pulse 1.8s ease-in-out infinite;
-}
-
-/* Blikanie načerveno pri hover (len ak sú neprečítané) */
-.msg-indicator.has-unread:hover .badge{
-  animation: msg-blink .8s steps(2, end) infinite;
-}
-
-/* Jemný prstenec (glow) okolo ikonky pri neprečítaných */
-.msg-indicator.has-unread::after{
-  content: "";
-  position: absolute;
-  inset: -2px;
-  border-radius: .7rem;
-  box-shadow: 0 0 0 0 rgba(229, 57, 53, .45);
-  animation: msg-ring 2.2s ease-out infinite;
-  pointer-events: none;
-}
-
-/* Keyframes */
-@keyframes msg-pulse{
-  0%,100% { transform: scale(1); }
-  50%     { transform: scale(1.08); }
-}
-
-@keyframes msg-blink{
-  0%,100% { filter: none; opacity: 1; }
-  50%     { filter: brightness(1.2) saturate(1.2); opacity: .6; }
-}
-
-@keyframes msg-ring{
-  0%   { box-shadow: 0 0 0 0 rgba(229, 57, 53, .45); }
-  100% { box-shadow: 0 0 0 12px rgba(229, 57, 53, 0); }
-}
-
+/* ---------- Horná ikonka správ pri niku ---------- */
 .user-panel { display:flex; align-items:center; gap:.6rem; }
 
-/* Pilulka s ikonou */
 .msg-icon{
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem; height: 2rem;
-  border-radius: 999px;
-  text-decoration: none;
-  background: var(--surface, #f3f4f6);
-  color: inherit;
-  transition: transform .15s ease, background .2s ease, color .2s ease;
+  position:relative; display:inline-flex; align-items:center; justify-content:center;
+  width:2rem; height:2rem; border-radius:999px; text-decoration:none;
+  background:var(--surface,#f3f4f6); color:inherit;
+  transition:transform .15s ease, background .2s ease, color .2s ease;
 }
-.msg-icon:focus-visible{
-  outline: 2px solid var(--primary, #3b82f6);
-  outline-offset: 2px;
-}
-
-/* Keď sú neprečítané */
-.msg-icon.has-unread{ background: rgba(229,57,53,.10); color: var(--danger, #e53935); }
-
-/* Badge s počtom */
+.msg-icon:focus-visible{ outline:2px solid var(--primary,#3b82f6); outline-offset:2px; }
+.msg-icon:hover{ transform:translateY(-1px); }
 .msg-icon .badge{
-  position: absolute;
-  top: -6px; right: -6px;
-  min-width: 1.1rem; height: 1.1rem; line-height: 1.1rem;
-  padding: 0 .3rem;
-  border-radius: 999px;
-  font-size: .70rem; font-weight: 700; text-align: center;
-  background: var(--danger, #e53935);
-  color: #fff;
-  border: 1px solid rgba(0,0,0,.06);
+  position:absolute; top:-6px; right:-6px;
+  min-width:1.1rem; height:1.1rem; line-height:1.1rem; padding:0 .3rem;
+  border-radius:999px; font-size:.70rem; font-weight:700; text-align:center;
+  background:var(--danger,#e53935); color:#fff; border:1px solid rgba(0,0,0,.06);
+}
+.msg-icon.has-unread{ background:rgba(229,57,53,.10); color:var(--danger,#e53935); }
+.msg-icon.has-unread:hover .badge{ animation:msg-blink .9s steps(2,end) infinite; }
+.msg-icon.has-unread:hover .icon  { animation:msg-pulse 1.2s ease-in-out infinite; }
+.msg-icon.has-unread{ animation:msg-glow 2.4s ease-in-out infinite; }
+
+@keyframes msg-blink{ 0%,100%{filter:none;opacity:1;} 50%{filter:brightness(1.2) saturate(1.2);opacity:.6;} }
+@keyframes msg-pulse{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
+@keyframes msg-glow { 0%,100%{box-shadow:0 0 0 0 rgba(229,57,53,.35);} 50%{box-shadow:0 0 0 8px rgba(229,57,53,0);} }
+
+/* ---------- Layout stránky správ ---------- */
+.spravy-page { padding:1.25rem; }
+.spravy-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem; }
+
+/* kľúčové: minmax + min-width:0 zabráni „pretekaniu“ */
+.spravy-grid { display:grid; grid-template-columns:minmax(280px,560px) 1fr; gap:1rem; }
+.spravy-grid > * { min-width:0; }
+aside, .msg-view { min-width:0; }
+
+/* ---------- Taby ---------- */
+.msg-tabs { display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem; }
+.msg-tab{
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.4rem .6rem; border-radius:.6rem; text-decoration:none;
+  border:1px solid var(--hover,#e5e7eb); color:inherit; background:#fff;
+}
+.msg-tab.active{ background:var(--surface,#f3f4f6); font-weight:600; }
+.msg-tab.danger{ border-color:var(--danger,#e53935); color:var(--danger,#e53935); }
+.msg-tab.ghost{ background:#fff; }
+.msg-tab .chip{
+  min-width:1.1rem; height:1.1rem; line-height:1.1rem; padding:0 .35rem;
+  border-radius:999px; font-size:.72rem; text-align:center; color:#fff; background:var(--danger,#e53935);
 }
 
-/* Hover efekt: jemné zväčšenie vždy */
-.msg-icon:hover{ transform: translateY(-1px); }
-
-/* Blink na HOVER len ak sú neprečítané */
-.msg-icon.has-unread:hover .badge{ animation: msg-blink .9s steps(2, end) infinite; }
-.msg-icon.has-unread:hover .icon { animation: msg-pulse 1.2s ease-in-out infinite; }
-
-/* Voliteľný "glow" aj bez hoveru (jemné pulzovanie pilulky) */
-.msg-icon.has-unread{ animation: msg-glow 2.4s ease-in-out infinite; }
-
-/* Keyframes */
-@keyframes msg-blink{
-  0%,100% { filter:none; opacity:1; }
-  50% { filter:brightness(1.2) saturate(1.2); opacity:.6; }
+/* ---------- Hromadné akcie (zobrazia sa po „Označiť viac“) ---------- */
+.bulk-controls{
+  display:none; gap:.5rem; align-items:center;
+  margin:.5rem 0 .25rem 0;
 }
-@keyframes msg-pulse{
-  0%,100% { transform: scale(1); }
-  50%     { transform: scale(1.08); }
+.bulk-controls.show{ display:flex !important; }
+
+.btn.tiny{ font-size:.8rem; padding:.25rem .5rem; }
+.btn.danger{ background:var(--danger,#e53935); color:#fff; border-color:transparent; }
+.btn.light{ background:#fff; border:1px solid var(--hover,#e5e7eb); }
+
+/* ---------- Zoznam vľavo ---------- */
+.list-scroll{ max-height:500px; overflow:auto; padding-right:.25rem; }
+.msg-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.5rem; }
+.msg-li{ position:relative; }
+.msg-row{ position:relative; display:flex; align-items:stretch; gap:.5rem; }
+
+/* karta správy (rezerva dole pre ikonku zmazania) */
+.msg-item{
+  position:relative; flex:1; background:#fff;
+  border:1.5px solid var(--hover,#e5e7eb); border-radius:.75rem;
+  padding:.45rem .55rem 1.4rem .55rem;  /* spodný padding kvôli 🗑️ */
+  text-decoration:none; color:inherit; max-width:100%;
 }
-@keyframes msg-glow{
-  0%,100% { box-shadow: 0 0 0 0 rgba(229,57,53,.35); }
-  50%     { box-shadow: 0 0 0 8px rgba(229,57,53,0); }
+.msg-item .row-top{ display:flex; justify-content:space-between; gap:.5rem; }
+.msg-item .who{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.msg-item .dt{ opacity:.75; white-space:nowrap; }
+.msg-item .ctx{ opacity:.7; }
+.msg-item .preview{ margin-top:.25rem; opacity:.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* zvýraznenie neprečítaných */
+.msg-item.unread{
+  border-color:var(--danger,#e53935) !important;
+  box-shadow:0 0 0 2px rgba(229,57,53,.12);
+  background:rgba(229,57,53,.03);
+  font-weight:600;
+}
+.msg-item.unread:hover{ box-shadow:0 0 0 3px rgba(229,57,53,.18); }
+
+/* individuálne zmazanie – vpravo dole */
+.inline-del{ position:absolute; right:.6rem; bottom:.6rem; }
+.icon-btn{
+  background:#fff; border:1px solid var(--hover,#e5e7eb);
+  border-radius:.5rem; padding:.25rem .45rem; cursor:pointer;
+}
+
+/* checkboxy (multi-režim) */
+.msg-cb{ display:none; margin:.6rem .1rem 0 .1rem; }
+#msg-list-wrap.ms-mode .msg-cb{ display:inline-block; }
+#msg-list-wrap.ms-mode .inline-del{ display:none !important; }
+
+/* ---------- Pravý panel ---------- */
+.msg-view{
+  border:1.5px solid var(--hover,#e5e7eb); border-radius:.75rem;
+  padding:1rem; min-height:420px; background:#fff; overflow-x:hidden;
+}
+.view-title{ margin-top:0; }
+.view-body{ white-space:pre-wrap; line-height:1.5; margin:.5rem 0 1rem; overflow-wrap:anywhere; word-break:break-word; }
+
+/* ---------- Nová správa (compose) ---------- */
+/* Nová správa – dvojstĺpcový vrch */
+.compose .form-grid,
+.compose .grid2{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+  align-items: start;        /* ⬅️ bolo end, daj start = zarovnaj hore */
+}
+
+.compose .form-field{ min-width:0; display: flex; flex-direction: column; margin-top: 1rem}
+.compose .form-field label{ display:block; font-weight:600; margin-bottom:.35rem; }
+.compose .input,
+.compose .textarea{
+  display:block; width:100%; max-width:100%;
+  padding:.55rem .65rem;
+  border:1px solid var(--hover,#e5e7eb); border-radius:.55rem; background:#fff;
+}
+.compose .textarea{ min-height:180px; resize:vertical; }
+.compose .form-actions{ display:flex; justify-content:flex-end; margin-top:.75rem; }
+
+#komu-picked[hidden] { display: none !important; }
+
+/* vyhľadávač nicku */
+.compose .searchwrap{ position:relative; width:100%; }
+.compose .suggestions{
+  position:absolute; top:calc(100% + .25rem); left:0; right:0;
+  background:#fff; border:1px solid var(--hover,#e5e7eb); border-radius:.5rem;
+  max-height:240px; overflow:auto; z-index:30; max-width:100%;
+  box-shadow:0 6px 18px rgba(0,0,0,.06);
+}
+.compose .sugg-item{
+  display:flex; justify-content:space-between; gap:.75rem;
+  padding:.45rem .6rem; cursor:pointer;
+}
+.compose .sugg-item .nick{ font-weight:600; }
+.compose .sugg-item .em{ opacity:.75; font-size:.85rem; }
+.compose .sugg-item:hover,
+.compose .sugg-item.active{ background:var(--surface,#f3f4f6); }
+
+/* vybraný príjemca (chip) */
+.compose .picked{ display:flex; align-items:center; gap:.5rem; margin-top:.3rem; flex-wrap:wrap; }
+.compose .picked .tag{
+  background:var(--surface,#f3f4f6); border:1px solid var(--hover,#e5e7eb);
+  border-radius:.5rem; padding:.2rem .55rem; max-width:100%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.link-btn{ background:none; border:none; color:var(--primary,#3b82f6); cursor:pointer; padding:0; }
+
+/* ---------- Responsivita ---------- */
+@media (max-width:1100px){
+  .spravy-grid{ grid-template-columns:minmax(260px,500px) 1fr; }
+}
+@media (max-width:900px){
+  .spravy-grid{ grid-template-columns:1fr; }
+  .compose .form-grid, .compose .grid2{ grid-template-columns:1fr; }
+}
+
+/* hlavička detailu */
+.view-head{
+  display:flex; justify-content:space-between; align-items:flex-start;
+  gap:1rem; margin-bottom:.5rem;
+}
+.fromto{
+  display:grid; grid-template-columns: 70px 1fr;
+  column-gap:.75rem; row-gap:.25rem; min-width:0;
+}
+.fromto .lbl{ opacity:.7; font-weight:600; }
+.fromto .val{ min-width:0; }
+.dt{ opacity:.75; }
+.pill{
+  display:inline-block; margin-right:.35rem; margin-top:.15rem;
+  padding:.15rem .45rem; border-radius:999px;
+  background:var(--surface,#f3f4f6); border:1px solid var(--hover,#e5e7eb);
+  font-size:.85rem;
+}
+.head-actions .btn{ white-space:nowrap; }
+
+/* oddelovač medzi hlavičkou a telom */
+.view-sep{ border:0; border-top:1px solid var(--hover,#e5e7eb); margin:.5rem 0 .75rem; }
+
+/* rýchla odpoveď – zjednotený štýl */
+.qr-label{ display:block; font-weight:600; margin:.75rem 0 .35rem; }
+.qr-textarea{
+  display:block; width:100%; max-width:100%;
+  padding:.55rem .65rem; min-height:120px; resize:vertical;
+  border:1px solid var(--hover,#e5e7eb); border-radius:.55rem; background:#fff;
+}
+
+/* väčší rozostup nad rýchlou odpoveďou v detaile */
+.quick-reply{
+  margin-top: 1rem;
+  padding-top: .5rem;
+  border-top: 1px solid var(--hover, #e5e7eb);
+}
+
+/* malá medzera medzi textárom a tlačidlom Odoslať */
+.quick-reply .align-right{
+  margin-top: .5rem;
 }
