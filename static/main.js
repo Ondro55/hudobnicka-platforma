@@ -79,35 +79,44 @@ document.addEventListener('DOMContentLoaded', () => {
   on(document, 'keydown', (e)=>{ if (e.key==='Escape') closeAll(); });
 });
 
-(function(){
-  const $ = (sel, root=document) => root.querySelector(sel);
+(function () {
+  const $ = (sel, root = document) => root.querySelector(sel);
 
-  // Delegovaný click na všetky „Reagovať“ tlačidlá
+  function openModal() {
+    const m = $('#sprava-modal');
+    if (!m) return;
+    m.hidden = false;
+    m.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeModal() {
+    const m = $('#sprava-modal');
+    if (!m) return;
+    m.hidden = true;
+    m.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+  }
+
+  // Delegovaný click na tlačidlá "Reagovať"
   document.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-open="sprava-modal"]');
+    const btn = e.target.closest('[data-open="sprava-modal"]');
     if (!btn) return;
 
-    const modal = $('#sprava-modal');
-    const form  = $('#sprava-form');
-    if (!modal || !form) return;
+    const form = $('#sprava-form');
+    if (!form) return;
 
-    // prečítaj data-* z tlačidla
-    const id     = btn.dataset.dopytId || '';
-    const typ    = btn.dataset.dopytTyp || 'Dopyt';
+    // data-* z tlačidla
+    const id     = btn.dataset.dopytId    || '';
+    const typ    = btn.dataset.dopytTyp   || 'Dopyt';
     const datum  = btn.dataset.dopytDatum || '';
-    const miesto = btn.dataset.dopytMiesto || '';
-    const meno   = btn.dataset.dopytMeno || '';
+    const miesto = btn.dataset.dopytMiesto|| '';
+    const meno   = btn.dataset.dopytMeno  || '';
     const email  = btn.dataset.dopytEmail || '';
 
-    // poskladaj predmet
     const parts = [typ, datum, miesto].filter(Boolean);
     const subject = `Reakcia na dopyt: ${parts.join(' – ')}`;
-
-    // predvyplň polia
-    form.elements['dopyt_id'].value = id;
-    if (form.elements['to'])      form.elements['to'].value = email;
-    if (form.elements['subject']) form.elements['subject'].value = subject;
-    if (form.elements['message']) form.elements['message'].value =
+    const bodyText =
 `Dobrý deň ${meno || ''},
 
 reagujem na Váš dopyt (${parts.join(' – ')}).
@@ -116,33 +125,40 @@ Som k dispozícii, rád/rada upresním detaily (repertoár, technika, dĺžka vy
 Ďakujem a teším sa na odpoveď.
 `;
 
-    // otvor modal
-    modal.hidden = false;
-    modal.setAttribute('aria-hidden','false');
+    // Predvyplnenie – podpor obidve schémy názvov polí
+    form.elements['dopyt_id']   && (form.elements['dopyt_id'].value   = id);
+    form.elements['subject']    && (form.elements['subject'].value    = subject);
+    form.elements['message']    && (form.elements['message'].value    = bodyText);
+    form.elements['to']         && (form.elements['to'].value         = email);
 
-    // focus na subject
+    // pre spravy.odoslat (náš backend)
+    form.elements['kontekst']    && (form.elements['kontekst'].value    = 'dopyt');
+    form.elements['kontekst_id'] && (form.elements['kontekst_id'].value = id);
+    form.elements['komu_email']  && (form.elements['komu_email'].value  = email);
+    form.elements['obsah']       && (form.elements['obsah'].value       = bodyText);
+
+    openModal();
     setTimeout(() => { form.elements['subject']?.focus(); }, 0);
   });
 
-  // zavretie modalu
+  // Zavrieť (X alebo tlačidlo s data-close)
   document.addEventListener('click', (e) => {
-    const close = e.target.closest('[data-close="sprava-modal"]');
-    if (!close) return;
-    const modal = document.getElementById('sprava-modal');
-    if (modal){
-      modal.hidden = true;
-      modal.setAttribute('aria-hidden','true');
+    if (e.target.closest('[data-close="sprava-modal"]')) {
+      e.preventDefault();
+      closeModal();
     }
   });
 
   // ESC zatvorí modal
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape'){
-      const modal = document.getElementById('sprava-modal');
-      if (modal && !modal.hidden){
-        modal.hidden = true;
-        modal.setAttribute('aria-hidden','true');
-      }
-    }
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // Po odoslaní (klasický POST + redirect) modal hneď zavri
+  document.addEventListener('submit', (e) => {
+    const form = e.target.closest('#sprava-form');
+    if (!form) return;
+    closeModal();
   });
 })();
+

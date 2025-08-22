@@ -19,12 +19,19 @@
     <div class="cta-wrap">
       {% if current_user.is_authenticated %}
         {% if current_user.id != detail_inz.pouzivatel_id %}
-          <button type="button" class="btn primary" id="btn-reakcia">✉️ Poslať správu</button>
+          <a class="btn primary"
+            href="{{ url_for('spravy.napisat',
+                              kontekst='inzerat',
+                              kontekst_id=detail_inz.id,
+                              komu_id=detail_inz.pouzivatel_id) }}">
+            ✉️ Poslať správu
+          </a>
         {% endif %}
       {% else %}
         <a class="btn primary" href="{{ url_for('uzivatel.login') }}">✉️ Prihlás sa a reaguj</a>
       {% endif %}
-    </div>
+</div>
+
   </header>
 
   {# MODÁL – len pre prihlásených a nie vlastný inzerát #}

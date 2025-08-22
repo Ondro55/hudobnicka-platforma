@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/kalendar.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/inzerat.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/komunita.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/spravy.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Open+Sans&display=swap" rel="stylesheet" />
 </head>
 
@@ -32,11 +33,20 @@
 
       <div class="user-panel">
         {% if current_user.is_authenticated %}
+          <!-- ✉️ Ikonka správ (pred user-info) -->
+          <a href="{{ url_for('spravy.inbox') }}"
+            class="msg-icon {% if neprecitane_count and neprecitane_count > 0 %}has-unread{% endif %}"
+            aria-label="Správy">
+            <span class="icon">✉️</span>
+            {% if neprecitane_count and neprecitane_count > 0 %}
+              <span class="badge">{{ neprecitane_count }}</span>
+            {% endif %}
+          </a>
+
           <span class="user-info">👋 {{ current_user.prezyvka }}</span>
           <a href="{{ url_for('uzivatel.profil') }}" class="header-btn">Moje konto</a>
           <a href="{{ url_for('main.logout') }}" class="header-btn logout-btn">Odhlásiť sa</a>
         {% else %}
-          <!-- TLAČIDLÁ: bez href, otváranie cez data-modal-open -->
           <button type="button" class="header-btn" data-modal-open="#modal-login">Prihlásiť sa</button>
           <button type="button" class="header-btn" data-modal-open="#user-form-panel">Registrovať sa</button>
         {% endif %}
@@ -73,11 +83,13 @@
 <div class="button-container">
   {% if current_user.is_authenticated and request.endpoint != 'index' %}
     <aside class="button-sidebar">
-      <a href="{{ url_for('uzivatel.profil') }}" class="sidebar-btn {% if request.endpoint == 'uzivatel.profil' %}aktivne{% endif %}">👤 Profil</a>
-      <a href="{{ url_for('skupina.skupina') }}" class="sidebar-btn {% if request.endpoint == 'skupina.skupina' %}aktivne{% endif %}">🎸 Moja skupina</a>
+      <a href="{{ url_for('uzivatel.profil') }}"  class="sidebar-btn {% if request.endpoint == 'uzivatel.profil' %}aktivne{% endif %}">👤 Profil</a>
+      <a href="{{ url_for('skupina.skupina') }}"  class="sidebar-btn {% if request.endpoint == 'skupina.skupina' %}aktivne{% endif %}">🎸 Moja skupina</a>
       <a href="{{ url_for('kalendar.kalendar') }}" class="sidebar-btn {% if request.endpoint == 'kalendar.kalendar' %}aktivne{% endif %}">📅 Kalendár</a>
       <a href="{{ url_for('inzerat.moj_bazar') }}" class="sidebar-btn {% if request.endpoint == 'inzerat.moj_bazar' %}aktivne{% endif %}">🛍️ Môj bazár</a>
+      <a href="{{ url_for('spravy.inbox') }}" class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('spravy') %}aktivne{% endif %}">📨 Správy</a>
     </aside>
+
     <main class="main-content">
   {% else %}
     <main class="main-no-sidebar">
@@ -85,6 +97,7 @@
       {% block content %}{% endblock %}
     </main>
 </div>
+
 
 {% include 'includes/novinky.html' %}
 

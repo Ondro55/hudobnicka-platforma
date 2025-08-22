@@ -98,19 +98,21 @@
           {% endif %}
 
           <div class="card-actions" style="display:flex; gap:.5rem; margin-top:.75rem; flex-wrap:wrap;">
-            <!-- Ak budeš mať detail, pridáme sem link -->
-            <button
-              class="btn"
-              data-open="sprava-modal"
-              data-dopyt-id="{{ d.id }}"
-              data-dopyt-typ="{{ d.typ_akcie }}"
-              data-dopyt-datum="{{ d.datum.strftime('%d.%m.%Y') if d.datum }}"
-              data-dopyt-miesto="{{ d.miesto }}"
-              data-dopyt-meno="{{ d.meno }}"
-              data-dopyt-email="{{ d.email }}"
-            >
-              Reagovať
-            </button>
+            {% if current_user.is_authenticated %}
+              {% if d.email %}
+                <a class="btn"
+                  href="{{ url_for('spravy.napisat',
+                                    kontekst='dopyt',
+                                    kontekst_id=d.id,
+                                    komu_email=d.email) }}">
+                  ✉️ Reagovať cez e-mail
+                </a>
+              {% else %}
+                <span class="muted">Kontakt nie je k dispozícii.</span>
+              {% endif %}
+            {% else %}
+              <span class="muted">Prihlás sa, aby si mohol reagovať.</span>
+            {% endif %}
           </div>
         </article>
       {% endfor %}

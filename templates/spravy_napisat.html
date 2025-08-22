@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Napísať správu | Muzikuj{% endblock %}
+
+{% block content %}
+<section class="spravy-compose" style="padding:2rem; max-width:840px; margin:0 auto;">
+  <header style="display:flex; justify-content:space-between; align-items:center;">
+    <h2 style="margin:0;">Napísať správu</h2>
+    <a href="{{ url_for('spravy.inbox') }}" class="btn">← Správy</a>
+  </header>
+
+  <form method="post" action="{{ url_for('spravy.odoslat') }}" style="margin-top:1rem;">
+    <input type="hidden" name="kontekst"    value="{{ kontekst or '' }}">
+    <input type="hidden" name="kontekst_id" value="{{ kontekst_id or '' }}">
+    <input type="hidden" name="komu_id"     value="{{ komu_id or '' }}">
+    <input type="hidden" name="komu_email"  value="{{ komu_email or '' }}">
+
+    <div class="card" style="border:1px solid var(--hover); border-radius:12px; padding:1rem;">
+      <div style="display:grid; grid-template-columns:160px 1fr; gap:1rem; align-items:center;">
+        <div><strong>Odosielateľ</strong></div>
+        <div>{{ current_user.prezyvka or current_user.email }}</div>
+
+        <div><strong>Komu</strong></div>
+        <div>
+          {% if prijemca_nazov %}{{ prijemca_nazov }}
+          {% elif komu_email %}{{ komu_email }}
+          {% elif komu_id %}používateľ #{{ komu_id }}
+          {% else %}<em>nezadané</em>{% endif %}
+        </div>
+
+        {% if kontekst == 'dopyt' and kontekst_id %}
+          <div><strong>Kontext</strong></div><div>Dopyt #{{ kontekst_id }}</div>
+        {% endif %}
+      </div>
+
+      <hr style="margin:1rem 0; border:none; border-top:1px solid var(--hover);">
+
+      <label for="obsah"><strong>Správa</strong></label>
+      <textarea id="obsah" name="obsah" rows="8" required style="width:100%; margin-top:.5rem;"></textarea>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:.5rem; margin-top:1rem;">
+      <a class="btn" href="{{ request.referrer or url_for('spravy.inbox') }}">Zrušiť</a>
+      <button type="submit" class="btn">Odoslať</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

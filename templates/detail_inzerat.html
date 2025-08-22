@@ -46,6 +46,18 @@
   <img id="lb-img" alt="Náhľad">
   <button class="lb-next" aria-label="Ďalšia">›</button>
 </div>
+{% if current_user.is_authenticated and current_user.id != inz.pouzivatel_id %}
+  <div class="message-cta" style="margin:1rem 0;">
+    <a class="btn"
+       href="{{ url_for('spravy.napisat',
+                        kontekst='inzerat',
+                        kontekst_id=inz.id,
+                        komu_id=inz.pouzivatel_id) }}">
+      💬 Napísať predajcovi
+    </a>
+  </div>
+{% endif %}
+
 
 <style>
 .detail-inzerat { padding: 1.5rem; }

@@ -86,6 +86,9 @@ class Dopyt(db.Model):
     mesto_id = db.Column(db.Integer, db.ForeignKey('mesto.id'), nullable=True)
     mesto = db.relationship('Mesto')
 
+    aktivny = db.Column(db.Boolean, default=True)   # nový stĺpec
+    zmazany_at = db.Column(db.DateTime, nullable=True)  # voliteľné, pre audit
+
     pouzivatel_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=True)
     pouzivatel = db.relationship('Pouzivatel', backref='dopyty')
 
@@ -176,14 +179,21 @@ class Mesto(db.Model):
         return f"{self.nazov} ({self.okres}, {self.kraj})"
 
 class Sprava(db.Model):
+    __tablename__ = "spravy"
     id = db.Column(db.Integer, primary_key=True)
     obsah = db.Column(db.Text, nullable=False)
     datum = db.Column(db.DateTime, default=datetime.utcnow)
 
-    od_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False)
-    komu_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False)
-    inzerat_id = db.Column(db.Integer, db.ForeignKey('inzerat.id'), nullable=False)
+    od_id   = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False)
+    komu_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=True)  # <- zmenené na True
+    komu_email = db.Column(db.String(255), nullable=True)  # <- NOVÉ
 
-    od = db.relationship('Pouzivatel', foreign_keys=[od_id])
+    inzerat_id = db.Column(db.Integer, db.ForeignKey('inzerat.id'), nullable=True)
+    dopyt_id   = db.Column(db.Integer, db.ForeignKey('dopyt.id'),   nullable=True)
+
+    precitane = db.Column(db.Boolean, default=False)
+    
+    od   = db.relationship('Pouzivatel', foreign_keys=[od_id])
     komu = db.relationship('Pouzivatel', foreign_keys=[komu_id])
     inzerat = db.relationship('Inzerat', backref='spravy')
+

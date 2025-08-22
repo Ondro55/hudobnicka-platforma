@@ -351,3 +351,6 @@
 .modal textarea { width:100%; border:1px solid var(--hover); border-radius:8px; padding:.6rem; resize:vertical; }
 .modal__actions { display:flex; gap:.5rem; justify-content:flex-end; margin-top:.75rem; }
 .btn { border:1px solid var(--hover); background:#fff; border-radius:8px; padding:.5rem .8rem; cursor:pointer; }
+
+body.modal-open { overflow: hidden; }
+#sprava-modal[hidden] { display: none !important; }

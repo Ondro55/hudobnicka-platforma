@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Správy | Muzikuj{% endblock %}
+
+{% block content %}
+<section style="padding:2rem;">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Správy</h2>
+    <a href="{{ url_for('spravy.napisat') }}" class="btn">Nová správa</a>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-top:1rem;">
+    <!-- PRIJATÉ -->
+    <div>
+      <h3>📥 Prijaté</h3>
+      {% if prijate and prijate|length %}
+        {% for s in prijate %}
+          <article style="border:1px solid var(--hover); border-radius:.75rem; padding:.75rem; margin-bottom:.6rem;">
+            <div style="display:flex; justify-content:space-between; gap:.5rem;">
+              <strong>od #{{ s.od_id }}</strong>
+              <small style="opacity:.75;">{{ s.datum.strftime('%d.%m.%Y %H:%M') }}</small>
+            </div>
+            {% if s.dopyt_id %}<small style="opacity:.75;">(dopyt #{{ s.dopyt_id }})</small>{% endif %}
+            {% if s.inzerat_id %}<small style="opacity:.75;">(inzerát #{{ s.inzerat_id }})</small>{% endif %}
+            <p style="margin:.5rem 0 0; white-space:pre-wrap;">{{ s.obsah }}</p>
+          </article>
+        {% endfor %}
+      {% else %}
+        <p class="muted">Žiadne prijaté správy.</p>
+      {% endif %}
+    </div>
+
+    <!-- ODOSLANÉ -->
+    <div>
+      <h3>📤 Odoslané</h3>
+      {% if odoslane and odoslane|length %}
+        {% for s in odoslane %}
+          <article style="border:1px solid var(--hover); border-radius:.75rem; padding:.75rem; margin-bottom:.6rem;">
+            <div style="display:flex; justify-content:space-between; gap:.5rem;">
+              <strong>
+                komu:
+                {% if s.komu_id %}#{{ s.komu_id }}
+                {% elif s.komu_email %}{{ s.komu_email }}
+                {% else %}—{% endif %}
+              </strong>
+              <small style="opacity:.75;">{{ s.datum.strftime('%d.%m.%Y %H:%M') }}</small>
+            </div>
+            {% if s.dopyt_id %}<small style="opacity:.75;">(dopyt #{{ s.dopyt_id }})</small>{% endif %}
+            {% if s.inzerat_id %}<small style="opacity:.75;">(inzerát #{{ s.inzerat_id }})</small>{% endif %}
+            <p style="margin:.5rem 0 0; white-space:pre-wrap;">{{ s.obsah }}</p>
+          </article>
+        {% endfor %}
+      {% else %}
+        <p class="muted">Žiadne odoslané správy.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+

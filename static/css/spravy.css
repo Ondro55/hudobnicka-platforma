@@ -1,0 +1,138 @@
+/* nech je text a badge pekne zarovnané */
+.sidebar-btn { display:flex; align-items:center; justify-content:space-between; }
+.sidebar-btn .badge{
+  display:inline-block; min-width:1.5em; padding:0 .45em;
+  border-radius:999px; font-size:.75rem; line-height:1.6;
+  background: var(--tlacidlo); color:#fff;
+}
+.muted { opacity: .8; font-size: .95rem; }
+
+/* Ikonka správ v hlavičke (box2) */
+.msg-indicator{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .55rem;
+  border-radius: .7rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Badge s počtom */
+.msg-indicator .badge{
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 .35rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  line-height: 1.2rem;
+  text-align: center;
+  font-weight: 600;
+  background: var(--danger, #e53935);
+  color: #fff;
+  border: 1px solid rgba(0,0,0,.06);
+}
+
+/* "Svietenie", keď sú neprečítané */
+.msg-indicator.has-unread{
+  color: var(--danger, #e53935);
+}
+.msg-indicator.has-unread .icon{
+  animation: msg-pulse 1.8s ease-in-out infinite;
+}
+
+/* Blikanie načerveno pri hover (len ak sú neprečítané) */
+.msg-indicator.has-unread:hover .badge{
+  animation: msg-blink .8s steps(2, end) infinite;
+}
+
+/* Jemný prstenec (glow) okolo ikonky pri neprečítaných */
+.msg-indicator.has-unread::after{
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: .7rem;
+  box-shadow: 0 0 0 0 rgba(229, 57, 53, .45);
+  animation: msg-ring 2.2s ease-out infinite;
+  pointer-events: none;
+}
+
+/* Keyframes */
+@keyframes msg-pulse{
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.08); }
+}
+
+@keyframes msg-blink{
+  0%,100% { filter: none; opacity: 1; }
+  50%     { filter: brightness(1.2) saturate(1.2); opacity: .6; }
+}
+
+@keyframes msg-ring{
+  0%   { box-shadow: 0 0 0 0 rgba(229, 57, 53, .45); }
+  100% { box-shadow: 0 0 0 12px rgba(229, 57, 53, 0); }
+}
+
+.user-panel { display:flex; align-items:center; gap:.6rem; }
+
+/* Pilulka s ikonou */
+.msg-icon{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem; height: 2rem;
+  border-radius: 999px;
+  text-decoration: none;
+  background: var(--surface, #f3f4f6);
+  color: inherit;
+  transition: transform .15s ease, background .2s ease, color .2s ease;
+}
+.msg-icon:focus-visible{
+  outline: 2px solid var(--primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+/* Keď sú neprečítané */
+.msg-icon.has-unread{ background: rgba(229,57,53,.10); color: var(--danger, #e53935); }
+
+/* Badge s počtom */
+.msg-icon .badge{
+  position: absolute;
+  top: -6px; right: -6px;
+  min-width: 1.1rem; height: 1.1rem; line-height: 1.1rem;
+  padding: 0 .3rem;
+  border-radius: 999px;
+  font-size: .70rem; font-weight: 700; text-align: center;
+  background: var(--danger, #e53935);
+  color: #fff;
+  border: 1px solid rgba(0,0,0,.06);
+}
+
+/* Hover efekt: jemné zväčšenie vždy */
+.msg-icon:hover{ transform: translateY(-1px); }
+
+/* Blink na HOVER len ak sú neprečítané */
+.msg-icon.has-unread:hover .badge{ animation: msg-blink .9s steps(2, end) infinite; }
+.msg-icon.has-unread:hover .icon { animation: msg-pulse 1.2s ease-in-out infinite; }
+
+/* Voliteľný "glow" aj bez hoveru (jemné pulzovanie pilulky) */
+.msg-icon.has-unread{ animation: msg-glow 2.4s ease-in-out infinite; }
+
+/* Keyframes */
+@keyframes msg-blink{
+  0%,100% { filter:none; opacity:1; }
+  50% { filter:brightness(1.2) saturate(1.2); opacity:.6; }
+}
+@keyframes msg-pulse{
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.08); }
+}
+@keyframes msg-glow{
+  0%,100% { box-shadow: 0 0 0 0 rgba(229,57,53,.35); }
+  50%     { box-shadow: 0 0 0 8px rgba(229,57,53,0); }
+}
