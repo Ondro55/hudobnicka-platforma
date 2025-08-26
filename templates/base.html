@@ -20,9 +20,7 @@
 <body data-zobraz="{{ zobraz_formular }}">
 
 <header class="hlavicka-grid">
-  <div class="box1">
-    <div class="logo">Muzikuj.sk</div>
-  </div>
+  <div class="box1"><div class="logo">Muzikuj.sk</div></div>
 
   <div class="box2">
     <div class="box2-wrapper">
@@ -33,10 +31,9 @@
 
       <div class="user-panel">
         {% if current_user.is_authenticated %}
-          <!-- ✉️ Ikonka správ (pred user-info) -->
           <a href="{{ url_for('spravy.inbox') }}"
-            class="msg-icon {% if neprecitane_count and neprecitane_count > 0 %}has-unread{% endif %}"
-            aria-label="Správy">
+             class="msg-icon {% if neprecitane_count and neprecitane_count > 0 %}has-unread{% endif %}"
+             aria-label="Správy">
             <span class="icon">✉️</span>
             {% if neprecitane_count and neprecitane_count > 0 %}
               <span class="badge">{{ neprecitane_count }}</span>
@@ -67,7 +64,6 @@
           <a href="#">e-shop</a>
           <a href="#kontakt">Kontakt</a>
         {% else %}
-          <!-- “Sivé” odkazy otvoria login modal -->
           <a href="#" class="disabled-link" data-modal-open="#modal-login">📬 Dopyty</a>
           <a href="#" class="disabled-link" data-modal-open="#modal-login">🎵 Kapely</a>
           <a href="#" class="disabled-link" data-modal-open="#modal-login">🛒 Bazár</a>
@@ -89,7 +85,6 @@
       <a href="{{ url_for('inzerat.moj_bazar') }}" class="sidebar-btn {% if request.endpoint == 'inzerat.moj_bazar' %}aktivne{% endif %}">🛍️ Môj bazár</a>
       <a href="{{ url_for('spravy.inbox') }}" class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('spravy') %}aktivne{% endif %}">📨 Správy</a>
     </aside>
-
     <main class="main-content">
   {% else %}
     <main class="main-no-sidebar">
@@ -97,7 +92,6 @@
       {% block content %}{% endblock %}
     </main>
 </div>
-
 
 {% include 'includes/novinky.html' %}
 
@@ -118,14 +112,14 @@
   </div>
 {% endif %}
 
-<!-- MODÁLNE FORMULÁRE -->
+<!-- MODÁLNE FORMULÁRE (login/registrácia) -->
 {% include 'modals/prihlasenie.html' %}
 {% include 'modals/registracia.html' %}
 
-<!-- 🧹 Dedup: ak by sa modaly vložili 2×, ponechaj poslednú -->
+<!-- 🧹 Dedup len pre istotu -->
 <script>
   (function () {
-    ['modal-login', 'user-form-panel', 'form-hladam-kapelu', 'form-inzerat'].forEach(id => {
+    ['modal-login', 'user-form-panel', 'dopyt-form', 'form-inzerat'].forEach(id => {
       const all = document.querySelectorAll('#' + id);
       if (all.length > 1) {
         all.forEach((el, i) => { if (i < all.length - 1) el.remove(); });
@@ -137,121 +131,92 @@
 
 <section id="kontakt" class="kontakt">
   <h2>Kontaktujte nás</h2>
-  <p>Ak máte otázky, návrhy alebo chcete pridať svoju skupinu/kapelu, ozvite sa:</p>
   <div class="kontakt-boxy">
-    <div class="kontakt-box">
-      <h3>Email</h3>
-      <p><a href="mailto:info@muzikuj.sk">info@muzikuj.sk</a></p>
-    </div>
-    <div class="kontakt-box">
-      <h3>Telefón</h3>
-      <p>+421 900 123 456</p>
-    </div>
-    <div class="kontakt-box">
-      <h3>Sociálne siete</h3>
-      <p><a href="#">Facebook</a> | <a href="#">Instagram</a></p>
-    </div>
+    <div class="kontakt-box"><h3>Email</h3><p><a href="mailto:info@muzikuj.sk">info@muzikuj.sk</a></p></div>
+    <div class="kontakt-box"><h3>Telefón</h3><p>+421 900 123 456</p></div>
+    <div class="kontakt-box"><h3>Sociálne siete</h3><p><a href="#">Facebook</a> | <a href="#">Instagram</a></p></div>
   </div>
 </section>
+
+<!-- 📩 Správy – extra modal (ponechané) -->
 <div id="sprava-modal" class="modal" hidden aria-hidden="true" role="dialog" aria-labelledby="sprava-title">
-  <div class="modal-backdrop" data-close="sprava-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);"></div>
+  <div class="modal-backdrop" data-modal-close style="position:fixed;inset:0;background:rgba(0,0,0,.5);"></div>
   <div class="modal-panel" style="position:fixed;inset:10% auto auto 50%;transform:translateX(-50%);
        max-width:620px;width:calc(100% - 2rem);background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);">
-    <form id="sprava-form" method="POST"
-          action="#"
-          style="padding:1rem;">
+    <form id="sprava-form" method="POST" action="#" style="padding:1rem;">
       <h3 id="sprava-title" style="margin:0 0 .5rem 0;">Napísať reakciu</h3>
-
       <input type="hidden" name="dopyt_id">
       <div style="display:grid;gap:.75rem;">
-        <label>Komu
-          <input type="email" name="to" placeholder="prijímateľ" required>
-        </label>
-        <label>Predmet
-          <input type="text" name="subject" required>
-        </label>
-        <label>Správa
-          <textarea name="message" rows="6" placeholder="Tvoja ponuka, dostupnosť, cena…" required></textarea>
-        </label>
+        <label>Komu <input type="email" name="to" placeholder="prijímateľ" required></label>
+        <label>Predmet <input type="text" name="subject" required></label>
+        <label>Správa <textarea name="message" rows="6" placeholder="Tvoja ponuka, dostupnosť, cena…" required></textarea></label>
       </div>
-
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
-        <button type="button" class="btn" data-close="sprava-modal">Zavrieť</button>
+        <button type="button" class="btn" data-modal-close>Zavrieť</button>
         <button type="submit" class="btn primary">Odoslať</button>
       </div>
     </form>
   </div>
 </div>
 
-<footer>
-  <p>&copy; 2025 Muzikuj.sk | Všetky práva vyhradené</p>
-</footer>
+<footer><p>&copy; 2025 Muzikuj.sk | Všetky práva vyhradené</p></footer>
 
+<!-- drobná utilita pre burger -->
 <script>
-  // hamburger
-  function toggleMenu(){
-    const nav = document.querySelector('.main-nav');
-    if (nav) nav.classList.toggle('active');
-  }
+  function toggleMenu(){ document.querySelector('.main-nav')?.classList.toggle('active'); }
+</script>
 
-  // ✅ JEDEN správca modálov (delegácia + ESC + backdrop)
+<!-- Jeden spoľahlivý správca modálov (portál + fokus) -->
+<script>
   (function () {
+    if (window.__PORTAL_MODAL_MGR__) return; window.__PORTAL_MODAL_MGR__ = true;
     const $  = (s, r=document) => r.querySelector(s);
     const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+    let lastOpener = null;
 
-    // otvor POSLEDNÚ kópiu podľa selektora (ak by sa niekde ešte duplikovalo)
+    function toBodyTop(modal){
+      if (!modal) return;
+      if (modal.parentNode !== document.body || modal !== document.body.lastElementChild) {
+        document.body.appendChild(modal);
+      }
+      modal.style.position = 'fixed';
+      modal.style.inset = '0';
+      modal.style.zIndex = '2147483647';
+      modal.style.pointerEvents = 'auto';
+      const card = modal.querySelector('.modal-card, .modal-panel');
+      if (card) { card.style.position = 'relative'; card.style.zIndex = '2'; card.style.pointerEvents = 'auto'; }
+      const bd = modal.querySelector('.modal-backdrop');
+      if (bd)   { bd.style.zIndex = '1'; bd.style.pointerEvents = 'auto'; }
+    }
+    function focusFirst(modal){
+      const first = modal.querySelector('[autofocus], select, input, textarea, button, [href], [tabindex]:not([tabindex="-1"])');
+      if (first) { first.focus({preventScroll:true}); return; }
+      modal.setAttribute('tabindex', '-1'); modal.focus({preventScroll:true});
+    }
+    function getLast(sel){ const all = $$(sel); return all[all.length - 1] || null; }
+
     function openModal(selOrEl) {
-      let m = null;
-      if (typeof selOrEl === 'string') {
-        const all = $$(selOrEl);
-        m = all[all.length - 1] || null;
-      } else {
-        m = selOrEl;
-      }
+      const m = (typeof selOrEl === 'string') ? getLast(selOrEl) : selOrEl;
       if (!m) return;
-      m.classList.add('open');
-      requestAnimationFrame(() => {
-        const r = m.getBoundingClientRect();
-        if (r.width > 0 && r.height > 0) document.body.style.overflow = 'hidden';
-      });
+      toBodyTop(m); m.hidden = false; m.setAttribute('aria-hidden','false'); m.classList.add('open');
+      document.body.classList.add('modal-open'); setTimeout(() => focusFirst(m), 0);
+    }
+    function closeModal(node) {
+      const m = node?.closest?.('.modal-root, .modal') || node; if (!m) return;
+      if (m.contains(document.activeElement)) document.activeElement.blur();
+      m.classList.remove('open'); m.hidden = true; m.setAttribute('aria-hidden','true');
+      if (!$('.modal-root.open, .modal:not([hidden])')) document.body.classList.remove('modal-open');
+      if (lastOpener && document.body.contains(lastOpener)) lastOpener.focus({preventScroll:true});
     }
 
-    function closeModal(el) {
-      const m = el?.closest?.('.modal-root') || el;
-      if (!m) return;
-      m.classList.remove('open');
-      if (!$('.modal-root.open')) document.body.style.overflow = '';
-    }
-
-    // Delegované kliky
     document.addEventListener('click', (e) => {
-      const openBtn  = e.target.closest('[data-modal-open]');
-      const closeBtn = e.target.closest('[data-modal-close], .modal-close');
-      if (openBtn) { e.preventDefault(); openModal(openBtn.getAttribute('data-modal-open')); return; }
-      if (closeBtn){ e.preventDefault(); closeModal(closeBtn); return; }
-      // klik priamo na backdrop
-      if (e.target.classList && e.target.classList.contains('modal-root')) {
-        e.preventDefault(); closeModal(e.target);
-      }
+      const opener = e.target.closest('[data-modal-open]'); if (opener){ e.preventDefault(); lastOpener = opener; openModal(opener.getAttribute('data-modal-open')); return; }
+      const closer = e.target.closest('[data-modal-close], .modal-close'); if (closer){ e.preventDefault(); closeModal(closer); return; }
+      if (e.target.classList?.contains('modal-backdrop')) {e.preventDefault(); closeModal(e.target);}
     });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.modal-root.open, .modal:not([hidden])').forEach(m => closeModal(m)); });
 
-    // ESC zatvorí všetky otvorené
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') $$('.modal-root.open').forEach(m => closeModal(m));
-    });
-
-    // Auto-open podľa data-zobraz
-    document.addEventListener('DOMContentLoaded', () => {
-      const z = document.body.getAttribute('data-zobraz');
-      if (z === 'prihlasenie') openModal('#modal-login');
-      if (z === 'uzivatel')    openModal('#user-form-panel');
-
-      // ak existuje tlačidlo „Nájdi kapelu“ a panel, prepoj ho
-      const bandBtn = document.getElementById('show-band-form');
-      if (bandBtn && $('#form-hladam-kapelu')) {
-        bandBtn.setAttribute('data-modal-open', '#form-hladam-kapelu');
-      }
-    });
+    window.openModal = openModal; window.closeModal = closeModal;
   })();
 </script>
 

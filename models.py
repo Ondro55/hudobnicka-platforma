@@ -24,6 +24,13 @@ class Pouzivatel(db.Model, UserMixin):
     galeria = db.relationship('GaleriaPouzivatel', back_populates='pouzivatel', lazy=True, cascade='all, delete-orphan')
     videa = db.relationship('VideoPouzivatel', back_populates='pouzivatel', lazy=True, cascade='all, delete-orphan')
 
+    is_admin = db.Column(db.Boolean, default=False)
+    is_moderator = db.Column(db.Boolean, default=False)
+
+    strikes_count = db.Column(db.Integer, default=0, nullable=False)
+    banned_until = db.Column(db.DateTime, nullable=True)
+    banned_reason = db.Column(db.String(255), nullable=True)
+
     def over_heslo(self, zadane_heslo):
         return check_password_hash(self.heslo, zadane_heslo)
 
@@ -36,7 +43,9 @@ class Pouzivatel(db.Model, UserMixin):
             return url_for('static', filename=f'profil_fotky/{self.profil_fotka}')
         else:
             return url_for('static', filename='img/default-profil.jpg')
-
+    @property
+    def is_banned(self) -> bool:
+        return self.banned_until is not None and datetime.utcnow() < self.banned_until
 
 class Inzerat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -70,28 +79,32 @@ skupina_clenovia = db.Table('skupina_clenovia',
 )
 
 
+
 class Dopyt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     meno = db.Column(db.String(100))
     email = db.Column(db.String(120))
     typ_akcie = db.Column(db.String(100))
-    miesto = db.Column(db.String(100))
+    miesto = db.Column(db.String(100))  # voľný text
     datum = db.Column(db.Date)
     cas_od = db.Column(db.Time)
     cas_do = db.Column(db.Time)
     popis = db.Column(db.Text)
     rozpocet = db.Column(db.Float)
 
-    # ✅ NOVÉ (voliteľné FK – kvôli preklepom budeme používať select)
+    # FK na tabuľku miest
     mesto_id = db.Column(db.Integer, db.ForeignKey('mesto.id'), nullable=True)
-    mesto = db.relationship('Mesto')
+    mesto_ref = db.relationship('Mesto')  # PREMENOVANÉ z `mesto` -> `mesto_ref`
 
-    aktivny = db.Column(db.Boolean, default=True)   # nový stĺpec
-    zmazany_at = db.Column(db.DateTime, nullable=True)  # voliteľné, pre audit
+    aktivny = db.Column(db.Boolean, default=True)
+    zmazany_at = db.Column(db.DateTime, nullable=True)
 
     pouzivatel_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=True)
     pouzivatel = db.relationship('Pouzivatel', backref='dopyty')
 
+    # nové časové stopy
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
 class Skupina(db.Model):
@@ -200,3 +213,30 @@ class Sprava(db.Model):
     komu = db.relationship('Pouzivatel', foreign_keys=[komu_id])
     inzerat = db.relationship('Inzerat', backref='spravy')
 
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=True)
+    reporter = db.relationship('Pouzivatel', foreign_keys=[reporter_id])
+
+    entity_type = db.Column(db.String(30), nullable=False)  # 'sprava' | 'inzerat' | 'dopyt' | 'profil'
+    entity_id   = db.Column(db.Integer, nullable=False)
+
+    reason = db.Column(db.String(50), nullable=False)  # 'obtažovanie','spam','nevhodny_obsah','fake','ine'
+    details = db.Column(db.Text, nullable=True)
+
+    status = db.Column(db.String(20), default='open', nullable=False)  # 'open' | 'resolved' | 'ignored'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    resolved_by_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'))
+    resolved_by = db.relationship('Pouzivatel', foreign_keys=[resolved_by_id])
+    resolution_note = db.Column(db.Text, nullable=True)
+
+class ModerationLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False)
+    actor = db.relationship('Pouzivatel')
+    action = db.Column(db.String(50), nullable=False)   # 'hide','warn','tempban','permban','delete','restore'
+    target_type = db.Column(db.String(30), nullable=False)
+    target_id = db.Column(db.Integer, nullable=False)
+    note = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

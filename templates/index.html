@@ -1,23 +1,10 @@
 {% extends 'base.html' %}
-
 {% block title %}Muzikuj.sk - Domov{% endblock %}
 
 {% block content %}
-<!-- ======================
-     🏠 HERO SEKCIA – ÚVOD
-     ====================== -->
 <section class="hero-grid">
-  <!-- spúšťač v hero -->
-  <div class="pulzujuci-kruh" role="button" tabindex="0" data-modal-open="#form-hladam-kapelu">
+  <div class="pulzujuci-kruh" role="button" tabindex="0" data-modal-open="#dopyt-form">
     🔍 Nájdi si kapelu<br>Zadaj dopyt
-  </div>
-
-  <!-- NÁJDI KAPELU (HĽADÁM KAPELU) – MODAL -->
-  <div id="form-hladam-kapelu" class="modal-root" aria-hidden="true">
-    <div class="modal-card">
-      <button class="modal-close" aria-label="Zavrieť">×</button>
-      {% include 'modals/dopyt_form.html' %}
-    </div>
   </div>
 
   <div class="hero-uvod">
@@ -30,6 +17,5 @@
   </div>
 </section>
 
-
-
+{% include 'modals/dopyt_form.html' %}
 {% endblock %}

@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from models import db, Pouzivatel, Skupina
+from models import db, Pouzivatel, Skupina, Mesto
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
+from importlib import import_module
 
 import os
 
@@ -27,8 +28,27 @@ def allowed_file(filename):
 @bp.route('/')
 def index():
     zobraz_formular = request.args.get('zobraz_formular')
-    return render_template('index.html', skupina=None, zobraz_formular=zobraz_formular)
 
+    try:
+        mesta = Mesto.query.order_by(Mesto.nazov.asc()).all()
+    except Exception:
+        mesta = []
+
+    try:
+        dopyty_mod = import_module('modules.dopyty')
+        kategorie = getattr(dopyty_mod, 'KATEGORIE', [])
+        typy = getattr(dopyty_mod, 'TYPY', [])
+    except Exception:
+        kategorie, typy = [], []
+
+    return render_template(
+        'index.html',
+        zobraz_formular=zobraz_formular,
+        kategorie=kategorie,
+        typy=typy,
+        mesta=mesta,
+        skupina=None
+    )
 
 
 # ✅ PRIHLÁSENIE

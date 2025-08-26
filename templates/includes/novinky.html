@@ -1,5 +1,31 @@
 <!-- templates/includes/novinky.html -->
 <section class="news">
+  <!-- 🆕 Nové dopyty -->
+  <div class="news-box linkbox"
+       data-href="{{ url_for('dopyty.zobraz_dopyty') }}"
+       role="link" tabindex="0">
+    <h2>Nové dopyty:</h2>
+    <ul>
+      {% for d in novinky_dopyty %}
+        {% set typ = d.typ_akcie|title if d.typ_akcie else 'Dopyt' %}
+        {% set miesto = (d.miesto or (d.mesto.nazov if d.mesto else '')) %}
+        {% set datum = d.datum.strftime('%d.%m.%Y') if d.datum else '' %}
+        {% set cena = ('cena dohodou' if d.rozpocet is none else ('%.0f €'|format(d.rozpocet))) %}
+
+        <li class="nov-row">
+          <span class="nov-line">
+            {{ typ }}{% if miesto %} – {{ miesto }}{% endif %}
+            {% if datum %} – {{ datum }}{% endif %}
+            – {{ cena }}
+          </span>
+        </li>
+      {% else %}
+        <li class="muted">Zatiaľ žiadne nové dopyty.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- ostatné boxy nechaj, ako máš -->
   <div class="news-box">
     <h2>Novinky v komunite:</h2>
     <ul>
@@ -8,12 +34,29 @@
       <li><a href="#">🎻 Workshop tradičných nástrojov</a></li>
     </ul>
   </div>
+
   <div class="news-box">
     <h2>Novinky v bazári:</h2>
     <p>🎺 Trúbka Yamaha YTR-4335GII len za 250 €!</p>
   </div>
+
   <div class="news-box">
     <h2>Novinky v e-shope:</h2>
     <p>🎶 Nové ľudové CD „Na salaši“ teraz s 10% zľavou.</p>
   </div>
 </section>
+
+<script>
+// celý box „Nové dopyty“ → /dopyty
+document.addEventListener('click', (e) => {
+  const box = e.target.closest('.linkbox[data-href]');
+  if (!box || e.target.closest('a')) return; // ak klikol na vnútorný <a>, nechaj pôvodný link
+  window.location.href = box.dataset.href;
+});
+document.addEventListener('keydown', (e) => {
+  const box = e.target.closest('.linkbox[data-href]');
+  if (!box) return;
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = box.dataset.href; }
+});
+</script>
+

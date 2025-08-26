@@ -208,47 +208,51 @@ footer{ text-align:center; padding:2rem 1rem; background:var(--hover); font-size
 }
 
 /* ==========================================================
-   🧊 MODALS – ZJEDNOTENÉ (modal-root + modal-card + modal-close)
+   🧊 MODALS – JEDNOTNÉ
    ========================================================== */
 
-/* POZN.: Staré .modal/.form-panel pravidlá NEPOUŽÍVAJ.
-         Ak kód niekde pridá .form-panel, tieto neutralizácie to zneškodnia. */
+/* Telo pri otvorenom modale */
+body.modal-open { overflow: hidden; }
 
-/* Overlay + centrovanie (pre .modal-root aj tvoj test .modal-oprava) */
-.modal-root,
-.modal-oprava {
+/* Koreň modalu – overlay + centrovanie */
+.modal-root{
   position: fixed;
   inset: 0;
-  display: none;                /* zatvorené */
+  display: none;                 /* zatvorené */
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,.6);
-  z-index: 5000;
+  background: rgba(0,0,0,.55);
+  z-index: 2147483000;           /* vysoká vrstva */
   padding: 2rem;
   box-sizing: border-box;
 }
-.modal-root.open,
-.modal-oprava.open {            /* otvorené */
-  display: flex;
+.modal-root.open{ display:flex; }
+.modal-root[hidden]{ display:none !important; }
+
+/* Voliteľný backdrop (ak sa použije ako vnútorný prvok) */
+.modal-root .modal-backdrop{
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: auto;
 }
 
-/* Biely box vnútri (.modal-card) + test .modal-oprava .box */
-.modal-card,
-.modal-oprava .box {
-  width: min(600px, 92vw);
-  max-height: 90vh;
+/* Karta v modale */
+.modal-card{
+  width: min(720px, 92vw);
+  max-height: calc(100vh - 3rem);
   overflow: auto;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 12px 32px rgba(0,0,0,.28);
   padding: 1.25rem 1.5rem;
   position: relative;
-  margin: 0 auto;
+  z-index: 2;                    /* nad backdropom */
+  isolation: isolate;            /* vlastný stacking kontext */
 }
 
-/* Krížik (.modal-close) + test .close-oprava */
-.modal-close,
-.modal-oprava .close-oprava{
+/* Krížik */
+.modal-close{
   appearance: none;
   background: transparent;
   border: 0;
@@ -258,23 +262,22 @@ footer{ text-align:center; padding:2rem 1rem; background:var(--hover); font-size
   cursor: pointer;
   color: #666;
   position: absolute;
-  top: .75rem;
-  right: 1rem;
+  top: .5rem;
+  right: .5rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
 }
-.modal-close:hover,
-.modal-oprava .close-oprava:hover { color: #000; }
+.modal-close:hover{ color: #000; }
+.modal-close::before,
+.modal-close::after{ content:none; }
 
-/* Pekné form polia IBA vnútri modalu */
-.modal-card form{
-  display: grid;
-  gap: .75rem;
-}
-.modal-card label{
-  font-weight: 600;
-  color: var(--text);
-  display: block;
-  margin-bottom: .25rem;
-}
+/* Form prvky v modale */
+.modal-card form{ display: grid; gap: .75rem; }
+.modal-card label{ font-weight: 600; display:block; margin-bottom:.25rem; }
 .modal-card input[type="text"],
 .modal-card input[type="email"],
 .modal-card input[type="password"],
@@ -297,13 +300,13 @@ footer{ text-align:center; padding:2rem 1rem; background:var(--hover); font-size
 .modal-card select:focus,
 .modal-card textarea:focus{
   outline: 2px solid transparent;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tlacidlo) 45%, transparent);
-  border-color: var(--tlacidlo);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tlacidlo, #d1b19f) 45%, transparent);
+  border-color: var(--tlacidlo, #d1b19f);
 }
 .modal-card .btn,
 .modal-card button[type="submit"]{
   padding: .6rem 1rem;
-  background: var(--tlacidlo);
+  background: var(--tlacidlo, #d1b19f);
   color: #fff;
   border: none;
   border-radius: .6rem;
@@ -311,47 +314,18 @@ footer{ text-align:center; padding:2rem 1rem; background:var(--hover); font-size
   font-weight: 600;
 }
 .modal-card .btn:hover,
-.modal-card button[type="submit"]:hover{
-  background: var(--text);
-}
+.modal-card button[type="submit"]:hover{ background: var(--text, #3a2f1d); }
 
-/* Dvojstĺpcová mriežka – pridaj class="form-grid" na <form> ak chceš */
-.modal-card form.form-grid{
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .75rem;
+/* Špecifické poistky pre dopyt modal – prvý select „Kto“ */
+#dopyt-form .modal-card::before,
+#dopyt-form .modal-card::after{ content:none; }
+#dopyt-form .field-kto{ position: relative; isolation: isolate; }
+#dopyt-form .field-kto > label,
+#dopyt-form .field-kto > #kto{
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
 }
-.modal-card form.form-grid .full{ grid-column: 1 / -1; }
-
-/* Mobil */
-@media (max-width: 768px){
-  .modal-card,
-  .modal-oprava .box{
-    width: 96vw;
-    max-height: 92vh;
-    padding: 1rem 1.1rem;
-  }
-  .modal-card form.form-grid{
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Neutralizácia STARÝCH rozbitých layoutov:
-   ak by sa náhodou objavili .form-panel top/left/transform a pod. */
-.modal-root.form-panel,
-.modal-oprava.form-panel{
-  position: fixed !important;
-  inset: 0 !important;
-  transform: none !important;
-  width: auto !important;
-  max-width: none !important;
-  max-height: none !important;
-  background: rgba(0,0,0,.6) !important;
-  padding: 2rem !important;
-}
-
-/* Legacy .modal – vypnuté, aby nekolidovalo (ponechané pre prípad, ale prázdne) */
-.modal{}
 
 /* ======================
    LAYOUT: tlačidlá/sekcie
@@ -366,13 +340,13 @@ footer{ text-align:center; padding:2rem 1rem; background:var(--hover); font-size
 .sidebar-btn{
   display:block;
   width:85%;
-  background:#fff; /* nech je to “kartička” v boxe */
-  border:1px solid var(--hover, #e5e7eb); /* orámované aj bez hoveru */
+  background:#fff;
+  border:1px solid var(--hover, #e5e7eb);
   border-radius:.6rem;
   padding:.65rem 1rem;
   font-size:1rem;
   color:inherit;
-  text-decoration:none;              /* zruš podčiarknutie */
+  text-decoration:none;
   cursor:pointer;
   transition:background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
@@ -394,7 +368,7 @@ footer{ text-align:center; padding:2rem 1rem; background:var(--hover); font-size
   outline-offset:2px;
 }
 
-/* disabled stav (ak používaš) */
+/* disabled stav */
 .sidebar-btn[disabled]{
   opacity:.6;
   pointer-events:none;
@@ -408,7 +382,6 @@ footer{ text-align:center; padding:2rem 1rem; background:var(--hover); font-size
 .section-indicator{
   display:flex; align-items:center; justify-content:center; color:#888; font-style:italic; font-size:.8rem; margin:1rem 0;
 }
-
 
 /* ======================
    📱 RESPONZÍVNE ŠTÝLY
@@ -451,12 +424,12 @@ footer{ text-align:center; padding:2rem 1rem; background:var(--hover); font-size
   .hamburger{ display:none; }
 }
 
-/* Flash správy */
+/* Flash správy (inline) */
 .flash-messages{ margin-top:1rem; padding:1rem; border-radius:.5rem; background:#ffecec; }
 .flash-messages .success{ color:green; }
 .flash-messages .danger{ color:red; }
 
-/* Základná štruktúra formulára pre moduly (mimo modálov) */
+/* Základná štruktúra formulára (mimo modálov) */
 .formular-box{
   background:#fff; border:1px solid #ddd; border-radius:1rem; padding:2rem; margin-top:1.5rem; box-shadow:0 2px 5px rgba(0,0,0,.05);
 }
@@ -479,3 +452,51 @@ footer{ text-align:center; padding:2rem 1rem; background:var(--hover); font-size
 .sidebar li{ margin-bottom:1rem; }
 .sidebar a{ text-decoration:none; color:var(--text); font-weight:700; }
 .main-content{ flex:1; padding:2rem; }
+
+/* Klikateľný box Nové dopyty */
+.news-box.linkbox { cursor: pointer !important; }
+.news-box.linkbox * { cursor: pointer !important; }
+
+/* jemný hover */
+.news-box.linkbox:hover {
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+  transform: translateY(-1px);
+}
+
+/* Inline režim modalu (ak by sa niekde použil) */
+.modal-inline .modal{ position: static; inset: auto; background: transparent; }
+.modal-inline .modal .modal-content{ max-height: none; overflow: visible; box-shadow: none; }
+.modal-inline .modal .modal-close{ display: none; }
+
+/* === FIX: fieldset "Cena" neprekryje horné polia v modale dopytu === */
+#dopyt-form fieldset,
+#dopyt-form legend {
+  position: static !important;     /* nech nevytvára vrstvy */
+  z-index: 0 !important;
+  pointer-events: none !important; /* samotný rám/legend nechytá kliky */
+}
+
+#dopyt-form fieldset * {
+  pointer-events: auto !important; /* ale vnútorné inputy/labely áno */
+}
+
+/* prvý riadok (Kto) nech je v popredí */
+#dopyt-form .field-kto,
+#dopyt-form .field-kto > label,
+#dopyt-form .field-kto > #kto {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* poistka – žiadne pseudo prekryvy v karte modalu */
+#dopyt-form .modal-card::before,
+#dopyt-form .modal-card::after {
+  content: none !important;
+}
+
+/* krížik má len svoju malú klikaciu zónu */
+#dopyt-form .modal-close {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  pointer-events: auto !important;
+}

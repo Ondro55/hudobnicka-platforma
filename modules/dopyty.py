@@ -1,11 +1,87 @@
 # modules/dopyty.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, abort
 from flask_login import current_user, login_required
 from models import db, Dopyt, Mesto
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 import smtplib
 from email.message import EmailMessage
+from sqlalchemy import or_
+
+# KATEGÓRIE (kto objednáva)
+KATEGORIE = [
+    ("sukromna", "Súkromná udalosť"),
+    ("obec", "Obec / mesto"),
+    ("firemna", "Firemná akcia"),
+    ("cirkev", "Cirkevná udalosť"),
+    ("skola", "Školská udalosť"),
+    ("klub", "Klub / bar / gastro"),
+    ("neziskovka", "Neziskovka / charita"),
+    ("ine", "Iné"),
+]
+
+# TYPY akcií (niektoré sú „shared“ vo viacerých kategóriách)
+TYPY = [
+    # súkromná
+    {"slug":"svadba","label":"Svadba","groups":["sukromna"]},
+    {"slug":"oslava","label":"Oslava / jubileum","groups":["sukromna"]},
+    {"slug":"stretavka","label":"Stretávka / párty","groups":["sukromna"]},
+    {"slug":"krstiny","label":"Krstiny","groups":["sukromna"]},
+    {"slug":"rozlucka","label":"Rozlúčka so slobodou","groups":["sukromna"]},
+    {"slug":"smutocna","label":"Smútočná rozlúčka","groups":["sukromna"]},
+
+    # shared
+    {"slug":"silvester","label":"Silvester","groups":["sukromna","obec"]},
+    {"slug":"ples","label":"Ples","groups":["obec","skola","firemna"]},
+    {"slug":"festival","label":"Festival","groups":["obec","neziskovka","klub"]},
+    {"slug":"koncert","label":"Koncert","groups":["klub","obec","neziskovka","firemna","cirkev"]},
+
+    # obec/mesto
+    {"slug":"jarmok","label":"Jarmok / hody / dedinská zábava","groups":["obec"]},
+    {"slug":"dni_mesta","label":"Dni obce / mesta","groups":["obec"]},
+    {"slug":"festival_obecny","label":"Obecný festival / vinobranie / dožinky","groups":["obec"]},
+    {"slug":"fasangy","label":"Fašiangy / karneval","groups":["obec"]},
+    {"slug":"mikulasska","label":"Mikuláš / vianočné trhy","groups":["obec"]},
+    {"slug":"den_deti","label":"Deň detí","groups":["obec"]},
+    {"slug":"ples_obecny","label":"Obecný ples","groups":["obec"]},
+
+    # firemná
+    {"slug":"firemny_vecierok","label":"Firemný večierok","groups":["firemna"]},
+    {"slug":"teambuilding","label":"Teambuilding","groups":["firemna"]},
+    {"slug":"gala","label":"Gala / ples firmy","groups":["firemna"]},
+    {"slug":"otvorenie_prevadzky","label":"Otvorenie prevádzky / promo","groups":["firemna"]},
+    {"slug":"konferencia","label":"Konferencia / recepcia","groups":["firemna"]},
+    {"slug":"family_day","label":"Family day","groups":["firemna"]},
+
+    # cirkev
+    {"slug":"odpust_puc","label":"Odpust / púť","groups":["cirkev"]},
+    {"slug":"farsky_den","label":"Farský deň","groups":["cirkev"]},
+    {"slug":"prijimanie_birmovka","label":"1. sv. prijímanie / birmovka","groups":["cirkev"]},
+    {"slug":"beneficny_koncert","label":"Benefičný koncert","groups":["cirkev","neziskovka"]},
+
+    # škola
+    {"slug":"stuzkova","label":"Stužková","groups":["skola"]},
+    {"slug":"imatrikulacia","label":"Imatrikulácia","groups":["skola"]},
+    {"slug":"skolsky_ples","label":"Školský ples","groups":["skola"]},
+
+    # klub/bar
+    {"slug":"klubovy_koncert","label":"Klubový koncert","groups":["klub"]},
+    {"slug":"jam_session","label":"Jam session","groups":["klub"]},
+    {"slug":"tematicky_vecer","label":"Tematický večer","groups":["klub"]},
+
+    # neziskovka
+    {"slug":"charita_beneficia","label":"Charitatívna / benefičná akcia","groups":["neziskovka"]},
+
+    # fallbacky
+    {"slug":"ine_sukromne","label":"Iné (súkromné)","groups":["sukromna"]},
+    {"slug":"ine_obecne","label":"Iné (obecné)","groups":["obec"]},
+    {"slug":"ine_firemne","label":"Iné (firemné)","groups":["firemna"]},
+    {"slug":"ine_cirkevne","label":"Iné (cirkevné)","groups":["cirkev"]},
+    {"slug":"ine_skoly","label":"Iné (školy)","groups":["skola"]},
+    {"slug":"ine_klub","label":"Iné (klub/bar)","groups":["klub"]},
+    {"slug":"ine_neziskovka","label":"Iné (neziskovka)","groups":["neziskovka"]},
+    {"slug":"ine","label":"Iné","groups":["ine"]},
+]
 
 dopyty = Blueprint('dopyty', __name__)
 
@@ -87,17 +163,20 @@ def _send_email(to_email: str, subject: str, body_text: str) -> bool:
 @dopyty.route('/dopyty', methods=['GET'])
 @login_required
 def zobraz_dopyty():
-    # uprac staré dopyty (po termíne)
+    # uprac expirované dopyty
     _housekeep_expired()
 
     q = Dopyt.query.filter_by(aktivny=True)
 
-    # Jednoduché filtre (bez mesta)
+    # filtre
     typ_akcie = (request.args.get('typ_akcie') or '').strip()
     datum_s   = (request.args.get('datum') or '').strip()
+    mesto_id  = request.args.get('mesto_id', type=int)  # ak máš ešte select na mesto
 
     if typ_akcie:
         q = q.filter(Dopyt.typ_akcie == typ_akcie)
+    if mesto_id:
+        q = q.filter(Dopyt.mesto_id == mesto_id)
     if datum_s:
         try:
             d = datetime.strptime(datum_s, "%Y-%m-%d").date()
@@ -105,19 +184,30 @@ def zobraz_dopyty():
         except ValueError:
             pass
 
-    dopyty_zoznam = q.order_by(Dopyt.datum.asc()).all()
+    dopyty_zoznam = (q.order_by(Dopyt.created_at.desc(), Dopyt.id.desc()).all())
 
-    # 'mesta' posielame prázdne, aby šablóna nespadla (ak ešte má select na mesto).
-    return render_template('dopyty.html', dopyty=dopyty_zoznam, mesta=[])
+    # ak šablóna ešte očakáva 'mesta', pošli ich; ak tabuľku nechceš používať, môže byť aj []
+    try:
+        mesta = Mesto.query.order_by(Mesto.kraj, Mesto.okres, Mesto.nazov).all()
+    except Exception:
+        mesta = []
 
+    return render_template(
+    'dopyty.html',
+    dopyty=dopyty_zoznam,
+    mesta=mesta,
+    kategorie=KATEGORIE,
+    typy=TYPY
+)
 
 # =========================
 # Formulár na pridanie dopytu (GET)
 # =========================
+
 @dopyty.route('/dopyty/pridat', methods=['GET'])
 def formular_dopyt():
-    mesta = Mesto.query.order_by(Mesto.kraj, Mesto.okres, Mesto.nazov).all()
-    return render_template('modals/dopyt_form.html', mesta=mesta)
+    return redirect(url_for('dopyty.zobraz_dopyty', open='dopyt'))
+
 
 
 
@@ -131,43 +221,59 @@ def pridaj_dopyt():
         flash('Formulár bol zablokovaný (spam).', 'warning')
         return redirect(url_for('dopyty.zobraz_dopyty'))
 
-    get = request.form.get
+    g = request.form.get
 
-    typ_akcie = (get('typ_akcie') or '').strip()
-    datum_s   = (get('datum') or '').strip()
-    cas_od_s  = (get('cas_od') or '').strip()
-    cas_do_s  = (get('cas_do') or '').strip()
-    rozpocet_s = (get('rozpocet') or '').strip().replace(',', '.')
-    popis      = (get('popis') or '').strip()
-    meno       = (get('meno') or '').strip()
-    email      = (get('email') or '').strip()
+    # 1) kategória (kto) – zatiaľ NEukladáme do DB, používame len na filtrovanie na fronte
+    kto = (g('kto') or '').strip()
 
-    # Textové pole "miesto" (keď už nepoužívame tabuľku miest)
-    miesto_txt = (get('miesto') or '').strip() or None
+    # 2) typ akcie (+ vlastný pri „Iné“)
+    typ_akcie = (g('typ_akcie') or '').strip()
+    typ_akcie_custom = (g('typ_akcie_custom') or '').strip()
+    if typ_akcie in {'ine','ine_sukromne','ine_obecne','ine_firemne','ine_cirkevne','ine_skoly','ine_klub','ine_neziskovka'} and typ_akcie_custom:
+        typ_akcie = typ_akcie_custom
 
-    # Konverzie
+    # 3) dátum/čas
+    datum_s   = (g('datum') or '').strip()
+    cas_od_s  = (g('cas_od') or '').strip()
+    cas_do_s  = (g('cas_do') or '').strip()
     datum  = datetime.strptime(datum_s, '%Y-%m-%d').date() if datum_s else None
     cas_od = datetime.strptime(cas_od_s, '%H:%M').time() if cas_od_s else None
     cas_do = datetime.strptime(cas_do_s, '%H:%M').time() if cas_do_s else None
-    try:
-        rozpocet = float(rozpocet_s) if rozpocet_s else None
-    except ValueError:
-        rozpocet = None
+
+    # 4) miesto – buď mesto_id (FK), alebo text „miesto“
+    mesto_id_raw = (g('mesto_id') or '').strip()
+    mesto_id = int(mesto_id_raw) if mesto_id_raw.isdigit() else None
+    miesto_txt = (g('miesto') or '').strip() or None
+
+    # 5) CENA – „dohodou“ vs „uveď rozpočet“
+    cena_typ = (g('cena_typ') or 'dohodou').strip()
+    if cena_typ == 'rozpocet':
+        rozpocet_s = (g('rozpocet') or '').strip().replace(',', '.')
+        try:
+            rozpocet = float(rozpocet_s)
+        except ValueError:
+            rozpocet = None
+    else:
+        rozpocet = None  # cena dohodou
+
+    # 6) zvyšok
+    popis = (g('popis') or '').strip() or None
+    meno  = (g('meno') or '').strip() or None
+    email = (g('email') or '').strip() or None
 
     novy = Dopyt(
-        typ_akcie=typ_akcie or None,
-        datum=datum,
-        cas_od=cas_od,
-        cas_do=cas_do,
-        # Bez FK mesta:
-        mesto_id=None,
-        mesto=miesto_txt,   # textový fallback
-        rozpocet=rozpocet,
-        popis=popis or None,
-        meno=meno or None,
-        email=email or None,
-        pouzivatel_id=(current_user.id if current_user.is_authenticated else None),
-        aktivny=True
+        typ_akcie = typ_akcie or None,
+        datum     = datum,
+        cas_od    = cas_od,
+        cas_do    = cas_do,
+        mesto_id  = mesto_id,
+        miesto    = (None if mesto_id else miesto_txt),
+        rozpocet  = rozpocet,
+        popis     = popis,
+        meno      = meno,
+        email     = email,
+        pouzivatel_id = (current_user.id if current_user.is_authenticated else None),
+        aktivny   = True
     )
 
     db.session.add(novy)
@@ -249,6 +355,31 @@ def zmazat():
     flash("Dopyt bol zmazaný.", "success")
     return redirect(url_for("dopyty.zobraz_dopyty"))
 
+@dopyty.route('/dopyty/<int:dopyt_id>/zmazat', methods=['POST'])
+@login_required
+def delete_mine(dopyt_id):
+    from flask import abort
+    from datetime import datetime
+    d = Dopyt.query.filter_by(id=dopyt_id, aktivny=True).first_or_404()
+    if d.pouzivatel_id != current_user.id:
+        abort(403)
+    d.aktivny = False
+    d.zmazany_at = datetime.utcnow()
+    db.session.commit()
+    flash('Dopyt bol zmazaný.', 'success')
+    return redirect(url_for('dopyty.zobraz_dopyty'))
 
 
+@dopyty.app_context_processor
+def inject_novinky_dopyty():
+    try:
+        today = date.today()
+        novinky = (Dopyt.query
+            .filter(Dopyt.aktivny.is_(True), or_(Dopyt.datum == None, Dopyt.datum >= today))
+            .order_by(Dopyt.id.desc())
+            .limit(5)
+            .all())
+    except Exception:
+        novinky = []
+    return dict(novinky_dopyty=novinky)
 

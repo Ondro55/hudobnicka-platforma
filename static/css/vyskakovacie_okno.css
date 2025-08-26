@@ -1,4 +1,4 @@
-/* vykakovacie_okno.css */
+/* vyskakovacie_okno.css — len FLASH správy, žiadne modály! */
 
 #flash-container {
   position: fixed;
@@ -12,31 +12,27 @@
   pointer-events: none;
 }
 
-
 .flash-message {
   pointer-events: all;
-  padding: 3rem 4rem; /* ⬅️ zväčšené z pôvodných 1rem 2rem */
+  padding: 3rem 4rem;
   margin: 1rem 0;
-  border-radius: 20px; /* výraznejší vzhľad */
-  font-size: 1rem;     /* ⬅️ rovnaká veľkosť písma */
+  border-radius: 20px;
+  font-size: 1rem;
   font-weight: bold;
   text-align: center;
-  min-width: 500px;    /* ⬅️ zväčšené */
-  max-width: 700px;    /* ⬅️ zväčšené */
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  opacity: 0.95;
-  transition: opacity 0.5s ease;
-  background-color: rgba(255, 255, 255, 0.9); /* svetlá, mierne priehľadná */
+  min-width: 500px;
+  max-width: 700px;
+  background-color: rgba(255, 255, 255, 0.9);
   color: #000;
-  backdrop-filter: blur(4px); /* voliteľne – rozmaže pozadie pod tým */
+  backdrop-filter: blur(4px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  opacity: 1; /* nechaj napevno, lebo už je „priehľadnosť“ cez background */
+  opacity: 1;
+  transition: opacity 0.5s ease;
 }
-
 
 /* Farby podľa kategórie */
 .flash-message.success {
-  background-color: rgba(212, 237, 218, 0.9); /* zelená, ale mierne priehľadná */
+  background-color: rgba(212, 237, 218, 0.9);
   color: #155724;
 }
 
@@ -55,4 +51,4 @@
   color: #856404;
 }
 
-
+/* ⛔️ ŽIADNE pravidlá pre .modal-root, .modal-card, #dopyt-form atď. sem nepatria. */

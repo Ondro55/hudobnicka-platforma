@@ -3,8 +3,10 @@ from flask import Flask
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
 from models import Pouzivatel, db
-from datetime import timezone
+from datetime import timezone, datetime, timedelta
 from zoneinfo import ZoneInfo
+from datetime import date
+from sqlalchemy import or_
 
 # Blueprinty
 from modules.uzivatel import uzivatel, profil_blueprint
@@ -53,7 +55,7 @@ migrate = Migrate(app, db)
 def inject_mesta_all():
     try:
         from models import Mesto
-        mesta = Mesto.query.order_by(Mesto.kraj, Mesto.okres, Mesto.nazov).all()
+        mesta = Mesto.query.order_by(Mesto.nazov.asc()).all()
     except Exception:
         mesta = []
     return dict(mesta_all=mesta)
@@ -65,19 +67,24 @@ login_manager.init_app(app)
 def load_user(user_id):
     return Pouzivatel.query.get(int(user_id))
 
-@app.context_processor
-def inject_neprecitane_count():
+# spustíme housekeeping len občas (napr. raz za 10 min), nie pri každom requeste
+_last_housekeep = None
+_HOUSEKEEP_INTERVAL = timedelta(minutes=10)
+
+@app.before_request
+def global_housekeep():
+    global _last_housekeep
+    now = datetime.utcnow()
+    if _last_housekeep and (now - _last_housekeep) < _HOUSEKEEP_INTERVAL:
+        return
     try:
-        from models import Sprava
-        if current_user.is_authenticated:
-            c = Sprava.query.filter_by(
-                komu_id=current_user.id, precitane=False, deleted_by_recipient=False
-            ).count()
-        else:
-            c = 0
-    except Exception:
-        c = 0
-    return dict(neprecitane_count=c)
+        # lazy import – vyhneme sa kruhovému importu
+        from modules.dopyty import _housekeep_expired
+        _housekeep_expired()
+        _last_housekeep = now
+    except Exception as e:
+        app.logger.debug(f"Housekeep skipped: {e}")
+
 
 @app.template_filter("localtime")
 def jinja_localtime(value, fmt="%d.%m.%Y %H:%M"):
@@ -88,6 +95,7 @@ def jinja_localtime(value, fmt="%d.%m.%Y %H:%M"):
         value = value.replace(tzinfo=timezone.utc)
     # konverzia do lokálnej zóny + formát
     return value.astimezone(APP_TZ).strftime(fmt)
+
 
 # Blueprinty
 app.register_blueprint(uzivatel)

@@ -1,18 +1,12 @@
 <!-- modals/prihlasenie.html -->
 <div id="modal-login"
-     class="modal-root form-panel"
-     aria-hidden="true"
+     class="modal-root"
+     hidden
      role="dialog"
      aria-modal="true"
      aria-labelledby="login-title">
   <div class="modal-card">
-    <button class="modal-close"
-        id="close-login"
-        aria-label="Zavrieť"
-        onclick="this.closest('.modal-root').classList.remove('open'); document.body.style.overflow='';">
-  ×
-    </button>
-
+    <button type="button" class="modal-close" data-modal-close aria-label="Zavrieť">×</button>
 
     <h2 id="login-title">Prihlásenie</h2>
 
@@ -36,9 +30,9 @@
       <button type="submit" class="btn">Prihlásiť sa</button>
     </form>
 
-    <div class="divider">alebo</div>
+    <div class="divider" style="margin:.75rem 0; text-align:center; opacity:.7;">alebo</div>
 
-    <div class="social-login">
+    <div class="social-login" style="display:flex; gap:.5rem; justify-content:center;">
       <button class="google-btn" type="button">Prihlásiť sa cez Google</button>
       <button class="apple-btn"  type="button">Prihlásiť sa cez Apple</button>
     </div>

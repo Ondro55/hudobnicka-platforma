@@ -1,12 +1,12 @@
 <!-- modals/registracia.html -->
 <div id="user-form-panel"
-     class="modal-root form-panel"
-     aria-hidden="true"
+     class="modal-root"
+     hidden
      role="dialog"
      aria-modal="true"
      aria-labelledby="register-title">
   <div class="modal-card">
-    <button class="modal-close" id="close-user-form" data-modal-close aria-label="Zavrieť">×</button>
+    <button type="button" class="modal-close" data-modal-close aria-label="Zavrieť">×</button>
 
     <h2 id="register-title">Registrácia hudobníka</h2>
 
@@ -37,7 +37,6 @@
 
       <label for="heslo">Heslo:</label>
       <input type="password" id="heslo" name="heslo" autocomplete="new-password" minlength="8" required title="Heslo musí mať aspoň 8 znakov">
-
       <small style="color: gray;">Minimálne 8 znakov</small>
 
       <label for="heslo2">Zopakuj heslo:</label>
@@ -46,12 +45,12 @@
       <label for="instrument">Hudobný nástroj:</label>
       <select id="instrument" name="instrument" required>
         <option value="">-- Vyber --</option>
-        <option value="klavesy"  {% if request.form.get('instrument') == 'klavesy' %}selected{% endif %}>Klávesy</option>
-        <option value="gitara"   {% if request.form.get('instrument') == 'gitara' %}selected{% endif %}>Gitara</option>
-        <option value="bicie"    {% if request.form.get('instrument') == 'bicie' %}selected{% endif %}>Bicie</option>
-        <option value="dychove"  {% if request.form.get('instrument') == 'dychove' %}selected{% endif %}>Dychové nástroje</option>
-        <option value="slacikove"{% if request.form.get('instrument') == 'slacikove' %}selected{% endif %}>Sláčikové nástroje</option>
-        <option value="ine"      {% if request.form.get('instrument') == 'ine' %}selected{% endif %}>Iné</option>
+        <option value="klavesy"   {% if request.form.get('instrument') == 'klavesy' %}selected{% endif %}>Klávesy</option>
+        <option value="gitara"    {% if request.form.get('instrument') == 'gitara' %}selected{% endif %}>Gitara</option>
+        <option value="bicie"     {% if request.form.get('instrument') == 'bicie' %}selected{% endif %}>Bicie</option>
+        <option value="dychove"   {% if request.form.get('instrument') == 'dychove' %}selected{% endif %}>Dychové nástroje</option>
+        <option value="slacikove" {% if request.form.get('instrument') == 'slacikove' %}selected{% endif %}>Sláčikové nástroje</option>
+        <option value="ine"       {% if request.form.get('instrument') == 'ine' %}selected{% endif %}>Iné</option>
       </select>
 
       <div id="instrument-ine" style="{% if request.form.get('instrument') == 'ine' %}display:block;{% else %}display:none;{% endif %}">
@@ -66,3 +65,15 @@
     </form>
   </div>
 </div>
+
+<script>
+  // drobná logika pre "Iné" nástroje – izolovaná len do tohto modalu
+  (function(){
+    const root = document.getElementById('user-form-panel');
+    if (!root) return;
+    const sel = root.querySelector('#instrument');
+    const wrap = root.querySelector('#instrument-ine');
+    if (!sel || !wrap) return;
+    sel.addEventListener('change', ()=>{ wrap.style.display = sel.value === 'ine' ? 'block' : 'none'; });
+  })();
+</script>

@@ -1,228 +1,411 @@
-<style>
-  #mesto_id { appearance:auto !important; }
-  .choices, .select2, .custom-select { display:none !important; } /* ak používaš niečo takéto */
-</style>
+<div id="dopyt-form"
+     class="modal-root"
+     aria-modal="true"
+     role="dialog"
+     hidden>
 
-<!-- templates/modals/dopyt_form.html -->
-<section class="komunita-wrapper dopyt-form-page" style="padding:2rem;">
-  <h2>🔎 Pridať dopyt</h2>
-  <p style="opacity:.85; margin:.25rem 0 1rem;">
-    Vyplň čo hľadáš (kapela, DJ, moderátor…), termín a miesto. Registrovaní členovia si tvoj dopyt uvidia a môžu reagovať.
-  </p>
+  <div class="modal-card">
+    <button type="button" class="modal-close" data-modal-close aria-label="Zavrieť">✖</button>
+    <h3 style="margin-top:0;">Pridať dopyt</h3>
 
-<form method="POST" action="{{ url_for('dopyty.pridaj_dopyt_post') }}" novalidate>
-    <!-- Čo hľadáš -->
-    <label for="typ_akcie">Typ akcie <span style="color:crimson;">*</span></label>
-    <select id="typ_akcie" name="typ_akcie" required>
-      <option value="">Vyber typ…</option>
-      <option value="svadba">Svadba</option>
-      <option value="oslava">Oslava</option>
-      <option value="firemna">Firemná akcia</option>
-      <option value="ine">Iné</option>
-    </select>
+    <!-- JSON dáta (iba raz!) -->
+    <script id="kategorie-json" type="application/json">
+      {{ (kategorie|default([], true))|tojson }}
+    </script>
+    <script id="typy-json" type="application/json">
+      {{ (typy|default([], true))|tojson }}
+    </script>
 
+    <!-- malá CSS značka pre hviezdičky -->
+    <style>
+      .req::after{ content:" *"; color:#c00; font-weight:700; }
+      .help{ font-size:.85rem; color:#555; margin:.2rem 0 0; }
+      .field-error{ color:#c00; font-size:.85rem; display:none; margin-top:.25rem; }
+      .field-error.show{ display:block; }
+    </style>
 
-    <!-- Termín -->
-    <div class="row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:.75rem;">
-      <div>
-        <label for="datum">Dátum</label>
-        <input type="date" id="datum" name="datum">
+    <form id="dopyt-formular" method="post" action="{{ url_for('dopyty.pridaj_dopyt_post') }}" novalidate>
+      <input type="text" name="website" style="display:none" autocomplete="off"> {# honeypot #}
+
+      <!-- 1) Kto objednáva -->
+      <div class="field-kto">
+        <label for="kto" class="req">Kto objednáva</label>
+        <select id="kto" name="kto" required>
+          <option value="">— vyber —</option>
+          <!-- naplní JS -->
+        </select>
       </div>
+
+      <!-- 2) Typ akcie – vychádza z "kto" -->
       <div>
-        <label for="cas_od">Čas od</label>
-        <input type="time" id="cas_od" name="cas_od">
+        <label for="typ_akcie" class="req">Typ akcie</label>
+        <select id="typ_akcie" name="typ_akcie" required disabled>
+          <option value="">Najprv vyber „Kto objednáva“</option>
+        </select>
+
+        <div id="typ-custom-wrap" style="display:none; margin-top:.5rem;">
+          <input type="text" name="typ_akcie_custom" placeholder="Upresni typ (napr. vernisáž)">
+        </div>
       </div>
+
+      <!-- 3) Miesto -->
+      <div class="miesto-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+        <div>
+          <!-- len na zarovnanie – neviditeľný, ale drží miesto -->
+          <label for="mesto_id" class="label-spacer">Miesto (výber z miest)</label>
+          <select id="mesto_id" name="mesto_id">
+            <option value="">— vyber —</option>
+            {% set _m = (mesta if mesta is defined and mesta else (mesta_all if mesta_all is defined else [])) %}
+            {% for m in _m %}
+              <option value="{{ m.id }}">
+                {{ m.nazov }}{% if m.okres %}, {{ m.okres }}{% endif %}{% if m.kraj %}, {{ m.kraj }}{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="miesto">zadaj miesto (textom)</label>
+          <input id="miesto" name="miesto" type="text" placeholder="napr. Dom kultúry">
+        </div>
+      </div>
+
+
+      <!-- 4) Dátum / čas (nechávam voliteľné; ak chceš, pridaj required na dátum) -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem;">
+        <div>
+          <label for="datum">Dátum</label>
+          <input id="datum" name="datum" type="date">
+        </div>
+        <div>
+          <label>Čas (od – do)</label>
+          <div style="display:flex; gap:.5rem;">
+            <input name="cas_od" type="time" style="flex:1;">
+            <input name="cas_do" type="time" style="flex:1;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 5) Cena -->
+      <fieldset style="margin-top:.5rem;">
+        <legend>Cena</legend>
+        <label style="display:flex; gap:.5rem; align-items:center; margin-bottom:.35rem;">
+          <input type="radio" name="cena_typ" value="dohodou" checked>
+          <span>Cena dohodou</span>
+        </label>
+        <label style="display:flex; gap:.5rem; align-items:center;">
+          <input type="radio" name="cena_typ" value="rozpocet">
+          <span>Uveď rozpočet</span>
+        </label>
+        <div id="cena-rozpocet-wrap" style="display:none; margin-top:.5rem;">
+          <input type="number" step="1" min="0" name="rozpocet" placeholder="napr. 400">
+        </div>
+      </fieldset>
+
+      <!-- 6) Popis a kontakt -->
       <div>
-        <label for="cas_do">Čas do</label>
-        <input type="time" id="cas_do" name="cas_do">
+        <label for="popis">Popis</label>
+        <textarea id="popis" name="popis" rows="4" placeholder="Upresnite repertoár, techniku, dĺžku vystúpenia…"></textarea>
       </div>
-    </div>
 
-    <!-- Miesto (píš a filtruj cez datalist) -->
-    <div class="row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:.75rem;">
-      <div>
-        <label for="mesto_label">Miesto konania <span style="color:crimson;">*</span></label>
-
-        {% set obce = mesta_all|sort(attribute='nazov') %}
-        <!-- viditeľné pole na písanie -->
-        <input
-          type="text"
-          id="mesto_label"
-          name="mesto_label"
-          list="mesta_datalist"
-          placeholder="Začni písať (napr. Gelnica)"
-          autocomplete="off"
-          required
-        >
-
-        <!-- ponuka možností -->
-        <datalist id="mesta_datalist">
-          {% for m in obce %}
-            <option
-              data-id="{{ m.id }}"
-              value="{{ m.nazov }}{% if m.okres %} — {{ m.okres }}{% endif %}{% if m.kraj %} — {{ m.kraj }}{% endif %}">
-            </option>
-          {% endfor %}
-        </datalist>
-
-        <!-- skryté ID, ktoré sa odošle do backendu -->
-        <input type="hidden" id="mesto_id" name="mesto_id">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem;">
+        <div>
+          <label for="meno" class="req">Meno</label>
+          <input id="meno" name="meno" type="text" required
+                 value="{{ current_user.prezyvka if current_user.is_authenticated else '' }}">
+        </div>
+        <div>
+          <label for="email" class="req">E-mail</label>
+          <input id="email" name="email" type="email" required
+                 value="{{ current_user.email if current_user.is_authenticated else '' }}">
+        </div>
       </div>
-    </div>
 
-
-    <!-- Rozpočet -->
-    <label for="rozpocet" style="margin-top:.75rem;">Rozpočet (max, €)</label>
-    <input type="number" id="rozpocet" name="rozpocet" min="0" step="1" placeholder="napr. 500">
-
-    <!-- Popis -->
-    <label for="popis" style="margin-top:.75rem;">Popis</label>
-    <textarea id="popis" name="popis" rows="5" placeholder="Napíš detaily: typ akcie, žáner, dĺžka vystúpenia…"></textarea>
-
-    <!-- Kontakt -->
-    <div class="row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:.75rem;">
-      <div>
-        <label for="meno">Meno <span style="color:crimson;">*</span></label>
-        <input type="text" id="meno" name="meno"
-               value="{% if current_user.is_authenticated %}{{ current_user.prezyvka or '' }}{% endif %}"
-               required>
+      <div style="text-align:right; margin-top:.5rem;">
+        <button id="btn-odoslat-dopyt" type="button" class="btn">Odoslať dopyt</button>
       </div>
-      <div>
-        <label for="email">Email <span style="color:crimson;">*</span></label>
-        <input type="email" id="email" name="email"
-               value="{% if current_user.is_authenticated %}{{ current_user.email or '' }}{% endif %}"
-               required>
-      </div>
-    </div>
-
-    <!-- Anti-spam (honeypot) -->
-    <input type="text" name="website" autocomplete="off" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;">
-
-    <div class="actions" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;">
-      <button type="submit" class="btn primary">Odoslať dopyt</button>
-      <a href="{{ url_for('dopyty.zobraz_dopyty') }}" class="btn">Zrušiť</a>
-    </div>
-  </form>
-</section>
+    </form>
+  </div>
+</div>
 
 <script>
-(function(){
-  const form = document.querySelector('.dopyt-form-page form');
-  const inputLabel = form.querySelector('#mesto_label');
-  const hiddenId   = form.querySelector('#mesto_id');
-  const dataList   = document.getElementById('mesta_datalist');
+(() => {
+  const root = document.getElementById('dopyt-form');
+  if (!root || root.dataset.bound === '1') return;
+  root.dataset.bound = '1';
 
-  function normalize(s){
-    return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-  }
-  function findMestoIdByLabel(label){
-    const want = normalize(label);
-    if (!want) return '';
-    let best = '';
-    const opts = dataList ? dataList.options : [];
-    for (let i = 0; i < opts.length; i++){
-      const opt = opts[i];
-      const val = opt.value || '';
-      const id  = opt.getAttribute('data-id') || '';
-      const n   = normalize(val);
-      if (n === want) return id;           // presná zhoda
-      if (!best && n.startsWith(want)) best = id;  // prvá vhodná
+  // -------- helpers --------
+  const getJSONLast = (id, fallback=[]) => {
+    try {
+      const nodes = document.querySelectorAll(`#${CSS.escape(id)}`);
+      const el = nodes[nodes.length - 1];
+      if (!el) return fallback;
+      const txt = (el.textContent || '').trim();
+      if (!txt) return fallback;
+      const val = JSON.parse(txt);
+      return Array.isArray(val) ? val : fallback;
+    } catch (e) {
+      console.warn('JSON parse fail for', id, e);
+      return fallback;
     }
-    return best;
+  };
+
+  const norm = (s) => (s||'')
+    .toString().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,'_').replace(/-+/g,'_')
+    .replace(/[^a-z0-9_]/g,'');
+
+  const SYN = {
+    'sukromna_osoba':'sukromna','sukromna_udalost':'sukromna',
+    'obec_mesto':'obec','mesto_obec':'obec',
+    'firemna_udalost':'firemna','firemna_akcia':'firemna',
+    'cirkevna_udalost':'cirkev',
+    'skolska_udalost':'skola',
+    'klub_bar':'klub','klub_bar_gastro':'klub',
+    'neziskovka_charita':'neziskovka'
+  };
+  const canon = (s) => SYN[norm(s)] || norm(s);
+
+  const LABEL = {
+    sukromna:'Súkromná udalosť',
+    obec:'Obec / mesto',
+    firemna:'Firemná akcia',
+    cirkev:'Cirkevná udalosť',
+    skola:'Školská udalosť',
+    klub:'Klub / bar / gastro',
+    neziskovka:'Neziskovka / charita',
+    ine:'Iné'
+  };
+
+  // --- tvrdé fallbacky pre prípad, že backend nič neposlal ---
+  const KATS_FALLBACK = [
+    ['sukromna','Súkromná udalosť'],
+    ['obec','Obec / mesto'],
+    ['firemna','Firemná akcia'],
+    ['cirkev','Cirkevná udalosť'],
+    ['skola','Školská udalosť'],
+    ['klub','Klub / bar / gastro'],
+    ['neziskovka','Neziskovka / charita'],
+    ['ine','Iné']
+  ];
+
+  const TYPY_FALLBACK = [
+    {"slug":"svadba","label":"Svadba","groups":["sukromna"]},
+    {"slug":"oslava","label":"Oslava / jubileum","groups":["sukromna"]},
+    {"slug":"stretavka","label":"Stretávka / párty","groups":["sukromna"]},
+    {"slug":"krstiny","label":"Krstiny","groups":["sukromna"]},
+    {"slug":"rozlucka","label":"Rozlúčka so slobodou","groups":["sukromna"]},
+    {"slug":"smutocna","label":"Smútočná rozlúčka","groups":["sukromna"]},
+    {"slug":"silvester","label":"Silvester","groups":["sukromna","obec"]},
+    {"slug":"ples","label":"Ples","groups":["obec","skola","firemna"]},
+    {"slug":"festival","label":"Festival","groups":["obec","neziskovka","klub"]},
+    {"slug":"koncert","label":"Koncert","groups":["klub","obec","neziskovka","firemna","cirkev"]},
+    {"slug":"jarmok","label":"Jarmok / hody / dedinská zábava","groups":["obec"]},
+    {"slug":"dni_mesta","label":"Dni obce / mesta","groups":["obec"]},
+    {"slug":"festival_obecny","label":"Obecný festival / vinobranie / dožinky","groups":["obec"]},
+    {"slug":"fasangy","label":"Fašiangy / karneval","groups":["obec"]},
+    {"slug":"mikulasska","label":"Mikuláš / vianočné trhy","groups":["obec"]},
+    {"slug":"den_deti","label":"Deň detí","groups":["obec"]},
+    {"slug":"ples_obecny","label":"Obecný ples","groups":["obec"]},
+    {"slug":"firemny_vecierok","label":"Firemný večierok","groups":["firemna"]},
+    {"slug":"teambuilding","label":"Teambuilding","groups":["firemna"]},
+    {"slug":"gala","label":"Gala / ples firmy","groups":["firemna"]},
+    {"slug":"otvorenie_prevadzky","label":"Otvorenie prevádzky / promo","groups":["firemna"]},
+    {"slug":"konferencia","label":"Konferencia / recepcia","groups":["firemna"]},
+    {"slug":"family_day","label":"Family day","groups":["firemna"]},
+    {"slug":"odpust_puc","label":"Odpust / púť","groups":["cirkev"]},
+    {"slug":"farsky_den","label":"Farský deň","groups":["cirkev"]},
+    {"slug":"prijimanie_birmovka","label":"1. sv. prijímanie / birmovka","groups":["cirkev"]},
+    {"slug":"beneficny_koncert","label":"Benefičný koncert","groups":["cirkev","neziskovka"]},
+    {"slug":"stuzkova","label":"Stužková","groups":["skola"]},
+    {"slug":"imatrikulacia","label":"Imatrikulácia","groups":["skola"]},
+    {"slug":"skolsky_ples","label":"Školský ples","groups":["skola"]},
+    {"slug":"klubovy_koncert","label":"Klubový koncert","groups":["klub"]},
+    {"slug":"jam_session","label":"Jam session","groups":["klub"]},
+    {"slug":"tematicky_vecer","label":"Tematický večer","groups":["klub"]},
+    {"slug":"charita_beneficia","label":"Charitatívna / benefičná akcia","groups":["neziskovka"]},
+    {"slug":"ine_sukromne","label":"Iné (súkromné)","groups":["sukromna"]},
+    {"slug":"ine_obecne","label":"Iné (obecné)","groups":["obec"]},
+    {"slug":"ine_firemne","label":"Iné (firemné)","groups":["firemna"]},
+    {"slug":"ine_cirkevne","label":"Iné (cirkevné)","groups":["cirkev"]},
+    {"slug":"ine_skoly","label":"Iné (školy)","groups":["skola"]},
+    {"slug":"ine_klub","label":"Iné (klub/bar)","groups":["klub"]},
+    {"slug":"ine_neziskovka","label":"Iné (neziskovka)","groups":["neziskovka"]},
+    {"slug":"ine","label":"Iné","groups":["ine"]}
+  ];
+
+  // --- dáta z HTML, s fallbackmi ---
+  const TYPY = (() => {
+    const t = getJSONLast('typy-json', []);
+    return t.length ? t : TYPY_FALLBACK;
+  })();
+  const KATS_DERIVED =
+    Array.from(new Set(TYPY.flatMap(t => Array.isArray(t.groups) ? t.groups : [])))
+      .map(g => [g, LABEL[canon(g)] || g]);
+  const KATS = (() => {
+    const k = getJSONLast('kategorie-json', []);
+    if (k.length) return k;
+    if (KATS_DERIVED.length) return KATS_DERIVED;
+    return KATS_FALLBACK;
+  })();
+
+  // --- prvky ---
+  const ktoSel        = root.querySelector('#kto');
+  const typSel        = root.querySelector('#typ_akcie');
+  const typCustomWrap = root.querySelector('#typ-custom-wrap');
+  const cenaRadios    = Array.from(root.querySelectorAll('input[name="cena_typ"]'));
+  const cenaWrap      = root.querySelector('#cena-rozpocet-wrap');
+  const rozpocetInput = root.querySelector('input[name="rozpocet"]');
+
+  function ensureKtoOptions(){
+    if (!ktoSel) return;
+    if (ktoSel.options.length > 1) return; // už je naplnené serverom
+    const frag = document.createDocumentFragment();
+    KATS.forEach(([val,label])=>{
+      const o = document.createElement('option');
+      o.value = val;
+      o.textContent = label;
+      o.dataset.slug = canon(val);
+      frag.appendChild(o);
+    });
+    ktoSel.appendChild(frag);
   }
-  function syncMestoId(){
-    hiddenId.value = findMestoIdByLabel(inputLabel.value);
-  }
-  inputLabel.addEventListener('input', () => { hiddenId.value = ''; });
-  inputLabel.addEventListener('change', syncMestoId);
-  inputLabel.addEventListener('blur',   syncMestoId);
-  
-  if (!form) return;
 
-  const submitBtn = form.querySelector('.actions .btn.primary');
+  function rebuildTypy(){
+    if (!typSel) return;
+    typSel.innerHTML = '';
+    typSel.disabled = true;
+    if (typCustomWrap) typCustomWrap.style.display = 'none';
 
-  function clearError(input){
-    input.removeAttribute('aria-invalid');
-    const next = input.nextElementSibling;
-    if (next && next.classList.contains('field-error')) next.remove();
-  }
-  function setError(input, msg){
-    clearError(input);
-    const hint = document.createElement('div');
-    hint.className = 'field-error';
-    hint.textContent = msg;
-    hint.style.color = 'crimson';
-    hint.style.fontSize = '.9rem';
-    hint.style.marginTop = '.25rem';
-    input.setAttribute('aria-invalid','true');
-    input.insertAdjacentElement('afterend', hint);
-  }
-
-  function validate(){
-  let ok = true;
-
-  const typ = form.typ_akcie;
-  const meno = form.meno;
-  const email = form.email;
-  const mesto = form.mesto_id;
-  const rozpocet = form.rozpocet;
-  const casOd = form.cas_od;
-  const casDo = form.cas_do;
-  const honeypot = form.website;
-
-  [typ, meno, email, rozpocet, casOd, casDo, mesto].forEach(i => i && clearError(i));
-
-  // honeypot
-  if (honeypot && honeypot.value.trim() !== '') ok = false;
-
-  // povinné polia
-  if (!typ || !typ.value.trim()){ setError(typ, 'Prosím, napíš čo hľadáš.'); ok = false; }
-  if (!meno || !meno.value.trim()){ setError(meno, 'Prosím, uveď meno.'); ok = false; }
-  if (!mesto || !mesto.value){ setError(mesto, 'Prosím, vyber miesto.'); ok = false; }
-
-  // email
-  const emailVal = (email && email.value ? email.value.trim() : '');
-  if (!emailVal){
-    setError(email, 'Prosím, uveď email.'); ok = false;
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)){
-    setError(email, 'Email nemá správny tvar.'); ok = false;
-  } else {
-    email.value = emailVal; // normalizuj
-  }
-
-  // rozpočet (ak je zadaný, musí byť číslo ≥ 0)
-  if (rozpocet && rozpocet.value && rozpocet.value.trim()){
-    const v = Number(rozpocet.value.replace(',', '.'));
-    if (Number.isNaN(v) || v < 0){
-      setError(rozpocet, 'Rozpočet musí byť číslo ≥ 0.'); ok = false;
-    } else {
-      rozpocet.value = String(v);
-    }
-  }
-
-  // poradie časov
-  if (casOd && casDo && casOd.value && casDo.value && casOd.value >= casDo.value){
-    setError(casDo, 'Čas „do“ musí byť neskôr ako „od“.'); ok = false;
-  }
-
-  return ok;
-}
-
-
-  form.addEventListener('submit', function(e){
-    if (!validate()){
-      e.preventDefault();
-      const firstErr = form.querySelector('.field-error');
-      if (firstErr){
-        (firstErr.previousElementSibling || firstErr).scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+    const groupKey = canon(ktoSel?.value || '');
+    if (!groupKey){
+      typSel.insertAdjacentHTML('beforeend','<option value="">Najprv vyber „Kto objednáva“</option>');
       return;
     }
-    // zabráň dvojitému odoslaniu
-    const origText = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Odosielam…';
-    setTimeout(() => { try { submitBtn.disabled = false; submitBtn.textContent = origText; } catch(_){} }, 10000);
+
+    const subset = TYPY.filter(t =>
+      Array.isArray(t.groups) && t.groups.some(g => canon(g) === groupKey)
+    );
+
+    typSel.insertAdjacentHTML('beforeend','<option value="">— vyber —</option>');
+    subset.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.slug;
+      o.textContent = t.label;
+      typSel.appendChild(o);
+    });
+    if (!subset.some(t => String(t.slug||'').startsWith('ine'))){
+      typSel.insertAdjacentHTML('beforeend','<option value="ine">Iné</option>');
+    }
+    typSel.disabled = false;
+  }
+
+  function onTypChange(){
+    const v = typSel.value || '';
+    if (typCustomWrap) typCustomWrap.style.display = v.startsWith('ine') ? 'block' : 'none';
+    if (!v.startsWith('ine')) {
+      const c = root.querySelector('input[name="typ_akcie_custom"]');
+      if (c) c.value = '';
+    }
+  }
+
+  function updateCena(){
+    const v = (cenaRadios.find(r => r.checked)?.value) || 'dohodou';
+    const show = (v === 'rozpocet');
+    if (cenaWrap) cenaWrap.style.display = show ? 'block' : 'none';
+    if (rozpocetInput){ rozpocetInput.required = show; if (!show) rozpocetInput.value = ''; }
+  }
+
+  // events
+  ktoSel?.addEventListener('change', () => { rebuildTypy(); });
+  ktoSel?.addEventListener('input',  () => { rebuildTypy(); });
+  typSel?.addEventListener('change', onTypChange);
+  cenaRadios.forEach(r => r.addEventListener('change', updateCena));
+
+  // init + pri otvorení modalu
+  ensureKtoOptions();
+  rebuildTypy();
+  updateCena();
+
+  document.addEventListener('click', (e)=>{
+    if (e.target.closest('[data-modal-open="#dopyt-form"]')){
+      setTimeout(()=>{ ensureKtoOptions(); rebuildTypy(); updateCena(); }, 0);
+    }
   });
+
+  // diagnostika do konzoly (vidíš hneď, čo sa načítalo)
+  console.debug('[Dopyt modal] KATS:', KATS);
+  console.debug('[Dopyt modal] TYPY count:', TYPY.length);
 })();
 </script>
+<script>
+(() => {
+  const root = document.getElementById('dopyt-form');
+  if (!root) return;
+
+  const mestoSel    = root.querySelector('#mesto_id');
+  const mestoFilter = root.querySelector('#mesto_filter');
+  if (!mestoSel || !mestoFilter) return;
+
+  // uložíme si originálne options (okrem prvej „— vyber —“)
+  const BASE = Array.from(mestoSel.options).slice(1).map(o => ({
+    value: o.value,
+    label: o.textContent.trim()
+  }));
+
+  // diakritika-insensitive porovnanie
+  const norm = s => (s || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  function rebuild(filterText){
+    const f = norm(filterText);
+    // vyfiltruj a ABECEDNE ZORADÍME PODĽA VIDITEĽNÉHO TEXTU
+    const list = BASE
+      .filter(o => norm(o.label).includes(f))
+      .sort((a,b) => a.label.localeCompare(b.label, 'sk', {sensitivity:'base'}));
+
+    // zachovaj prvú možnosť
+    mestoSel.innerHTML = '<option value="">— vyber —</option>';
+    const frag = document.createDocumentFragment();
+    list.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.value; opt.textContent = o.label;
+      frag.appendChild(opt);
+    });
+    mestoSel.appendChild(frag);
+  }
+
+  mestoFilter.addEventListener('input', () => rebuild(mestoFilter.value));
+  // init – prázdny filter = celý zoznam abecedne
+  rebuild('');
+})();
+</script>
+<script>
+(() => {
+  const root = document.getElementById('dopyt-form');
+  if (!root) return;
+
+  const form = root.querySelector('form');
+  const submitBtn = root.querySelector('#btn-odoslat-dopyt');
+
+  // 1) Zablokuj Enter, okrem textarea (tam chceme nový riadok)
+  form.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+    }
+  });
+
+  // 2) Odoslanie výhradne klikom na tlačidlo
+  if (submitBtn) {
+    submitBtn.addEventListener('click', () => {
+      if (form.checkValidity()) {
+        form.submit();            // prejde HTML5 validáciou a odošle
+      } else {
+        form.reportValidity();    // ukáž chyby
+      }
+    });
+  }
+})();
+</script>
+
+
