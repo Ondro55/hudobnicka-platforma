@@ -223,7 +223,7 @@ def pridaj_dopyt():
 
     g = request.form.get
 
-    # 1) kategória (kto) – zatiaľ NEukladáme do DB, používame len na filtrovanie na fronte
+    # 1) “kto” zatiaľ nepíšeme do DB – iba front-end filter
     kto = (g('kto') or '').strip()
 
     # 2) typ akcie (+ vlastný pri „Iné“)
@@ -240,12 +240,12 @@ def pridaj_dopyt():
     cas_od = datetime.strptime(cas_od_s, '%H:%M').time() if cas_od_s else None
     cas_do = datetime.strptime(cas_do_s, '%H:%M').time() if cas_do_s else None
 
-    # 4) miesto – buď mesto_id (FK), alebo text „miesto“
+    # 4) miesto – FK alebo voľný text
     mesto_id_raw = (g('mesto_id') or '').strip()
     mesto_id = int(mesto_id_raw) if mesto_id_raw.isdigit() else None
     miesto_txt = (g('miesto') or '').strip() or None
 
-    # 5) CENA – „dohodou“ vs „uveď rozpočet“
+    # 5) CENA
     cena_typ = (g('cena_typ') or 'dohodou').strip()
     if cena_typ == 'rozpocet':
         rozpocet_s = (g('rozpocet') or '').strip().replace(',', '.')
@@ -254,13 +254,14 @@ def pridaj_dopyt():
         except ValueError:
             rozpocet = None
     else:
-        rozpocet = None  # cena dohodou
+        rozpocet = None
 
-    # 6) zvyšok
+    # 6) Ostatné
     popis = (g('popis') or '').strip() or None
     meno  = (g('meno') or '').strip() or None
     email = (g('email') or '').strip() or None
 
+    # --- vytvor záznam (default aktivny=True) a získaj id
     novy = Dopyt(
         typ_akcie = typ_akcie or None,
         datum     = datum,
@@ -275,36 +276,64 @@ def pridaj_dopyt():
         pouzivatel_id = (current_user.id if current_user.is_authenticated else None),
         aktivny   = True
     )
-
     db.session.add(novy)
+    db.session.flush()  # máme novy.id
+
+    # --- auto-moderácia nad textom (bez auto-banov)
+    to_check = "\n".join([x for x in [typ_akcie, popis, miesto_txt] if x])
+    res = auto_moderate_text(
+        text=to_check,
+        entity_type="dopyt",
+        entity_id=novy.id,
+        recipient_id=None  # pri dopyte nie je “recipient”
+    )
+
+    # hard-block => nenecháme publikovať
+    if res.get("note") == "hard-block":
+        novy.aktivny = False
+
+    # hold => čaká na schválenie (skryté z listu)
+    if res.get("held"):
+        novy.aktivny = False
+
     db.session.commit()
 
-    # Po pridaní pošli potvrdenie s linkom na správu (zmazanie)
+    # --- manažovací link (aj keď je hold/hard-block, pošleme iba majiteľovi)
+    manage_url = None
+    sent = False
     if novy.email:
         token = generate_dopyt_token(novy.id, novy.email)
-        # _external vyžaduje SERVER_NAME/doménu; inak použi request.url_root
         try:
             manage_url = url_for("dopyty.spravovat", token=token, _external=True)
         except Exception:
             manage_url = f"{request.url_root.rstrip('/')}{url_for('dopyty.spravovat', token=token)}"
 
         subject = "Váš dopyt bol pridaný – Muzikuj"
+        status_line = ("(Čaká na schválenie moderátorom)\n\n" if not novy.aktivny else "")
         body = (
-            f"Dobrý deň,\n\n"
-            f"váš dopyt bol úspešne pridaný na Muzikuj.\n\n"
-            f"Ak už nie je aktuálny, môžete ho sami zmazať tu:\n{manage_url}\n\n"
-            f"Po termíne udalosti sa dopyt automaticky deaktivuje.\n\n"
-            f"Pekný deň,\nMuzikuj"
+            "Dobrý deň,\n\n"
+            "váš dopyt bol uložený na Muzikuj.\n"
+            f"{status_line}"
+            f"Spravovať / zmazať ho môžete tu:\n{manage_url}\n\n"
+            "Po termíne udalosti sa dopyt automaticky deaktivuje.\n\n"
+            "Pekný deň,\nMuzikuj"
         )
-        _send_email(novy.email, subject, body)
+        sent = _send_email(novy.email, subject, body)
 
-    flash('Dopyt bol pridaný!', "success")
+    # --- hlášky pre užívateľa
+    if not novy.aktivny:
+        flash("Dopyt bol uložený a čaká na schválenie moderátorom.", "warning")
+    else:
+        flash("Dopyt bol pridaný!", "success")
 
     if current_user.is_authenticated:
         return redirect(url_for('dopyty.zobraz_dopyty'))
-    else:
-        return redirect(url_for('main.index'))
 
+    # fallback stránka, ak SMTP nie je
+    if novy.email and not sent and manage_url:
+        return render_template("dopyt_pridany.html", manage_url=manage_url)
+
+    return redirect(url_for('main.index'))
 
 # =========================
 # Správa dopytu cez token (GET) + zmazanie (POST)
@@ -358,8 +387,6 @@ def zmazat():
 @dopyty.route('/dopyty/<int:dopyt_id>/zmazat', methods=['POST'])
 @login_required
 def delete_mine(dopyt_id):
-    from flask import abort
-    from datetime import datetime
     d = Dopyt.query.filter_by(id=dopyt_id, aktivny=True).first_or_404()
     if d.pouzivatel_id != current_user.id:
         abort(403)
@@ -368,6 +395,7 @@ def delete_mine(dopyt_id):
     db.session.commit()
     flash('Dopyt bol zmazaný.', 'success')
     return redirect(url_for('dopyty.zobraz_dopyty'))
+
 
 
 @dopyty.app_context_processor

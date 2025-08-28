@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Fronta nahlásení | Muzikuj{% endblock %}
+
+{% block content %}
+<section style="max-width:1100px;margin:0 auto;padding:1.25rem;">
+  <h1>📥 Nahlásenia</h1>
+
+  {% if reports and reports|length %}
+    <div style="display:grid;gap:.75rem;">
+      {% for r in reports %}
+        <article style="border:1px solid var(--hover);border-radius:10px;padding:.75rem;">
+          <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+            <strong>#{{ r.id }} • {{ r.entity_type }}: {{ r.entity_id }}</strong>
+            <span style="opacity:.75;">{{ r.created_at }}</span>
+          </div>
+          <div style="margin-top:.35rem;">
+            <div><b>Dôvod:</b> {{ r.reason }}</div>
+            {% if r.details %}<div style="opacity:.9;">{{ r.details }}</div>{% endif %}
+            <div style="opacity:.75;margin-top:.25rem;">Stav: {{ r.status }}</div>
+          </div>
+
+          <form method="post" action="{{ url_for('moderacia.resolve_report', rid=r.id) }}" style="display:inline;">
+            <button class="btn">✅ Označiť vyriešené</button>
+          </form>
+          <form method="post" action="{{ url_for('moderacia.ignore_report', rid=r.id) }}" style="display:inline;">
+            <button class="btn">🙈 Ignorovať</button>
+          </form>
+
+          {% if r.entity_type == 'dopyt' %}
+            <form method="post" action="{{ url_for('moderacia.hide_dopyt', id=r.entity_id) }}" style="display:inline;">
+              <button class="btn">🚫 Skryť dopyt</button>
+            </form>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>Žiadne nahlásenia.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -32,15 +32,30 @@
       <div class="user-panel">
         {% if current_user.is_authenticated %}
           <a href="{{ url_for('spravy.inbox') }}"
-             class="msg-icon {% if neprecitane_count and neprecitane_count > 0 %}has-unread{% endif %}"
-             aria-label="Správy">
+            class="msg-icon {{ 'has-unread' if neprecitane_count and neprecitane_count > 0 else '' }}"
+            aria-label="Správy">
             <span class="icon">✉️</span>
             {% if neprecitane_count and neprecitane_count > 0 %}
               <span class="badge">{{ neprecitane_count }}</span>
             {% endif %}
           </a>
 
-          <span class="user-info">👋 {{ current_user.prezyvka }}</span>
+          <span class="user-info">
+            👋 {{ current_user.prezyvka }}
+            {% if current_user.is_admin %}
+              <span class="role-badge admin" title="Admin">Admin</span>
+            {% elif current_user.is_moderator %}
+              <span class="role-badge mod" title="Moderátor">Mod</span>
+            {% endif %}
+          </span>
+
+          {% if current_user.is_admin or current_user.is_moderator %}
+            <a href="{{ url_for('moderacia.dashboard' if current_user.is_admin else 'moderacia.queue') }}"
+              class="header-btn">
+              🛡️ {{ 'Admin' if current_user.is_admin else 'Moderácia' }}
+            </a>
+          {% endif %}
+
           <a href="{{ url_for('uzivatel.profil') }}" class="header-btn">Moje konto</a>
           <a href="{{ url_for('main.logout') }}" class="header-btn logout-btn">Odhlásiť sa</a>
         {% else %}

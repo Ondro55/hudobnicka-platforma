@@ -18,6 +18,8 @@ from modules.register import register_bp
 from modules.kalendar import kalendar_bp
 from modules.komunita import komunita_bp
 from modules.sprava import spravy_bp
+from modules.moderacia import moder_bp
+from modules.reporting import report_bp
 from routes import bp as main_blueprint
 
 # Aplikácia
@@ -96,6 +98,15 @@ def jinja_localtime(value, fmt="%d.%m.%Y %H:%M"):
     # konverzia do lokálnej zóny + formát
     return value.astimezone(APP_TZ).strftime(fmt)
 
+@app.before_request
+def block_banned_users():
+    protected_prefixes = ('/spravy', '/inzerat', '/dopyty')  # kde nechceš povoliť akciu
+    if current_user.is_authenticated and current_user.is_banned:
+        from flask import request
+        if request.path.startswith(protected_prefixes) and request.method in ('POST','PUT','DELETE'):
+            flash(f'Tvoj účet je dočasne zablokovaný: {current_user.banned_reason or ""}', 'danger')
+            return redirect(url_for('uzivatel.profil'))  # alebo info stránka o bane
+
 
 # Blueprinty
 app.register_blueprint(uzivatel)
@@ -109,6 +120,8 @@ app.register_blueprint(main_blueprint)
 app.register_blueprint(kalendar_bp, url_prefix='/kalendar')
 app.register_blueprint(komunita_bp)
 app.register_blueprint(spravy_bp)
+app.register_blueprint(moder_bp)
+app.register_blueprint(report_bp)
 
 # Spustenie
 if __name__ == "__main__":

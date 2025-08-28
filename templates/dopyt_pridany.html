@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Dopyt pridaný | Muzikuj{% endblock %}
+
+{% block content %}
+<section style="max-width:700px;margin:2rem auto;padding:1.25rem;border:1px solid var(--hover);border-radius:12px;">
+
+  <h2 style="margin-top:0;">Dopyt bol pridaný ✅</h2>
+
+  {# VOLITEĽNÉ INFO PÁSIKY — zobrazia sa len ak pošleš on_hold/blocked #}
+  {% if blocked %}
+    <div style="border:1px solid #d9534f;background:#fdf2f2;color:#a94442;padding:.75rem 1rem;border-radius:.5rem;margin:.75rem 0;">
+      Tento dopyt bol <strong>zadržaný</strong> automatickou kontrolou pre nevhodný obsah a nie je verejne viditeľný.
+      Moderátor ho skontroluje. Odkaz nižšie slúži na jeho správu alebo zmazanie.
+    </div>
+  {% elif on_hold %}
+    <div style="border:1px solid #f0ad4e;background:#fff8e6;color:#8a6d3b;padding:.75rem 1rem;border-radius:.5rem;margin:.75rem 0;">
+      Dopyt <strong>čaká na schválenie moderátorom</strong> a zatiaľ nie je verejne viditeľný.
+      Odkaz nižšie slúži na jeho správu alebo zmazanie.
+    </div>
+  {% endif %}
+
+  <p>Keďže odosielanie e-mailov ešte nemáme nastavené, ulož si prosím tento odkaz
+     na správu / zmazanie dopytu (funguje ako jednorazový „kľúč“):</p>
+
+  <div style="display:flex;gap:.5rem;align-items:center;margin:.75rem 0;">
+    <input id="manageUrl" type="text" readonly value="{{ manage_url }}"
+           style="flex:1;padding:.5rem .75rem;border:1px solid #ccc;border-radius:.5rem;">
+    <button class="btn" type="button" onclick="copyUrl()" aria-label="Skopírovať odkaz">Kopírovať</button>
+  </div>
+
+  <p id="copyToast" style="display:none;margin:.25rem 0 0;color:#2e7d32;">Skopírované ✅</p>
+
+  <p class="help" style="margin-top:.5rem;">⚠️ Odkaz si ulož (záložka / poznámka). Kto má odkaz, vie dopyt spravovať.</p>
+
+  <p style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+    <a class="btn" href="{{ url_for('main.index') }}">Späť na úvod</a>
+    <a class="btn" href="{{ manage_url }}">Otvoriť správu dopytu</a>
+  </p>
+</section>
+
+<script>
+(function(){
+  const inp = document.getElementById('manageUrl');
+  if (inp) { inp.focus(); inp.select(); }
+
+  window.copyUrl = async function(){
+    const i = document.getElementById('manageUrl');
+    const toast = document.getElementById('copyToast');
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(i.value);
+      } else {
+        i.select();
+        document.execCommand('copy');
+      }
+      if (toast){ toast.style.display = 'block'; setTimeout(()=>toast.style.display='none', 1800); }
+    } catch(e){
+      console.warn('Copy failed', e);
+      alert('Skopírovanie zlyhalo. Skús prosím skopírovať odkaz ručne.');
+    }
+  };
+})();
+</script>
+{% endblock %}

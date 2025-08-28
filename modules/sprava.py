@@ -1,15 +1,19 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
-from models import db, Pouzivatel, Sprava
+from models import db, Pouzivatel, Sprava, Report
 from datetime import datetime
 import smtplib
 from email.message import EmailMessage
-from flask import current_app
-from sqlalchemy import func
+from sqlalchemy import func, or_, and_
+
+# bezpečný import – ak utils/moderation neexistuje, app beží ďalej bez auto-flagovania
+try:
+    from utils.moderation import auto_moderate_text
+except Exception:
+    auto_moderate_text = None
 
 spravy_bp = Blueprint("spravy", __name__, url_prefix="/spravy")
 
-from sqlalchemy import or_, and_
 
 @spravy_bp.route("/", methods=["GET"], endpoint="inbox")
 @login_required
@@ -49,7 +53,8 @@ def inbox():
     return render_template("spravy.html",
         prijate=prijate, odoslane=odoslane,
         active_tab=active_tab, unread_prijate=unread_prijate,
-        vybrana=vybrana)
+        vybrana=vybrana
+    )
 
 
 # (voliteľne) pekná URL /spravy/sprava/<id> → presmeruje do inboxu s tabuľkou zachovanou
@@ -60,17 +65,16 @@ def detail(sprava_id):
     return redirect(url_for("spravy.inbox", tab="prijate", id=sprava_id))
 
 
-
 @spravy_bp.route("/napisat", methods=["GET"], endpoint="napisat")
 @login_required
 def napisat():
     kontekst    = request.args.get("kontekst") or "direct"
     kontekst_id = request.args.get("kontekst_id")
     komu_id     = request.args.get("komu_id")
-    komu_email  = request.args.get("komu_email")  # ✅ pridané
+    komu_email  = request.args.get("komu_email")  # môže ísť mimo-užívateľa
 
     prijemca_nazov = None
-    if komu_id:
+    if komu_id and str(komu_id).isdigit():
         u = Pouzivatel.query.get(int(komu_id))
         if u:
             prijemca_nazov = u.prezyvka or u.email
@@ -78,9 +82,10 @@ def napisat():
     return render_template(
         "spravy_napisat.html",
         kontekst=kontekst, kontekst_id=kontekst_id,
-        komu_id=komu_id, komu_email=komu_email,   # ✅ posúvame do šablóny
+        komu_id=komu_id, komu_email=komu_email,
         prijemca_nazov=prijemca_nazov
     )
+
 
 def _send_email(to_email: str, subject: str, body: str) -> bool:
     cfg = current_app.config
@@ -106,6 +111,7 @@ def _send_email(to_email: str, subject: str, body: str) -> bool:
         s.send_message(msg)
     return True
 
+
 @spravy_bp.route("/odoslat", methods=["POST"], endpoint="odoslat")
 @login_required
 def odoslat():
@@ -119,27 +125,49 @@ def odoslat():
     kontekst    = request.form.get("kontekst")
     kontekst_id = request.form.get("kontekst_id")
 
-    # 1) Ulož do DB (aby bol záznam aj pri e-maily)
+    # 1) Ulož správu
     s = Sprava(
         obsah=text,
         od_id=current_user.id,
-        komu_id=int(komu_id) if komu_id else None,
+        komu_id=int(komu_id) if (komu_id and str(komu_id).isdigit()) else None,
         komu_email=komu_email or None,
-        inzerat_id=int(kontekst_id) if (kontekst == "inzerat" and kontekst_id) else None,
-        dopyt_id=int(kontekst_id)   if (kontekst == "dopyt"   and kontekst_id) else None,
+        inzerat_id=int(kontekst_id) if (kontekst == "inzerat" and kontekst_id and str(kontekst_id).isdigit()) else None,
+        dopyt_id=int(kontekst_id)   if (kontekst == "dopyt"   and kontekst_id and str(kontekst_id).isdigit()) else None,
     )
     db.session.add(s)
     db.session.commit()
 
-    # 2) Ak máme e-mail, pošli e-mail
+    # 2) Jemné auto-flagovanie (manuálna moderácia, žiadne blokovanie)
+    if auto_moderate_text:
+        try:
+            res = auto_moderate_text(text)
+        except TypeError:
+            # keby existovala iná signatúra, fallback
+            res = {"flag": False}
+
+        if res and res.get("flag"):
+            r = Report(
+                reporter_id = current_user.id,  # systémovo by to mohlo byť aj None
+                entity_type = "sprava",
+                entity_id   = s.id,
+                reason      = res.get("reason", "nevhodny_obsah"),
+                details     = res.get("note", ""),
+                status      = "open",
+            )
+            db.session.add(r)
+            db.session.commit()
+            # len info – správa ide normálne ďalej
+            flash("Správa bola označená na manuálnu kontrolu.", "info")
+
+    # 3) E-mail (ak máme adresu)
     if komu_email:
         subj = f"Reakcia na dopyt #{kontekst_id}" if kontekst == "dopyt" else "Správa z Muzikuj.sk"
         try:
             ok = _send_email(komu_email, subj, text)
             if ok:
-                flash("Správa odoslaná na e-mail.", "success")
+                flash("Správa odoslaná aj na e-mail.", "success")
             else:
-                flash("Správa uložená, ale e-mail sa nepodarilo odoslať (SMTP nenastavené).", "warning")
+                flash("Správa uložená, ale e-mail sa nepodarilo odoslať (SMTP).", "warning")
         except Exception:
             current_app.logger.exception("Email send failed")
             flash("Správa uložená, ale e-mail sa nepodarilo odoslať.", "warning")
@@ -148,8 +176,6 @@ def odoslat():
 
     return redirect(url_for("spravy.inbox"))
 
-# Jednotlivé aj hromadné mazanie (soft delete)
-from sqlalchemy import or_
 
 @spravy_bp.route("/zmazat", methods=["POST"], endpoint="zmazat")
 @login_required
@@ -160,7 +186,8 @@ def zmazat():
     ids = request.form.getlist("ids")
     if not ids:
         one = request.form.get("id")
-        if one: ids = [one]
+        if one:
+            ids = [one]
 
     # bezpečný cast
     try:
@@ -182,7 +209,8 @@ def zmazat():
         if s.komu_id == uid and not s.deleted_by_recipient:
             s.deleted_by_recipient = True
             touched = True
-        if touched: count += 1
+        if touched:
+            count += 1
 
     if count:
         db.session.commit()
@@ -191,7 +219,6 @@ def zmazat():
         flash("Nič sa nezmazalo.", "info")
 
     return redirect(url_for("spravy.inbox", tab=tab))
-
 
 
 @spravy_bp.route("/find-user")

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Admin | Muzikuj{% endblock %}
+
+{% block content %}
+<section style="max-width:1100px;margin:0 auto;padding:1.25rem;">
+  <h1>🛡️ Admin panel</h1>
+  <p>Vitaj, {{ current_user.prezyvka }}.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.75rem;margin:1rem 0;">
+    <div style="border:1px solid var(--hover);border-radius:10px;padding:.75rem;">
+      <div style="opacity:.75;">Nahlásenia (open)</div>
+      <div style="font-size:1.4rem;font-weight:700;">{{ reports_open|default(0) }}</div>
+    </div>
+    <div style="border:1px solid var(--hover);border-radius:10px;padding:.75rem;">
+      <div style="opacity:.75;">Všetky nahlásenia</div>
+      <div style="font-size:1.4rem;font-weight:700;">{{ reports_all|default(0) }}</div>
+    </div>
+    <div style="border:1px solid var(--hover);border-radius:10px;padding:.75rem;">
+      <div style="opacity:.75;">Zabanovaní</div>
+      <div style="font-size:1.4rem;font-weight:700;">{{ users_banned|default(0) }}</div>
+    </div>
+    <div style="border:1px solid var(--hover);border-radius:10px;padding:.75rem;">
+      <div style="opacity:.75;">Strikes &gt; 0</div>
+      <div style="font-size:1.4rem;font-weight:700;">{{ users_with_strikes|default(0) }}</div>
+    </div>
+    <div style="border:1px solid var(--hover);border-radius:10px;padding:.75rem;">
+      <div style="opacity:.75;">Aktívne dopyty</div>
+      <div style="font-size:1.4rem;font-weight:700;">{{ dopyty_active|default(0) }}</div>
+    </div>
+  </div>
+
+  <p>
+    <a class="btn" href="{{ url_for('moderacia.queue') }}">📥 Fronta nahlásení</a>
+  </p>
+</section>
+{% endblock %}
