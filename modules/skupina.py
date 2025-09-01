@@ -16,8 +16,11 @@ skupina_bp = Blueprint('skupina', __name__, template_folder='templates')
 @skupina_bp.route('/moja-skupina')
 @login_required
 def skupina():
-    skupina = current_user.skupina_clen[0] if current_user.skupina_clen else None
-    return render_template('modals/skupina.html', pouzivatel=current_user, skupina=skupina)
+    moja = current_user.skupina_clen[0] if current_user.skupina_clen else None
+    if not moja:
+        flash("Zatiaľ nemáš vytvorenú žiadnu skupinu.", "info")
+    return render_template('moja_skupina.html', pouzivatel=current_user, skupina=moja)
+
 
 # Pridanie novej skupiny
 @skupina_bp.route('/pridaj_skupinu', methods=['POST'])
@@ -129,20 +132,66 @@ def odstranit_fotku_skupina():
 @skupina_bp.route('/skupina/galeria', methods=['POST'])
 @login_required
 def nahraj_fotku_skupina():
-    skupina = current_user.skupina_clen[0] if current_user.skupina_clen else None
-    if not skupina:
+    from uuid import uuid4
+    import time
+
+    moja = current_user.skupina_clen[0] if current_user.skupina_clen else None
+    if not moja:
         flash("Nemáš priradenú žiadnu skupinu.", "danger")
         return redirect(url_for('skupina.skupina'))
 
-    subor = request.files.get('foto')
-    if subor and subor.filename != '':
-        filename = secure_filename(subor.filename)
-        cesta = os.path.join('static/galeria_skupina', filename)
-        subor.save(cesta)
+    files = request.files.getlist('fotos')  # ← multiple
+    if not files:
+        flash("Nevybrali ste žiadne fotky.", "warning")
+        return redirect(url_for('skupina.skupina'))
 
-        nova = GaleriaSkupina(nazov_suboru=filename, skupina_id=skupina.id)
-        db.session.add(nova)
+    # limit napr. 20 fotiek v galérii skupiny
+    max_foto = 20
+    aktualny_pocet = len(moja.galeria or [])
+    volne = max(0, max_foto - aktualny_pocet)
+    if volne <= 0:
+        flash("Dosiahnutý limit galérie skupiny.", "warning")
+        return redirect(url_for('skupina.skupina'))
+
+    allowed = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    upload_dir = os.path.join(current_app.root_path, 'static', 'galeria_skupina')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    ulozene = 0
+    preskocene = 0
+
+    for file in files:
+        if ulozene >= volne:
+            break
+        if not file or file.filename == '':
+            preskocene += 1
+            continue
+
+        fname = secure_filename(file.filename)
+        ext = (fname.rsplit('.', 1)[-1].lower() if '.' in fname else '')
+        if ext not in allowed:
+            preskocene += 1
+            continue
+
+        # unikát: groupID_timestamp_rand8.ext
+        unique = f"{moja.id}_{int(time.time())}_{uuid4().hex[:8]}.{ext}"
+        dest_path = os.path.join(upload_dir, unique)
+        try:
+            file.save(dest_path)
+            db.session.add(GaleriaSkupina(nazov_suboru=unique, skupina_id=moja.id))
+            ulozene += 1
+        except Exception:
+            preskocene += 1
+
+    if ulozene:
         db.session.commit()
+
+    if ulozene and preskocene == 0:
+        flash(f"Nahraných {ulozene} fotiek.", "success")
+    elif ulozene and preskocene:
+        flash(f"Nahraných {ulozene} fotiek, {preskocene} preskočených.", "warning")
+    else:
+        flash("Nepodarilo sa nahrať žiadnu fotku.", "danger")
 
     return redirect(url_for('skupina.skupina'))
 

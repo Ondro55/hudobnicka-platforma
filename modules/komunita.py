@@ -1,38 +1,30 @@
 from flask import Blueprint, render_template, request
+from sqlalchemy.orm import joinedload
+from sqlalchemy import or_
 from models import Pouzivatel
 
+# ✅ Blueprint MUSÍ byť definovaný skôr, než použiješ @komunita_bp.route
 komunita_bp = Blueprint("komunita", __name__)
 
-@komunita_bp.route("/komunita")
+@komunita_bp.route("/komunita", methods=["GET"])
 def komunita():
-    meno_filter = request.args.get('hladaj_meno', '').strip().lower()
-    nastroj_filter = request.args.get('nastroj', '').strip().lower()
+    meno_filter = (request.args.get('hladaj_meno') or '').strip()
+    nastroj_filter = (request.args.get('nastroj') or '').strip()
 
-    pouzivatelia_query = Pouzivatel.query
+    q = (Pouzivatel.query
+         .options(joinedload(Pouzivatel.skupina_clen))
+         .order_by(Pouzivatel.prezyvka.asc()))
 
     if meno_filter:
-        pouzivatelia_query = pouzivatelia_query.filter(Pouzivatel.prezyvka.ilike(f"%{meno_filter}%"))
+        like = f"%{meno_filter}%"
+        q = q.filter(or_(
+            Pouzivatel.prezyvka.ilike(like),
+            Pouzivatel.meno.ilike(like),
+            Pouzivatel.priezvisko.ilike(like)
+        ))
 
     if nastroj_filter:
-        pouzivatelia_query = pouzivatelia_query.filter(Pouzivatel.instrument.ilike(f"%{nastroj_filter}%"))
+        q = q.filter(Pouzivatel.instrument.ilike(f"%{nastroj_filter}%"))
 
-    pouzivatelia = pouzivatelia_query.all()
-
-    komunita_data = []
-    for pouzivatel in pouzivatelia:
-        skupiny = [sk.nazov for sk in pouzivatel.skupina_clen]
-        skupiny_text = ", ".join(skupiny) if skupiny else "Žiadna"
-
-        komunita_data.append({
-            'id': pouzivatel.id,
-            'prezyvka': pouzivatel.prezyvka,
-            'skupiny': skupiny_text,
-            'nastroj': pouzivatel.instrument,
-            'profil_fotka': pouzivatel.profil_fotka,
-        })
-
-    return render_template("komunita.html", uzivatelia=komunita_data)
-
-
-
-
+    uzivatelia = q.all()
+    return render_template("komunita.html", uzivatelia=uzivatelia)

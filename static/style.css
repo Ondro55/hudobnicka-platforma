@@ -500,3 +500,51 @@ body.modal-open { overflow: hidden; }
   height: 2.25rem !important;
   pointer-events: auto !important;
 }
+
+/* ======================
+   Komunita – tlačidlo "Pošli správu" (lokálne, nič iné neovplyvní)
+   ====================== */
+.komunita-wrapper a.kom-msg-btn{
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.35rem .7rem;
+  background: var(--tlacidlo); color:#fff; text-decoration:none;
+  border-radius:6px; font-weight:700; line-height:1.2;
+  border:0; cursor:pointer; transition:background .2s ease;
+}
+.komunita-wrapper a.kom-msg-btn:hover{ background: var(--text); }
+
+/* ======================
+   Komunita – riadkový štýl
+   ====================== */
+.komunita-wrapper .komunita-list { border-top: 1px solid #ece8e0; }
+.komunita-wrapper .kom-row{
+  border-bottom: 1px solid #f0ede6;
+  transition: background .15s ease;
+}
+.komunita-wrapper .kom-row:hover{
+  background: #fffdf9; /* jemný hover na pozadí stránky */
+}
+
+/* voliteľné: zebra pre lepšiu čitateľnosť */
+.komunita-wrapper .kom-row:nth-child(even){ background: #fffefb; }
+.komunita-wrapper .kom-row:nth-child(even):hover{ background: #fffdf9; }
+
+/* voliteľné: sticky hlavička stĺpcov */
+.komunita-wrapper .columns-head{
+  position: sticky; top: 0;
+  background: var(--pozadie);
+  z-index: 2;
+  padding: .25rem 0;
+  border-bottom: 1px solid #ece8e0;
+}
+/* === Globálne tlačidlá (unifikované) === */
+.btn{
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.45rem .8rem; border-radius:.6rem; border:1px solid transparent;
+  font-weight:700; cursor:pointer; text-decoration:none; color:inherit;
+}
+.btn.primary{ background:var(--tlacidlo); color:#fff; }
+.btn.primary:hover{ background:var(--text); color:#fff; }
+.btn.sm{ padding:.35rem .7rem; font-size:.9rem; line-height:1.2; }
+
+

@@ -40,9 +40,8 @@ class Pouzivatel(db.Model, UserMixin):
     @property
     def profil_fotka_url(self):
         if self.profil_fotka:
-            return url_for('static', filename=f'profil_fotky/{self.profil_fotka}')
-        else:
-            return url_for('static', filename='img/default-profil.jpg')
+            return url_for('static', filename=f'profilovky/{self.profil_fotka}')
+        return url_for('static', filename='profilovky/default.png')
     @property
     def is_banned(self) -> bool:
         return self.banned_until is not None and datetime.utcnow() < self.banned_until
@@ -77,8 +76,6 @@ skupina_clenovia = db.Table('skupina_clenovia',
     db.Column('skupina_id', db.Integer, db.ForeignKey('skupina.id')),
     db.Column('pouzivatel_id', db.Integer, db.ForeignKey('pouzivatel.id'))
 )
-
-
 
 class Dopyt(db.Model):
     id = db.Column(db.Integer, primary_key=True)

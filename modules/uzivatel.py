@@ -3,11 +3,20 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
+from sqlalchemy.orm import joinedload
+from jinja2 import TemplateNotFound
 
 from models import Pouzivatel, db, GaleriaPouzivatel, VideoPouzivatel
 
 uzivatel = Blueprint('uzivatel', __name__)
 profil_blueprint = Blueprint('profil', __name__)
+
+# -- Pomocník: bezpečné renderovanie profilu (fallback na modals/profil.html)
+def render_profile_template(**ctx):
+    try:
+        return render_template('profil.html', **ctx)
+    except TemplateNotFound:
+        return render_template('modals/profil.html', **ctx)
 
 # 🔹 Test endpoint
 @uzivatel.route('/test')
@@ -30,7 +39,7 @@ def login():
         if pouzivatel and pouzivatel.over_heslo(heslo):
             login_user(pouzivatel)
             flash("Prihlásenie prebehlo úspešne.", "success")
-            return redirect(url_for('uzivatel.profil'))
+            return redirect(url_for('uzivatel.profil'))  # alias funguje
         else:
             flash("Nesprávne prihlasovacie údaje.", "warning")
             return redirect(url_for('uzivatel.login'))
@@ -83,10 +92,12 @@ def logout():
     logout_user()
     return redirect(url_for('uzivatel.index'))
 
-# 🔹 Profil – úprava údajov
-@uzivatel.route('/profil', methods=['GET', 'POST'])
+# 🔹 Moje konto (edit vlastného profilu)
+#     -> 2 URL: /moje-konto aj /profil (endpoint='profil' = alias pre staré odkazy)
+@uzivatel.route('/moje-konto', methods=['GET', 'POST'])
+@uzivatel.route('/profil', methods=['GET', 'POST'], endpoint='profil')
 @login_required
-def profil():
+def moje_konto():
     pouzivatel = current_user
 
     if request.method == 'POST':
@@ -104,14 +115,14 @@ def profil():
 
     skupina = pouzivatel.skupina_clen[0] if pouzivatel.skupina_clen else None
     galeria = skupina.galeria if skupina else []
-    youtube_videa = pouzivatel.videa  # ✅ OPRAVENÉ
+    youtube_videa = pouzivatel.videa
 
-    return render_template('modals/profil.html',
-                           pouzivatel=pouzivatel,
-                           skupina=skupina,
-                           galeria=galeria,
-                           youtube_videa=youtube_videa)
-
+    return render_profile_template(
+        pouzivatel=pouzivatel,
+        skupina=skupina,
+        galeria=galeria,
+        youtube_videa=youtube_videa
+    )
 
 # 🔹 Upload profilovej fotky
 @uzivatel.route('/upload_fotka', methods=['POST'])
@@ -120,7 +131,6 @@ def upload_fotka():
     if 'profil_fotka' not in request.files:
         flash("Nebol vybraný žiadny súbor.", "danger")
         return redirect(url_for('uzivatel.profil'))
-
 
     file = request.files['profil_fotka']
     if file.filename == '':
@@ -159,15 +169,60 @@ def odstranit_fotku():
 @profil_blueprint.route('/profil/galeria', methods=['POST'])
 @login_required
 def nahraj_fotku():
-    subor = request.files.get('foto')
-    if subor and subor.filename != '':
-        filename = secure_filename(subor.filename)
-        cesta = os.path.join('static/galeria_pouzivatel', filename)
-        subor.save(cesta)
+    from uuid import uuid4
+    import time
 
-        nova = GaleriaPouzivatel(nazov_suboru=filename, pouzivatel_id=current_user.id)
-        db.session.add(nova)
+    files = request.files.getlist('fotos')
+    if not files:
+        flash("Nevybrali ste žiadne fotky.", "warning")
+        return redirect(url_for('uzivatel.profil'))
+
+    uz = current_user
+    max_foto = 10
+    aktualny_pocet = len(uz.galeria)
+    volne = max(0, max_foto - aktualny_pocet)
+    if volne <= 0:
+        flash("Dosiahnutý limit 10 fotiek v galérii.", "warning")
+        return redirect(url_for('uzivatel.profil'))
+
+    allowed = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    upload_dir = os.path.join(current_app.root_path, 'static', 'galeria_pouzivatel')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    ulozene = 0
+    preskocene = 0
+
+    for file in files:
+        if ulozene >= volne:
+            break
+        if not file or file.filename == '':
+            preskocene += 1
+            continue
+
+        fname = secure_filename(file.filename)
+        ext = (fname.rsplit('.', 1)[-1].lower() if '.' in fname else '')
+        if ext not in allowed:
+            preskocene += 1
+            continue
+
+        unique = f"{uz.id}_{int(time.time())}_{uuid4().hex[:8]}.{ext}"
+        dest_path = os.path.join(upload_dir, unique)
+        try:
+            file.save(dest_path)
+            db.session.add(GaleriaPouzivatel(nazov_suboru=unique, pouzivatel_id=uz.id))
+            ulozene += 1
+        except Exception:
+            preskocene += 1
+
+    if ulozene:
         db.session.commit()
+
+    if ulozene and preskocene == 0:
+        flash(f"Nahraných {ulozene} fotiek.", "success")
+    elif ulozene and preskocene:
+        flash(f"Nahraných {ulozene} fotiek, {preskocene} preskočených (typ/limit/problém).", "warning")
+    else:
+        flash("Nepodarilo sa nahrať žiadnu fotku. Skúste iné súbory.", "danger")
 
     return redirect(url_for('uzivatel.profil'))
 
@@ -177,7 +232,7 @@ def nahraj_fotku():
 def zmaz_fotku(id):
     fotka = GaleriaPouzivatel.query.get_or_404(id)
     if fotka.pouzivatel_id == current_user.id:
-        cesta = os.path.join('static/galeria_pouzivatel', fotka.nazov_suboru)
+        cesta = os.path.join(current_app.root_path, 'static', 'galeria_pouzivatel', fotka.nazov_suboru)
         if os.path.exists(cesta):
             os.remove(cesta)
         db.session.delete(fotka)
@@ -195,7 +250,6 @@ def pridaj_video():
     flash("Video bolo pridané.", "success")
     return redirect(url_for('uzivatel.profil'))
 
-
 @profil_blueprint.route('/zmaz_video/<int:id>', methods=['POST'])
 @login_required
 def zmaz_video(id):
@@ -207,5 +261,25 @@ def zmaz_video(id):
     flash("Video bolo zmazané.", "success")
     return redirect(url_for('uzivatel.profil'))
 
+# 🔹 Verejný (read-only) profil konkrétneho používateľa
+@uzivatel.route('/u/<int:user_id>', methods=['GET'])
+def verejny_profil(user_id):
+    user = (Pouzivatel.query
+            .options(
+                joinedload(Pouzivatel.galeria),
+                joinedload(Pouzivatel.videa),
+                joinedload(Pouzivatel.skupina_clen)
+            )
+            .get(user_id))
+    if not user:
+        abort(404)
 
+    skupina = user.skupina_clen[0] if user.skupina_clen else None
+    galeria = skupina.galeria if skupina else []
 
+    return render_profile_template(
+        pouzivatel=user,
+        skupina=skupina,
+        galeria=galeria,
+        youtube_videa=user.videa
+    )

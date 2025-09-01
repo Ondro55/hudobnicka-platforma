@@ -1,357 +1,141 @@
-.profil-wrapper {
-  display: flex;
-  justify-content: space-between;
-  gap: 2rem;
-  padding: 2rem;
-  flex-wrap: wrap;
+/* === Profil layout: ľavo info, vpravo biela karta === */
+.profil-page { padding: 2rem; }
+
+/* Hlavicka profilu (ak sa používa) */
+.profil-hlavicka {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  margin-bottom:1rem;
+}
+.profil-hlavicka h2 { margin: 0; }
+
+/* Grid */
+.profil-grid{
+  display:grid;
+  grid-template-columns:340px 1fr;
+  gap:2rem;
 }
 
-.profil-lava {
-  flex: 1;
-  min-width: 390px;
-  max-width: 100%; 
+/* Ľavý stĺpec */
+.profil-fotka-wrapper{ position:relative; width:240px; }
+.profil-left .profilovka{ width:240px; height:240px; object-fit:cover; border-radius:12px; display:block; }
+.profil-left .edit-icon { cursor:pointer; font-weight:600; }
+
+.odstranit-krizik{
+  position:absolute; top:.5rem; right:.5rem;
+  background: rgba(0,0,0,.55); color:#fff; border-radius:.4rem;
+  padding:.2rem .4rem; text-decoration:none; line-height:1;
 }
 
-.profil-prava {
-  flex: 2;
-  min-width: 400px;
+.profil-udaje { margin-top: 1rem; }
+.profil-omne h4 { margin:.2rem 0 .4rem; }
+
+/* Nick + akcie pri mene/názve */
+.profil-nickline{
+  display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
+  margin-top:.75rem;
+}
+.profil-nick{ margin:0; font-size:1.25rem; }
+
+/* Overlay akcie na fotke */
+.foto-action{
+  position:absolute; display:inline-flex; align-items:center; justify-content:center;
+  width:2rem; height:2rem; border-radius:.5rem;
+  background:rgba(0,0,0,.55); color:#fff; text-decoration:none; border:0; cursor:pointer;
+  line-height:1; font-weight:700;
+}
+.foto-action.edit { right:.5rem; bottom:.5rem; }   /* ✏️ */
+.foto-action.delete { right:.5rem; top:.5rem; }    /* ✖ */
+
+/* Edit formulár (spoločný pre profil aj skupinu) */
+.form-profil .form-row{
+  margin-bottom:.6rem;
+  display:flex;
+  flex-direction:column;
+}
+.form-profil .form-actions{ display:flex; gap:.5rem; margin-top:.5rem; }
+
+/* ➜ Tlačidlá Uložiť/Zrušiť vedľa seba */
+.form-profil .form-row.btn-row{
+  display:flex !important;
+  flex-direction: row !important;
+  flex-wrap:wrap;
+  gap:.5rem;
+  align-items:center;
+  justify-content:flex-start;
+}
+.form-profil .form-row.btn-row .btn{ margin:0; }
+
+/* Sekcia vpravo (biela karta) */
+.profil-right-card{
+  background:#fff;
+  border:1px solid var(--hover);
+  border-radius:12px;
+  padding:1rem 1.25rem;
+  box-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+.sekcia + .sekcia{ border-top:1px solid #f0ede6; margin-top:1rem; padding-top:1rem; }
+
+/* Hlavička sekcie (nadpis + akcie) */
+.sekcia-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.75rem;
+  flex-wrap:wrap;
+}
+.sekcia-empty{ color:#666; margin-top:.5rem; }
+
+/* Galéria */
+.galeria-wrapper{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(160px,1fr));
+  gap:.75rem;
+  margin-top:.75rem;
+}
+.galeria-foto{ width:100%; height:140px; object-fit:cover; border-radius:.5rem; }
+.foto-blok{ position:relative; }
+.delete-form{ position:absolute; top:.35rem; right:.35rem; }
+.delete-btn{
+  background: rgba(0,0,0,.6); color:#fff; border:0; border-radius:.35rem;
+  padding:.2rem .4rem; cursor:pointer; line-height:1;
 }
 
-/* Zvyšné štýly pre profilovku, pero, form-skryty ako už máš */
-
-.profil-fotka-wrapper {
-  position: relative;
-  width: 180px;
-  height: 180px;
-  border: 3px solid #ddd;
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+/* Videá */
+.profil-videoform{ display:flex; gap:.5rem; margin:.5rem 0 1rem; }
+.profil-videoform input[type="text"]{ flex:1; }
+.profil-video-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(300px,1fr));
+  gap:1rem;
 }
+.profil-youtube-video{ position:relative; }
+.profil-youtube-video iframe{ width:100%; aspect-ratio:16/9; border-radius:.5rem; }
+.video-popis{ margin:.35rem 0 0; color:#444; }
 
-.profilovka {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 1rem;
-}
-
-.upravit-fotku {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  background: #ffffffcc;
-  padding: 4px 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  text-decoration: none;
-  transition: background 0.2s;
+/* Podčiarknuté nicky členov (linky na profil) */
+.sekcia ul li a.clen-link{
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-.upravit-fotku:hover {
-  background: #f0f0f0;
+/* Ghost štýl tlačidla (Zrušiť) */
+.btn.ghost{
+  background:transparent;
+  border:1px solid var(--tlacidlo);
+  color:var(--tlacidlo);
 }
+.btn.ghost:hover{ background:var(--tlacidlo); color:#fff; }
 
-.odstranit-krizik {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  background: #ffdddd;
-  padding: 3px 6px;
-  border-radius: 50%;
-  font-size: 0.9rem;
-  color: #a00;
-  text-decoration: none;
-  cursor: pointer;
-  font-weight: bold;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
+/* Skryť nativné file inputy v hlavičke sekcií (neukazuj „Vybrať súbory“) */
+.sekcia-head input[type="file"]{ display:none !important; }
+/* (voliteľne aj pri profile/gruppe upload komponentoch) */
+.profil-upload-fotky input[type="file"]{ display:none !important; }
 
-.edit-icon {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  margin-top: 0.5rem;
-  transition: transform 0.2s;
-}
-
-.edit-icon:hover {
-  transform: scale(1.1);
-}
-.flash-messages {
-  list-style: none;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-  border-radius: 5px;
-}
-
-/* ======= FORMULÁR V PROFILE ========== */
-
-.profil-formular {
-  background-color: #fff;
-  padding: 2rem;
-  border-radius: 1rem;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-  max-width: 100%;
-  font-size: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-}
-
-.profil-formular label {
-  font-weight: 600;
-  color: #333;
-}
-
-.profil-formular input[type="text"],
-.profil-formular input[type="email"],
-.profil-formular textarea {
-  width: 100%;
-  padding: 0.6rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
-.profil-formular textarea {
-  resize: vertical;
-  min-height: 140px;
-  min-height: 100px;
-}
-
-.profil-formular .form-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-.profil-formular button {
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: bold;
-  cursor: pointer;
-  background-color: var(--tlacidlo);
-  color: white;
-  transition: background-color 0.2s ease;
-}
-
-.profil-formular button:hover {
-  background-color: var(--tlacidlo-hover);
-}
-
-.form-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.form-row label {
-  width: 130px; /* alebo si uprav šírku */
-  font-weight: bold;
-}
-
-.form-row input,
-.form-row textarea {
-  flex: 1;
-  padding: 0.6rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
-.form-row textarea {
-  min-height: 100px;
-  resize: vertical;
-}
-
-.profil-prava {
-  flex: 2;
-  min-width: 400px;
-  padding: 1rem;
-}
-
-.profil-lava h2 {
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-  font-size: 1.4rem;
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 0.5rem;
-}
-
-.profil-prava h3 {
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-  font-size: 1.4rem;
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 0.5rem;
-}
-
-.profil-skupina ul {
-  padding-left: 1.2rem;
-  margin-top: 0.5rem;
-}
-
-.nadpis-s-perom {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.nadpis-s-perom h2 {
-  margin: 0;
-}
-
-.galeria-wrapper {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.foto-blok {
-  position: relative;
-  width: 80px;
-  height: 80px;
-  overflow: hidden;
-  border-radius: 1rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  object-fit: cover;
-}
-
-.galeria-foto {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 1rem;
-}
-
-.zmaz-btn {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background-color: rgba(255, 255, 255, 0.8);
-  border: none;
-  border-radius: 50%;
-  padding: 0.3rem 0.5rem;
-  font-size: 1rem;
-  cursor: pointer;
-}
-/*videosekcia*/
-/* ============================
-   🎥 VIDEÁ – PROFIL
-   ============================ */
-.profil-youtube {
-  margin-top: 2rem;
-}
-
-.video-box {
-  background-color: #fff;
-  padding: 1rem;
-  border-radius: 1rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
-}
-
-/* Hlavička: Formulár + počet vedľa seba */
-.profil-videoform-riadok {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-/* Formulár */
-.profil-videoform {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.profil-videoform input[type="text"] {
-  padding: 0.3rem 0.6rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-}
-/* Krížik na zmazanie videa v profile */
-.profil-youtube-video .zmaz-video {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  background: #e74c3c;
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  font-size: 1rem;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  z-index: 10;
-}
-
-.profil-videoform button {
-  background-color: var(--tlacidlo);
-  border: none;
-  border-radius: 0.5rem;
-  padding: 0.4rem 1rem;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.3s;
-}
-
-.profil-videoform button:hover {
-  background-color: var(--hover);
-}
-
-/* Počet videí */
-.profil-pocet-videi {
-  font-weight: bold;
-  color: #b44;
-  margin: 0;
-}
-
-/* Mriežka videí */
-.profil-video-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.profil-youtube-video {
-  position: relative;
-  width: 150px;
-  flex-shrink: 0;
-  background: #fafafa;
-  padding: 0.5rem;
-  border-radius: 0.8rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.profil-youtube-video iframe {
-  width: 100%;
-  height: 100px;
-  border-radius: 0.5rem;
-}
-
-.profil-youtube-video p {
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
-}
-
-.profil-youtube-video form {
-  margin-top: 0.3rem;
-  text-align: right;
+/* Responzívne */
+@media (max-width: 840px){
+  .profil-grid { grid-template-columns: 1fr; }
+  .profil-left .profilovka, .profil-fotka-wrapper { width:180px; height:auto; }
 }
