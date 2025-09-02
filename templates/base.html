@@ -57,7 +57,7 @@
           {% endif %}
 
           <a href="{{ url_for('uzivatel.profil') }}" class="header-btn">Moje konto</a>
-          <a href="{{ url_for('main.logout') }}" class="header-btn logout-btn">Odhlásiť sa</a>
+          <a href="{{ url_for('uzivatel.logout') }}" class="header-btn logout-btn">Odhlásiť sa</a>
         {% else %}
           <button type="button" class="header-btn" data-modal-open="#modal-login">Prihlásiť sa</button>
           <button type="button" class="header-btn" data-modal-open="#user-form-panel">Registrovať sa</button>
@@ -70,12 +70,16 @@
     <button class="hamburger" onclick="toggleMenu()">☰</button>
     <div class="nav-wrapper">
       <nav class="main-nav">
-        <a href="{{ url_for('uzivatel.profil') }}">Domov</a>
+        <a href="{{ url_for('uzivatel.profil') if current_user.is_authenticated else url_for('uzivatel.index') }}">Domov</a>
         {% if current_user.is_authenticated %}
           <a href="{{ url_for('dopyty.zobraz_dopyty') }}">📬 Dopyty</a>
-          <a href="#" id="show-band-form">🎵 Kapely</a>
-          <a href="{{ url_for('inzerat.bazar_verejny') }}">🛒 Bazár</a>
-          <a href="{{ url_for('komunita.komunita') }}">Komunita</a>
+
+          {% if current_user.typ_subjektu != 'ico' %}
+            <a href="#" id="show-band-form">🎵 Kapely</a>
+            <a href="{{ url_for('inzerat.bazar_verejny') }}">🛒 Bazár</a>
+            <a href="{{ url_for('komunita.komunita') }}">Komunita</a>
+          {% endif %}
+
           <a href="#">e-shop</a>
           <a href="#kontakt">Kontakt</a>
         {% else %}
@@ -92,13 +96,17 @@
 </header>
 
 <div class="button-container">
-  {% if current_user.is_authenticated and request.endpoint != 'index' %}
+  {% if current_user.is_authenticated and request.endpoint != 'uzivatel.index' %}
     <aside class="button-sidebar">
-      <a href="{{ url_for('uzivatel.profil') }}"  class="sidebar-btn {% if request.endpoint == 'uzivatel.profil' %}aktivne{% endif %}">👤 Profil</a>
-      <a href="{{ url_for('skupina.skupina') }}"  class="sidebar-btn {% if request.endpoint == 'skupina.skupina' %}aktivne{% endif %}">🎸 Moja skupina</a>
-      <a href="{{ url_for('kalendar.kalendar') }}" class="sidebar-btn {% if request.endpoint == 'kalendar.kalendar' %}aktivne{% endif %}">📅 Kalendár</a>
-      <a href="{{ url_for('inzerat.moj_bazar') }}" class="sidebar-btn {% if request.endpoint == 'inzerat.moj_bazar' %}aktivne{% endif %}">🛍️ Môj bazár</a>
-      <a href="{{ url_for('spravy.inbox') }}" class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('spravy') %}aktivne{% endif %}">📨 Správy</a>
+      <a href="{{ url_for('uzivatel.profil') }}" class="sidebar-btn {% if request.endpoint == 'uzivatel.profil' %}active{% endif %}">👤 Profil</a>
+
+      {% if current_user.typ_subjektu != 'ico' %}
+        <a href="{{ url_for('skupina.skupina') }}" class="sidebar-btn {% if request.endpoint == 'skupina.skupina' %}active{% endif %}">🎸 Moja skupina</a>
+        <a href="{{ url_for('inzerat.moj_bazar') }}" class="sidebar-btn {% if request.endpoint == 'inzerat.moj_bazar' %}active{% endif %}">🛍️ Môj bazár</a>
+      {% endif %}
+
+      <a href="{{ url_for('kalendar.kalendar') }}" class="sidebar-btn {% if request.endpoint == 'kalendar.kalendar' %}active{% endif %}">📅 Kalendár</a>
+      <a href="{{ url_for('spravy.inbox') }}" class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('spravy') %}active{% endif %}">📨 Správy</a>
     </aside>
     <main class="main-content">
   {% else %}

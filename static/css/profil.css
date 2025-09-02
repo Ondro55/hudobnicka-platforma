@@ -139,3 +139,5 @@
   .profil-grid { grid-template-columns: 1fr; }
   .profil-left .profilovka, .profil-fotka-wrapper { width:180px; height:auto; }
 }
+
+.bio-text { white-space: pre-line; }

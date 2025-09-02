@@ -2,7 +2,7 @@ import os
 from flask import Flask
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
-from models import Pouzivatel, db
+from models import Pouzivatel, db, Mesto
 from datetime import timezone, datetime, timedelta
 from zoneinfo import ZoneInfo
 from datetime import date

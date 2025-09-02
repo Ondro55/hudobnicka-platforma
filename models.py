@@ -31,6 +31,10 @@ class Pouzivatel(db.Model, UserMixin):
     banned_until = db.Column(db.DateTime, nullable=True)
     banned_reason = db.Column(db.String(255), nullable=True)
 
+    typ_subjektu = db.Column(db.String(10), default='fyzicka')  # 'fyzicka' | 'ico'
+    ico = db.Column(db.String(20), nullable=True)
+    organizacia_nazov = db.Column(db.String(150), nullable=True)
+
     def over_heslo(self, zadane_heslo):
         return check_password_hash(self.heslo, zadane_heslo)
 

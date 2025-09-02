@@ -1,4 +1,4 @@
-<!-- modals/registracia.html -->
+<!-- templates/modals/registracia.html -->
 <div id="user-form-panel"
      class="modal-root"
      hidden
@@ -8,72 +8,158 @@
   <div class="modal-card">
     <button type="button" class="modal-close" data-modal-close aria-label="Zavrieť">×</button>
 
-    <h2 id="register-title">Registrácia hudobníka</h2>
+    <h2 id="register-title">Registrácia</h2>
 
     <div id="flash-box" aria-live="polite">
       {% with messages = get_flashed_messages() %}
         {% if messages %}
-          <div class="flash-messages" style="background-color:#f0fff0; padding:10px; border-left:4px solid green;">
+          <div class="flash-messages" style="background:#f0fff0;padding:10px;border-left:4px solid green;">
             {% for message in messages %}
-              <p style="margin:0; font-weight:bold; color: green;">{{ message }}</p>
+              <p style="margin:0;font-weight:bold;color:green">{{ message }}</p>
             {% endfor %}
           </div>
         {% endif %}
       {% endwith %}
     </div>
 
+    {% set typ_val = request.form.get('typ_subjektu', 'fyzicka') %}
+
     <form method="POST" action="{{ url_for('uzivatel.registracia') }}">
-      <label for="prezyvka">Prezývka:</label>
-      <input type="text" id="prezyvka" name="prezyvka" required value="{{ request.form.get('prezyvka', '') }}" autofocus>
+      <!-- Typ účtu – guličky -->
+      <fieldset style="margin:0 0 .75rem 0;border:0;padding:0;">
+        <legend style="font-weight:700;margin-bottom:.25rem;">Typ účtu</legend>
+        <label style="margin-right:1rem;">
+          <input type="radio" name="typ_subjektu" value="fyzicka"
+                 {% if typ_val != 'ico' %}checked{% endif %}> Fyzická osoba
+        </label>
+        <label>
+          <input type="radio" name="typ_subjektu" value="ico"
+                 {% if typ_val == 'ico' %}checked{% endif %}> Organizácia (IČO)
+        </label>
+      </fieldset>
 
-      <label for="meno">Meno:</label>
-      <input type="text" id="meno" name="meno" value="{{ request.form.get('meno', '') }}">
+      <!-- ⚪ Fyzická osoba -->
+      <div id="blok-fyzicka" style="display: {{ 'none' if typ_val=='ico' else 'block' }};">
+        <label for="prezyvka">Prezývka *</label>
+        <input type="text" id="prezyvka" name="prezyvka"
+               value="{{ request.form.get('prezyvka','') }}">
 
-      <label for="priezvisko">Priezvisko:</label>
-      <input type="text" id="priezvisko" name="priezvisko" value="{{ request.form.get('priezvisko', '') }}">
+        <label for="meno">Meno</label>
+        <input type="text" id="meno" name="meno"
+               value="{{ request.form.get('meno','') }}">
 
-      <label for="email">Email:</label>
-      <input type="email" id="email" name="email" autocomplete="email" required value="{{ request.form.get('email', '') }}">
+        <label for="priezvisko">Priezvisko</label>
+        <input type="text" id="priezvisko" name="priezvisko"
+               value="{{ request.form.get('priezvisko','') }}">
 
-      <label for="heslo">Heslo:</label>
-      <input type="password" id="heslo" name="heslo" autocomplete="new-password" minlength="8" required title="Heslo musí mať aspoň 8 znakov">
-      <small style="color: gray;">Minimálne 8 znakov</small>
+        <label for="instrument">Hudobný nástroj</label>
+        <select id="instrument" name="instrument">
+          <option value="">-- Vyber --</option>
+          {% for val, txt in [('klavesy','Klávesy'), ('gitara','Gitara'), ('bicie','Bicie'), ('dychove','Dychové'), ('slacikove','Sláčikové'), ('ine','Iné')] %}
+            <option value="{{val}}" {% if request.form.get('instrument') == val %}selected{% endif %}>{{txt}}</option>
+          {% endfor %}
+        </select>
 
-      <label for="heslo2">Zopakuj heslo:</label>
-      <input type="password" id="heslo2" name="heslo2" required>
-
-      <label for="instrument">Hudobný nástroj:</label>
-      <select id="instrument" name="instrument" required>
-        <option value="">-- Vyber --</option>
-        <option value="klavesy"   {% if request.form.get('instrument') == 'klavesy' %}selected{% endif %}>Klávesy</option>
-        <option value="gitara"    {% if request.form.get('instrument') == 'gitara' %}selected{% endif %}>Gitara</option>
-        <option value="bicie"     {% if request.form.get('instrument') == 'bicie' %}selected{% endif %}>Bicie</option>
-        <option value="dychove"   {% if request.form.get('instrument') == 'dychove' %}selected{% endif %}>Dychové nástroje</option>
-        <option value="slacikove" {% if request.form.get('instrument') == 'slacikove' %}selected{% endif %}>Sláčikové nástroje</option>
-        <option value="ine"       {% if request.form.get('instrument') == 'ine' %}selected{% endif %}>Iné</option>
-      </select>
-
-      <div id="instrument-ine" style="{% if request.form.get('instrument') == 'ine' %}display:block;{% else %}display:none;{% endif %}">
-        <label for="doplnkovy_nastroj">Doplň hudobný nástroj:</label>
-        <input type="text" id="doplnkovy_nastroj" name="doplnkovy_nastroj" value="{{ request.form.get('doplnkovy_nastroj', '') }}">
+        <div id="instrument-ine" style="{% if request.form.get('instrument') == 'ine' %}display:block;{% else %}display:none;{% endif %}">
+          <label for="doplnkovy_nastroj">Doplň hudobný nástroj</label>
+          <input type="text" id="doplnkovy_nastroj" name="doplnkovy_nastroj"
+                 value="{{ request.form.get('doplnkovy_nastroj','') }}">
+        </div>
       </div>
 
-      <label for="obec">Obec/pôsobisko:</label>
-      <input type="text" id="obec" name="obec" value="{{ request.form.get('obec', '') }}">
+      <!-- 🟡 Organizácia (IČO) -->
+      <div id="blok-ico" style="display: {{ 'block' if typ_val=='ico' else 'none' }};">
+        <label for="organizacia_nazov">Názov organizácie *</label>
+        <input type="text" id="organizacia_nazov" name="organizacia_nazov"
+               value="{{ request.form.get('organizacia_nazov','') }}">
 
-      <button type="submit" class="btn">Registrovať</button>
+        <label for="ico">IČO *</label>
+        <input type="text" id="ico" name="ico"
+               inputmode="numeric" pattern="[0-9]{6,10}" title="IČO: 6–10 číslic"
+               value="{{ request.form.get('ico','') }}">
+      </div>
+
+      <!-- Spoločné polia -->
+      <label for="email">Email *</label>
+      <input type="email" id="email" name="email" autocomplete="email"
+             value="{{ request.form.get('email','') }}" required>
+
+      <label for="heslo">Heslo *</label>
+      <input type="password" id="heslo" name="heslo" autocomplete="new-password" minlength="8"
+             title="Heslo musí mať aspoň 8 znakov" required>
+
+      <label for="heslo2">Zopakuj heslo *</label>
+      <input type="password" id="heslo2" name="heslo2" required>
+
+      <label>Obec / pôsobisko</label>
+      <div class="miesto-grid" style="display:grid;grid-template-columns:1fr;gap:.75rem;">
+        <div>
+          <label for="obec" class="label-spacer" style="visibility:hidden;display:block;height:1.2rem;margin:0 0 .25rem;">
+            Miesto (výber z miest)
+          </label>
+          <select id="obec" name="obec">
+            <option value="">— vyber —</option>
+            {% for m in (mesta_all or []) %}
+              <option value="{{ m.nazov }}"
+                      {% if request.form.get('obec') == m.nazov %}selected{% endif %}>
+                {{ m.nazov }}{% if m.okres %}, {{ m.okres }}{% endif %}{% if m.kraj %}, {{ m.kraj }}{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="btn primary" style="margin-top:1rem;">Registrovať</button>
     </form>
   </div>
 </div>
 
 <script>
-  // drobná logika pre "Iné" nástroje – izolovaná len do tohto modalu
   (function(){
     const root = document.getElementById('user-form-panel');
     if (!root) return;
-    const sel = root.querySelector('#instrument');
-    const wrap = root.querySelector('#instrument-ine');
-    if (!sel || !wrap) return;
-    sel.addEventListener('change', ()=>{ wrap.style.display = sel.value === 'ine' ? 'block' : 'none'; });
+
+    // prepínanie typov účtu (rádiá)
+    const radios = root.querySelectorAll('input[name="typ_subjektu"]');
+    const blokF = root.querySelector('#blok-fyzicka');
+    const blokI = root.querySelector('#blok-ico');
+
+    const prezyvka = root.querySelector('#prezyvka');
+    const org      = root.querySelector('#organizacia_nazov');
+    const ico      = root.querySelector('#ico');
+
+    function syncType(){
+      const val = root.querySelector('input[name="typ_subjektu"]:checked')?.value || 'fyzicka';
+      const isICO = val === 'ico';
+      blokF.style.display = isICO ? 'none'  : 'block';
+      blokI.style.display = isICO ? 'block' : 'none';
+      if (prezyvka) prezyvka.required = !isICO;
+      if (org)      org.required      =  isICO;
+      if (ico)      ico.required      =  isICO;
+
+      // fokus na prvé pole
+      setTimeout(() => (isICO ? org : prezyvka)?.focus({preventScroll:true}), 0);
+    }
+    radios.forEach(r => r.addEventListener('change', syncType));
+    syncType();
+
+    // "Iné" nástroje – len pre fyzickú osobu
+    const selInstr      = root.querySelector('#instrument');
+    const wrapInstrIne  = root.querySelector('#instrument-ine');
+    if (selInstr && wrapInstrIne) {
+      selInstr.addEventListener('change', () => {
+        wrapInstrIne.style.display = selInstr.value === 'ine' ? 'block' : 'none';
+      });
+    }
+
+    // validácia: heslá sa musia zhodovať
+    root.addEventListener('submit', (e) => {
+      const h1 = root.querySelector('#heslo');
+      const h2 = root.querySelector('#heslo2');
+      if (h1 && h2 && h1.value !== h2.value) {
+        e.preventDefault();
+        alert('Heslá sa nezhodujú.');
+      }
+    });
   })();
 </script>

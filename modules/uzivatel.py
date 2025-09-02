@@ -50,19 +50,41 @@ def login():
 @uzivatel.route('/registracia', methods=['GET', 'POST'])
 def registracia():
     if request.method == 'POST':
-        prezyvka = request.form['prezyvka']
-        meno = request.form['meno']
-        priezvisko = request.form['priezvisko']
-        email = request.form['email']
-        heslo = generate_password_hash(request.form['heslo'])  # 🔐 hashovanie
-        instrument = request.form['instrument']
-        doplnkovy_nastroj = request.form['doplnkovy_nastroj']
-        obec = request.form['obec']
+        typ = (request.form.get('typ_subjektu') or 'fyzicka').strip()
+
+        email = request.form['email'].strip()
+        heslo = generate_password_hash(request.form['heslo'])
+        obec  = (request.form.get('obec') or '').strip()
+
+        if typ == 'ico':
+            organizacia_nazov = (request.form.get('organizacia_nazov') or '').strip()
+            ico = (request.form.get('ico') or '').strip()
+
+            if not organizacia_nazov or not ico:
+                flash("Vyplň Názov organizácie aj IČO.", "warning")
+                return redirect(url_for('uzivatel.registracia'))
+
+            # Pre konzistenciu používame názov organizácie aj ako prezývku (UI ho často zobrazuje)
+            prezyvka = organizacia_nazov
+            meno = priezvisko = instrument = doplnkovy_nastroj = None
+
+        else:
+            # fyzická osoba
+            prezyvka = (request.form.get('prezyvka') or '').strip()
+            meno = (request.form.get('meno') or '').strip()
+            priezvisko = (request.form.get('priezvisko') or '').strip()
+            instrument = (request.form.get('instrument') or '').strip()
+            doplnkovy_nastroj = (request.form.get('doplnkovy_nastroj') or '').strip() or None
+            organizacia_nazov = None
+            ico = None
+
+            if not prezyvka:
+                flash("Prezývka je povinná pre fyzickú osobu.", "warning")
+                return redirect(url_for('uzivatel.registracia'))
 
         existujuci = Pouzivatel.query.filter(
             (Pouzivatel.email == email) | (Pouzivatel.prezyvka == prezyvka)
         ).first()
-
         if existujuci:
             flash("Používateľ s týmto e-mailom alebo prezývkou už existuje.", "warning")
             return redirect(url_for('uzivatel.registracia'))
@@ -75,7 +97,10 @@ def registracia():
             heslo=heslo,
             instrument=instrument,
             doplnkovy_nastroj=doplnkovy_nastroj,
-            obec=obec
+            obec=obec,
+            typ_subjektu=typ,
+            ico=ico,
+            organizacia_nazov=organizacia_nazov
         )
 
         db.session.add(novy)
@@ -84,6 +109,7 @@ def registracia():
         return redirect(url_for('uzivatel.login'))
 
     return render_template('modals/registracia.html')
+
 
 # 🔹 Logout
 @uzivatel.route('/logout')
@@ -109,6 +135,17 @@ def moje_konto():
         pouzivatel.instrument = request.form.get('instrument')
         pouzivatel.doplnkovy_nastroj = request.form.get('doplnkovy_nastroj')
         pouzivatel.bio = request.form.get('bio')
+
+        # 🔹 NOVÉ: typ účtu + IČO polia
+        typ = request.form.get('typ_subjektu') or 'fyzicka'
+        pouzivatel.typ_subjektu = typ
+        if typ == 'ico':
+            pouzivatel.ico = (request.form.get('ico') or '').strip() or None
+            pouzivatel.organizacia_nazov = (request.form.get('organizacia_nazov') or '').strip() or None
+        else:
+            pouzivatel.ico = None
+            pouzivatel.organizacia_nazov = None
+
         db.session.commit()
         flash("Profil bol úspešne upravený", "success")
         return redirect(url_for('uzivatel.profil'))
@@ -123,6 +160,7 @@ def moje_konto():
         galeria=galeria,
         youtube_videa=youtube_videa
     )
+
 
 # 🔹 Upload profilovej fotky
 @uzivatel.route('/upload_fotka', methods=['POST'])

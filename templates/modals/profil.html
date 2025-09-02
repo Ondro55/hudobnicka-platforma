@@ -22,7 +22,8 @@
 
           {% if pouzivatel.profil_fotka %}
           <!-- overlay: odstrániť fotku (✖) -->
-          <a href="{{ url_for('uzivatel.odstranit_fotku') }}" class="foto-action delete" title="Odstrániť fotku">✖</a>
+          <a href="{{ url_for('uzivatel.odstranit_fotku') }}" class="foto-action delete" title="Odstrániť fotku" onclick="return confirm('Naozaj chceš odstrániť profilovú fotku?');">✖</a>
+
           {% endif %}
         {% endif %}
       </div>
@@ -45,17 +46,23 @@
 
       <!-- Zobrazenie údajov -->
       <div id="udaje-zobraz" class="profil-udaje">
-        <p><strong>Meno:</strong> {{ pouzivatel.meno }} {{ pouzivatel.priezvisko }}</p>
-        <p><strong>Email:</strong> {{ pouzivatel.email }}</p>
+        <p><strong>Typ účtu:</strong> {{ 'Organizácia (IČO)' if pouzivatel.typ_subjektu == 'ico' else 'Fyzická osoba' }}</p>
+        {% if pouzivatel.typ_subjektu == 'ico' %}
+          <p><strong>IČO:</strong> {{ pouzivatel.ico or '—' }}</p>
+          <p><strong>Organizácia:</strong> {{ pouzivatel.organizacia_nazov or '—' }}</p>
+        {% endif %}
+
+        <p><strong>Meno:</strong> {{ (pouzivatel.meno or '') ~ ' ' ~ (pouzivatel.priezvisko or '') | trim or '—' }}</p>
+        <p><strong>Email:</strong> {{ pouzivatel.email or '—' }}</p>
         <p><strong>Mesto / Obec:</strong> {{ pouzivatel.obec or '—' }}</p>
         <p><strong>Hudobný nástroj:</strong> {{ pouzivatel.instrument or '—' }}</p>
         <p><strong>Doplnkový nástroj:</strong> {{ pouzivatel.doplnkovy_nastroj or '—' }}</p>
 
         {% if pouzivatel.bio %}
-        <div class="profil-omne">
-          <h4>O mne</h4>
-          <p>{{ pouzivatel.bio }}</p>
-        </div>
+          <div class="profil-omne">
+            <h4>O mne</h4>
+            <p class="bio-text">{{ pouzivatel.bio }}</p>
+          </div>
         {% endif %}
       </div>
 
@@ -70,6 +77,32 @@
         <div class="form-row"><label>Hudobný nástroj:</label><input type="text" name="instrument" value="{{ pouzivatel.instrument }}"></div>
         <div class="form-row"><label>Doplnkový nástroj:</label><input type="text" name="doplnkovy_nastroj" value="{{ pouzivatel.doplnkovy_nastroj }}"></div>
         <div class="form-row"><label for="bio">O mne:</label><textarea id="bio" name="bio">{{ pouzivatel.bio or '' }}</textarea></div>
+        <div class="form-row">
+          <label>Typ účtu</label>
+          <select name="typ_subjektu" id="typ-subjektu-select">
+            <option value="fyzicka" {{ 'selected' if pouzivatel.typ_subjektu != 'ico' else '' }}>Fyzická osoba</option>
+            <option value="ico" {{ 'selected' if pouzivatel.typ_subjektu == 'ico' else '' }}>Organizácia (IČO)</option>
+          </select>
+        </div>
+
+        <div class="form-row" id="profil-ico-blok" {% if pouzivatel.typ_subjektu != 'ico' %}style="display:none"{% endif %}>
+          <label>IČO</label>
+          <input type="text" name="ico" value="{{ pouzivatel.ico or '' }}">
+
+          <label>Názov organizácie</label>
+          <input type="text" name="organizacia_nazov" value="{{ pouzivatel.organizacia_nazov or '' }}">
+        </div>
+
+        <script>
+          (function(){
+            const sel = document.getElementById('typ-subjektu-select');
+            const blk = document.getElementById('profil-ico-blok');
+            if (sel && blk){
+              sel.addEventListener('change', ()=>{ blk.style.display = (sel.value==='ico') ? 'block' : 'none'; });
+            }
+          })();
+        </script>
+
         <div class="form-actions">
           <button type="submit" class="btn primary">💾 Uložiť zmeny</button>
           <button type="button" id="cancelEdit" class="btn">Zrušiť</button>
@@ -153,8 +186,11 @@
           {% else %}
             <p class="sekcia-empty">Zatiaľ bez fotiek.</p>
           {% endif %}
-        </section>
-
+        <section class="sekcia">
+          <div class="sekcia-head">
+            <h3>Videá</h3>
+            <p class="profil-pocet-videi" style="margin:0; color:#666;">Počet videí: {{ youtube_videa | length }}</p>
+          </div>
 
           {% if is_owner %}
           <form action="{{ url_for('profil.pridaj_video') }}" method="POST" class="profil-videoform">
@@ -183,6 +219,7 @@
             <p class="sekcia-empty">Zatiaľ bez videí.</p>
           {% endif %}
         </section>
+
       </div>
     </div>
   </div>
