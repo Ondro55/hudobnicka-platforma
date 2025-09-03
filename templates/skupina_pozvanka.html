@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="formular-box">
+  <h2>Pozvánka do skupiny</h2>
+
+  {% if inv.stav != 'pending' %}
+    <p>Stav pozvánky: <strong>{{ inv.stav }}</strong></p>
+    <p><a class="btn" href="{{ url_for('uzivatel.profil') }}">Späť do profilu</a></p>
+  {% else %}
+    <p>Bol/a si pozvaný/á do skupiny <strong>{{ inv.skupina.nazov }}</strong>.</p>
+    <form method="POST" action="{{ url_for('skupina.prijmi_pozvanku', token=inv.token) }}">
+      <button class="btn primary" type="submit">Prijať pozvanie</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

@@ -20,7 +20,9 @@
 
         {% if is_owner_group and skupina and skupina.profil_fotka_skupina %}
           <a href="{{ url_for('skupina.odstranit_fotku_skupina') }}"
-             class="foto-action delete" title="Odstrániť fotku">✖</a>
+          class="foto-action delete"
+          title="Odstrániť fotku"
+          onclick="return confirm('Naozaj odstrániť profilovú fotku skupiny?');">✖</a>
         {% endif %}
 
         {% if is_owner_group %}
@@ -113,6 +115,37 @@
             <h3>O skupine</h3>
             <p>{{ skupina.popis or '—' }}</p>
           </section>
+          {% if skupina %}
+            <div class="sekcia-profil">
+              <h4>Pozvať člena</h4>
+              <form method="POST" action="{{ url_for('skupina.pozvi_clena', id=skupina.id) }}" class="form-skupina" style="margin-top:.5rem;">
+                <label for="target">Zadaj prezývku, email alebo ID</label>
+                <input type="text" id="target" name="target" placeholder="napr. jozo123 alebo jozo@mail.sk" required>
+                <button type="submit">➕ Poslať pozvánku</button>
+              </form>
+            </div>
+
+            <div class="sekcia-profil">
+              <h4>Čakajúce pozvánky</h4>
+              {% set pend = skupina.pozvanky | selectattr('stav','equalto','pending') | list %}
+              {% if pend %}
+                <ul>
+                  {% for inv in pend %}
+                    <li>
+                      {{ inv.pozvany.prezyvka or inv.pozvany.email }} –
+                      platná do: {{ inv.expires_at.strftime('%d.%m.%Y %H:%M') if inv.expires_at else '—' }}
+                      <a href="{{ url_for('skupina.prijmi_pozvanku_view', token=inv.token) }}" class="btn sm">Kópia linku</a>
+                      <form method="POST" action="{{ url_for('skupina.zrus_pozvanku', token=inv.token) }}" style="display:inline" onsubmit="return confirm('Zrušiť túto pozvánku?');">
+                        <button class="btn sm" type="submit">Zrušiť</button>
+                      </form>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="sekcia-empty">Žiadne čakajúce pozvánky.</p>
+              {% endif %}
+            </div>
+          {% endif %}
 
           <section class="sekcia">
             <h3>Členovia</h3>

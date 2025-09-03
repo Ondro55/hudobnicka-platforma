@@ -75,7 +75,7 @@
           <a href="{{ url_for('dopyty.zobraz_dopyty') }}">📬 Dopyty</a>
 
           {% if current_user.typ_subjektu != 'ico' %}
-            <a href="#" id="show-band-form">🎵 Kapely</a>
+            <a href="{{ url_for('skupina.prehlad_skupin') }}">🎸 Skupiny</a>
             <a href="{{ url_for('inzerat.bazar_verejny') }}">🛒 Bazár</a>
             <a href="{{ url_for('komunita.komunita') }}">Komunita</a>
           {% endif %}
@@ -84,7 +84,7 @@
           <a href="#kontakt">Kontakt</a>
         {% else %}
           <a href="#" class="disabled-link" data-modal-open="#modal-login">📬 Dopyty</a>
-          <a href="#" class="disabled-link" data-modal-open="#modal-login">🎵 Kapely</a>
+          <a href="#" class="disabled-link" data-modal-open="#modal-login">🎵 Skupiny</a>
           <a href="#" class="disabled-link" data-modal-open="#modal-login">🛒 Bazár</a>
           <a href="#" class="disabled-link" data-modal-open="#modal-login">Komunita</a>
           <a href="#">e-shop</a>

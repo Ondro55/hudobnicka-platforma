@@ -7,6 +7,36 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature
 import smtplib
 from email.message import EmailMessage
 from sqlalchemy import or_
+import re
+
+_BADWORD_PATTERNS = [
+    r"\b(debil|idiot|zmrd|kokot|pič[aeyiou]?|chuj)\b",
+]
+
+def auto_moderate_text(
+    text: str,
+    entity_type=None,
+    entity_id=None,
+    recipient_id=None,
+    max_len: int = 5000,
+):
+    """
+    Vráti (True, None) ak text prejde, inak (False, 'dôvod').
+    """
+    if not text:
+        return True, None
+
+    t = text.strip()
+    if len(t) > max_len:
+        return False, f"Text je príliš dlhý (max {max_len} znakov)."
+
+    for pat in _BADWORD_PATTERNS:
+        if re.search(pat, t, flags=re.IGNORECASE):
+            return False, "Text obsahuje nevhodný obsah."
+
+    return True, None
+
+# ----------------------------------------------------------------------
 
 # KATEGÓRIE (kto objednáva)
 KATEGORIE = [
@@ -90,13 +120,6 @@ dopyty = Blueprint('dopyty', __name__)
 # =========================
 
 def _dopyt_end_dt(d: Dopyt) -> datetime:
-    """
-    Vypočíta "koniec udalosti" pre dopyt:
-      - ak je cas_do -> dátum + cas_do
-      - ak je len cas_od -> dátum + cas_od + 4h (rozumný default)
-      - ak nie je žiadny čas -> 23:59 daného dňa
-      - ak chýba dátum -> nikdy neexpiruje (datetime.max)
-    """
     if not d.datum:
         return datetime.max
     if d.cas_do:
@@ -106,7 +129,6 @@ def _dopyt_end_dt(d: Dopyt) -> datetime:
     return datetime.combine(d.datum, time(23, 59))
 
 def _housekeep_expired():
-    """Deaktivuj (soft delete) všetky aktívne dopyty, ktorým už uplynul termín."""
     now = datetime.utcnow()
     zmenene = False
     for d in Dopyt.query.filter_by(aktivny=True).all():
@@ -118,21 +140,18 @@ def _housekeep_expired():
         db.session.commit()
 
 def _ts() -> URLSafeTimedSerializer:
-    # Unikátna soľ pre tokeny dopytov
     return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt="dopyt-delete")
 
 def generate_dopyt_token(dopyt_id: int, email: str) -> str:
     return _ts().dumps({"id": dopyt_id, "email": email})
 
 def load_dopyt_token_noage(token: str):
-    """Over podpis tokenu a vráť payload bez časovej expirácii (expiráciu riešime dátumom akcie)."""
     try:
         return _ts().loads(token)
     except BadSignature:
         return None
 
 def _send_email(to_email: str, subject: str, body_text: str) -> bool:
-    """Jednoduché odoslanie e-mailu cez SMTP podľa app.config (SMTP_SERVER, SMTP_PORT, ...)."""
     cfg = current_app.config
     server = cfg.get("SMTP_SERVER")
     port = int(cfg.get("SMTP_PORT", 587))
@@ -163,15 +182,13 @@ def _send_email(to_email: str, subject: str, body_text: str) -> bool:
 @dopyty.route('/dopyty', methods=['GET'])
 @login_required
 def zobraz_dopyty():
-    # uprac expirované dopyty
     _housekeep_expired()
 
     q = Dopyt.query.filter_by(aktivny=True)
 
-    # filtre
     typ_akcie = (request.args.get('typ_akcie') or '').strip()
     datum_s   = (request.args.get('datum') or '').strip()
-    mesto_id  = request.args.get('mesto_id', type=int)  # ak máš ešte select na mesto
+    mesto_id  = request.args.get('mesto_id', type=int)
 
     if typ_akcie:
         q = q.filter(Dopyt.typ_akcie == typ_akcie)
@@ -184,32 +201,27 @@ def zobraz_dopyty():
         except ValueError:
             pass
 
-    dopyty_zoznam = (q.order_by(Dopyt.created_at.desc(), Dopyt.id.desc()).all())
+    dopyty_zoznam = q.order_by(Dopyt.created_at.desc(), Dopyt.id.desc()).all()
 
-    # ak šablóna ešte očakáva 'mesta', pošli ich; ak tabuľku nechceš používať, môže byť aj []
     try:
         mesta = Mesto.query.order_by(Mesto.kraj, Mesto.okres, Mesto.nazov).all()
     except Exception:
         mesta = []
 
     return render_template(
-    'dopyty.html',
-    dopyty=dopyty_zoznam,
-    mesta=mesta,
-    kategorie=KATEGORIE,
-    typy=TYPY
-)
+        'dopyty.html',
+        dopyty=dopyty_zoznam,
+        mesta=mesta,
+        kategorie=KATEGORIE,
+        typy=TYPY
+    )
 
 # =========================
 # Formulár na pridanie dopytu (GET)
 # =========================
-
 @dopyty.route('/dopyty/pridat', methods=['GET'])
 def formular_dopyt():
     return redirect(url_for('dopyty.zobraz_dopyty', open='dopyt'))
-
-
-
 
 # =========================
 # Pridanie dopytu (POST)
@@ -223,7 +235,7 @@ def pridaj_dopyt():
 
     g = request.form.get
 
-    # 1) “kto” zatiaľ nepíšeme do DB – iba front-end filter
+    # 1) front-end pole „kto“ (neukladáme)
     kto = (g('kto') or '').strip()
 
     # 2) typ akcie (+ vlastný pri „Iné“)
@@ -261,7 +273,7 @@ def pridaj_dopyt():
     meno  = (g('meno') or '').strip() or None
     email = (g('email') or '').strip() or None
 
-    # --- vytvor záznam (default aktivny=True) a získaj id
+    # --- vytvor záznam a získaj id
     novy = Dopyt(
         typ_akcie = typ_akcie or None,
         datum     = datum,
@@ -279,26 +291,21 @@ def pridaj_dopyt():
     db.session.add(novy)
     db.session.flush()  # máme novy.id
 
-    # --- auto-moderácia nad textom (bez auto-banov)
+    # --- auto-moderácia
     to_check = "\n".join([x for x in [typ_akcie, popis, miesto_txt] if x])
-    res = auto_moderate_text(
+    ok, reason = auto_moderate_text(
         text=to_check,
         entity_type="dopyt",
         entity_id=novy.id,
-        recipient_id=None  # pri dopyte nie je “recipient”
+        recipient_id=None
     )
-
-    # hard-block => nenecháme publikovať
-    if res.get("note") == "hard-block":
+    if not ok:
         novy.aktivny = False
 
-    # hold => čaká na schválenie (skryté z listu)
-    if res.get("held"):
-        novy.aktivny = False
-
+    # uložiť stav (aktivny / neaktivny)
     db.session.commit()
 
-    # --- manažovací link (aj keď je hold/hard-block, pošleme iba majiteľovi)
+    # --- manažovací link (pošleme majiteľovi, ak je email)
     manage_url = None
     sent = False
     if novy.email:
@@ -351,7 +358,6 @@ def spravovat():
         flash("Dopyt sa nenašiel alebo odkaz nesedí.", "error")
         return redirect(url_for("dopyty.zobraz_dopyty"))
 
-    # Ak už uplynul termín udalosti, považuj za expirované a skry (ak ešte je aktivný)
     if datetime.utcnow() > _dopyt_end_dt(d):
         if d.aktivny:
             d.aktivny = False
@@ -375,14 +381,13 @@ def zmazat():
         flash("Dopyt sa nenašiel alebo odkaz nesedí.", "error")
         return redirect(url_for("dopyty.zobraz_dopyty"))
 
-    # Aj keď je po termíne, len ho deaktivuj (ak už nie je)
     if d.aktivny:
         d.aktivny = False
         d.zmazany_at = datetime.utcnow()
         db.session.commit()
 
     flash("Dopyt bol zmazaný.", "success")
-    return redirect(url_for("dopyty.zobraz_dopyty"))
+    return redirect(url_for('dopyty.zobraz_dopyty'))
 
 @dopyty.route('/dopyty/<int:dopyt_id>/zmazat', methods=['POST'])
 @login_required
@@ -396,18 +401,17 @@ def delete_mine(dopyt_id):
     flash('Dopyt bol zmazaný.', 'success')
     return redirect(url_for('dopyty.zobraz_dopyty'))
 
-
-
 @dopyty.app_context_processor
 def inject_novinky_dopyty():
     try:
         today = date.today()
-        novinky = (Dopyt.query
+        novinky = (
+            Dopyt.query
             .filter(Dopyt.aktivny.is_(True), or_(Dopyt.datum == None, Dopyt.datum >= today))
             .order_by(Dopyt.id.desc())
             .limit(5)
-            .all())
+            .all()
+        )
     except Exception:
         novinky = []
     return dict(novinky_dopyty=novinky)
-

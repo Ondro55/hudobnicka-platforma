@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Skupiny | Muzikuj{% endblock %}
+
+{% block content %}
+<section class="komunita-wrapper" style="padding:2rem;">
+
+  <h2 style="margin:0 0 1rem 0;">🎤 Skupiny</h2>
+
+  {# jednotná filter lišta ako v komunite/bazári #}
+  {% set action_url = url_for('skupina.prehlad_skupin') %}
+  {% set placeholder = 'Hľadať skupiny…' %}
+  {% set btn_label = 'Hľadať' %}
+  {% set show_mesto = True %}
+  {% set show_zaner = False %}
+  {% set show_kategoria = False %}
+  {% set q = q %}
+  {% set mesto = mesto %}
+  {% include "includes/filterbar.html" %}
+
+  {# hlavička stĺpcov (5 stĺpcov) #}
+  <div class="columns-head" style="font-size:.85rem;color:#666;margin:.5rem 0;">
+    <div class="kom-grid-head" style="grid-template-columns:64px 1.4fr 1fr .8fr .9fr;">
+      <div>Foto</div>
+      <div>Názov</div>
+      <div>Obec</div>
+      <div>Členovia</div>
+      <div>Akcie</div>
+    </div>
+  </div>
+
+  {# zoznam skupín v rovnakom wrapperi a štýle ako komunita #}
+  <div class="list-rows">
+    {% for s in skupiny %}
+      {% set pf = s.profil_fotka_skupina %}
+      {% set foto_url = (url_for('static', filename='profilovky_skupina/' ~ pf) if pf else url_for('static', filename='profilovky/default.png')) %}
+
+      <article class="list-row kom-grid-row" style="grid-template-columns:64px 1.4fr 1fr .8fr .9fr;">
+        <!-- Foto -->
+        <div>
+          <img class="avatar"
+               src="{{ foto_url }}"
+               data-fallback="{{ url_for('static', filename='profilovky/default.png') }}"
+               alt="Skupinová fotka"
+               style="width:48px;height:48px;object-fit:cover;border-radius:50%;display:block;">
+        </div>
+
+        <!-- Názov (klik na detail) -->
+        <div class="text-clip">
+          <a class="link-plain" href="{{ url_for('skupina.skupina_detail', id=s.id) }}">
+            {{ s.nazov }}
+          </a>
+        </div>
+
+        <!-- Obec -->
+        <div class="text-clip">{{ s.mesto or '—' }}</div>
+
+        <!-- Počet členov -->
+        <div class="text-clip">{{ (s.clenovia|length) if s.clenovia else 0 }}</div>
+
+        <!-- Akcie -->
+        <div class="row-actions">
+          {% if current_user.is_authenticated %}
+            <a class="kom-msg-btn"
+               href="{{ url_for('spravy.napisat', komu_id=s.zakladatel_id, kontekst='skupina', kontekst_id=s.id) }}">
+              ✉️ Správa
+            </a>
+          {% else %}
+            <a class="btn primary sm" href="#" data-modal-open="#modal-login">✉️ Správa</a>
+          {% endif %}
+          <a class="icon-btn" href="{{ url_for('skupina.skupina_detail', id=s.id) }}" title="Detail">👁️</a>
+        </div>
+      </article>
+    {% else %}
+      <p style="padding:.75rem 0;">😕 Nenašli sa žiadne skupiny podľa zvolených filtrov.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<script>
+  // avatar fallback
+  document.addEventListener('error', function (e) {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement) || !img.classList.contains('avatar')) return;
+    img.classList.remove('avatar');
+    img.src = "{{ url_for('static', filename='profilovky/default.png') }}";
+  }, true);
+</script>
+{% endblock %}

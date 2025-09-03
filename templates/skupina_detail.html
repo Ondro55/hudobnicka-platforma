@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}{{ skupina.nazov }} | Muzikuj{% endblock %}
+
+{% block content %}
+<section class="profil-page">
+  <div class="profil-grid">
+    <!-- ĽAVÁ strana -->
+    <aside class="profil-left">
+      <div class="profil-fotka-wrapper">
+        <img class="profilovka"
+             src="{{ url_for('static', filename='profilovky_skupina/' ~ (skupina.profil_fotka_skupina or 'default-kapela.jpg')) }}"
+             alt="Skupinová fotka">
+      </div>
+
+      <div class="profil-nickline">
+        <h2 class="profil-nick">{{ skupina.nazov }}</h2>
+        {% if is_owner_group %}
+          <a class="btn sm" href="{{ url_for('skupina.skupina') }}">Upraviť moju skupinu</a>
+        {% else %}
+          <a class="btn primary sm"
+             href="{{ url_for('spravy.napisat', komu_id=skupina.zakladatel_id, kontekst='skupina', kontekst_id=skupina.id) }}">
+            ✉️ Pošli správu
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="profil-udaje">
+        <p><strong>Mesto / obec:</strong> {{ skupina.mesto or '—' }}</p>
+        <p><strong>Žáner:</strong> {{ skupina.zaner or '—' }}</p>
+        {% if skupina.web %}<p><strong>Web:</strong> <a href="{{ skupina.web }}" target="_blank" rel="noopener">{{ skupina.web }}</a></p>{% endif %}
+        {% if skupina.email %}<p><strong>E-mail:</strong> {{ skupina.email }}</p>{% endif %}
+      </div>
+    </aside>
+
+    <!-- PRAVÁ karta -->
+    <div class="profil-right">
+      <div class="profil-right-card">
+        <section class="sekcia">
+          <h3>O skupine</h3>
+          <p>{{ skupina.popis or '—' }}</p>
+        </section>
+
+        <section class="sekcia">
+          <h3>Členovia</h3>
+          {% if skupina.clenovia %}
+            <ul>
+              {% for clen in skupina.clenovia %}
+                <li>
+                  <a class="clen-link" href="{{ url_for('uzivatel.verejny_profil', user_id=clen.id) }}">
+                    {{ clen.prezyvka or (clen.meno ~ ' ' ~ clen.priezvisko) | trim }}
+                  </a>{% if clen.instrument %} – {{ clen.instrument }}{% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="sekcia-empty">Žiadni členovia.</p>
+          {% endif %}
+        </section>
+
+        <section class="sekcia">
+          <h3>Galéria</h3>
+          {% if skupina.galeria %}
+            <div class="galeria-wrapper">
+              {% for foto in skupina.galeria %}
+                <div class="foto-blok">
+                  <img class="galeria-foto"
+                       src="{{ url_for('static', filename='galeria_skupina/' ~ foto.nazov_suboru) }}"
+                       alt="Foto skupiny">
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="sekcia-empty">Zatiaľ bez fotiek.</p>
+          {% endif %}
+        </section>
+
+        <section class="sekcia">
+          <h3>Videá</h3>
+          {% if skupina.videa %}
+            <div class="profil-video-grid">
+              {% for video in skupina.videa %}
+                <div class="profil-youtube-video">
+                  <iframe src="https://www.youtube.com/embed/{{ video.youtube_url | youtube_id }}" allowfullscreen></iframe>
+                  {% if video.popis %}<p class="video-popis">{{ video.popis }}</p>{% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="sekcia-empty">Zatiaľ bez videí.</p>
+          {% endif %}
+        </section>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+

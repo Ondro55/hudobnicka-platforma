@@ -1,8 +1,10 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import url_for
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+import secrets
+
 
 db = SQLAlchemy()
 
@@ -241,3 +243,27 @@ class ModerationLog(db.Model):
     target_id = db.Column(db.Integer, nullable=False)
     note = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class SkupinaPozvanka(db.Model):
+    __tablename__ = 'skupina_pozvanka'
+
+    id          = db.Column(db.Integer, primary_key=True)
+    token       = db.Column(db.String(64), unique=True, nullable=False)
+    stav        = db.Column(db.String(12), default='pending', nullable=False)  # pending/accepted/revoked/expired
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    expires_at  = db.Column(db.DateTime)
+
+    skupina_id  = db.Column(db.Integer, db.ForeignKey('skupina.id'), nullable=False)
+    pozvany_id  = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False)
+    pozval_id   = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False)
+
+    skupina     = db.relationship('Skupina', backref='pozvanky')
+    pozvany     = db.relationship('Pouzivatel', foreign_keys=[pozvany_id])
+    pozval      = db.relationship('Pouzivatel', foreign_keys=[pozval_id])
+
+    def is_valid(self) -> bool:
+        if self.stav != 'pending':
+            return False
+        if self.expires_at and datetime.utcnow() >= self.expires_at:
+            return False
+        return True

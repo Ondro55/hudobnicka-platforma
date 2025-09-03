@@ -561,3 +561,138 @@ a.btn{
 .btn.ghost:hover{ background:var(--tlacidlo); color:#fff; }
 
 .btn.full{ display:flex; width:100%; justify-content:center; }
+
+/* === jednotný filter bar + grid karty === */
+.filterbar{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:.5rem .75rem;
+  background:#fff;
+  border:1px solid var(--hover);
+  border-radius:.75rem;
+  padding:.6rem;
+  margin-bottom:1rem;
+}
+
+/* polia */
+.filterbar .fld{
+  min-width:180px;
+  padding:.45rem .6rem;
+  border:1px solid #ddd;
+  border-radius:.5rem;
+  background:#fff;
+}
+
+/* hlavné vyhľadávanie sa môže natiahnuť */
+.filterbar .grow{
+  flex:1 1 260px;
+  min-width:220px;
+}
+
+/* tlačidlá v tom istom riadku – prisunuté doprava */
+.filter-actions{
+  margin-left:auto;
+  display:flex;
+  gap:.5rem;
+  align-items:stretch;
+}
+.filter-actions .btn{
+  box-sizing: border-box;
+  height: 38px;              /* rovnaká výška ako inputy */
+  width: 128px;              /* pevná šírka = rovnaké tlačidlá */
+  padding: 0 .75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;   /* vycentrovaný text */
+  white-space: nowrap;
+}
+
+/* responsívne správanie – na úzkych šírkach sa tlačidlá zlomia pod polia,
+   ale ostanú zarovnané doprava */
+@media (max-width: 680px){
+  .filter-actions{
+    margin-left:0;
+    width:100%;
+    justify-content:flex-end;
+  }
+}
+
+/* grid s výsledkami (ak ho používaš na výpis) */
+.result-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
+  gap:1rem;
+}
+.card{
+  background:#fff;
+  border:1px solid var(--hover);
+  border-radius:.75rem;
+  padding:.75rem;
+  box-shadow:0 2px 8px rgba(0,0,0,.04);
+  display:flex; flex-direction:column; gap:.5rem;
+}
+.card .thumb{
+  width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:.5rem;
+  background:#f5f5f5;
+}
+.card h4{ margin:.25rem 0 0; font-size:1.05rem; }
+.card .meta{ color:#666; font-size:.9rem; }
+.card .row{ display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+.icon-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:2rem; height:2rem; border-radius:.5rem; border:1px solid var(--hover); text-decoration:none;
+}
+.icon-btn:hover{ background:var(--hover); }
+
+
+/* === Mobilné doladenie === */
+@media (max-width:640px){
+  .filterbar .actions{ justify-content:stretch; }
+  .cards-grid,
+  .result-grid{ grid-template-columns:1fr; }
+}
+
+/* full šírka sekcie (neobmedzovať max-width) */
+.fullbleed, .skupiny-page, .komunita-wrapper, .bazar-page{
+  width:100%;
+  max-width:none;
+}
+
+/* === Komunita: rovnaký “row-card” štýl ako bazár === */
+.list-rows{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:.5rem;
+}
+
+.list-row{
+  background:#fff;
+  border:1px solid var(--hover);
+  border-radius:.75rem;
+  padding:.6rem .75rem;
+  box-shadow:0 2px 8px rgba(0,0,0,.04);
+  transition:box-shadow .15s ease, transform .1s ease;
+}
+.list-row:hover{ box-shadow:0 6px 18px rgba(0,0,0,.06); transform: translateY(-1px); }
+
+/* grid rozloženie stĺpcov (kopíruje bazárový “riadok”) */
+.kom-grid-head,
+.kom-grid-row{
+  display:grid;
+  grid-template-columns: 64px 1.2fr .9fr 1.4fr .9fr .9fr; /* foto, nick, obec, skupiny, zaradenie, akcie */
+  gap:.75rem;
+  align-items:center;
+}
+
+/* pomocné */
+.text-clip{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.row-actions{ display:flex; align-items:center; gap:.5rem; }
+
+/* plochý link – bez podčiarknutia, ako bežný text (použité na nick + názvy skupín) */
+.link-plain{ text-decoration:none; color:inherit; font-weight:600; }
+.link-plain:hover{ color:var(--tlacidlo); }
+
+/* aby filterbar a tabuľka držali rovnakú šírku ako v bazári */
+.komunita-wrapper{ max-width:none; width: 100%; }
+

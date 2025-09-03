@@ -1,0 +1,40 @@
+{# === UNIT FILTER BAR === #}
+<form class="filterbar" method="GET" action="{{ action_url }}">
+  <input class="fld grow" type="search" name="q"
+         value="{{ q }}" placeholder="{{ placeholder|default('Hľadať…') }}">
+
+  {% if show_mesto %}
+    <select class="fld" name="mesto">
+      <option value="">— mesto —</option>
+      {% for m in (mesta_all or []) %}
+        <option value="{{ m.nazov }}" {% if mesto == m.nazov %}selected{% endif %}>
+          {{ m.nazov }}
+        </option>
+      {% endfor %}
+    </select>
+  {% endif %}
+
+  {% if show_zaner %}
+    <select class="fld" name="zaner">
+      <option value="">— žáner —</option>
+      {% for z in (zanre or []) %}
+        <option value="{{ z }}" {% if zaner == z %}selected{% endif %}>{{ z }}</option>
+      {% endfor %}
+    </select>
+  {% endif %}
+
+  {% if show_kategoria %}
+    <select class="fld" name="kategoria">
+      <option value="">— kategória —</option>
+      {% for k in (kategorie or []) %}
+        <option value="{{ k }}" {% if kategoria == k %}selected{% endif %}>{{ k }}</option>
+      {% endfor %}
+    </select>
+  {% endif %}
+
+  <div class="filter-actions">
+    <button class="btn primary" type="submit">{{ btn_label or 'Hľadať' }}</button>
+    <a class="btn ghost" href="{{ action_url }}">Vymazať</a>
+  </div>
+</form>
+

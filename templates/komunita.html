@@ -2,111 +2,97 @@
 {% block title %}Komunita hudobníkov | Muzikuj{% endblock %}
 
 {% block content %}
-<section class="komunita-wrapper" style="padding: 2rem;">
-  <h2 style="margin-bottom: 1rem;">🎵 Komunita hudobníkov</h2>
+<section class="komunita-wrapper " style="padding:2rem;">
 
-  <!-- 🔍 Filter -->
-  <form method="GET" action="{{ url_for('komunita.komunita') }}"
-        style="display:flex; gap:1rem; margin-bottom:.75rem; align-items:center;">
-    <input type="text" name="hladaj_meno" placeholder="Hľadaj podľa mena / prezývky…"
-           value="{{ request.args.get('hladaj_meno','') }}"
-           style="flex:1; padding:.5rem;">
-    {% set nf = request.args.get('nastroj','') %}
-    <select name="nastroj" style="padding:.5rem;">
-      <option value="">🎸 Všetky nástroje</option>
-      <option value="gitara"      {% if nf=='gitara' %}selected{% endif %}>Gitara</option>
-      <option value="klávesy"     {% if nf=='klávesy' %}selected{% endif %}>Klavír / Klávesy</option>
-      <option value="bicie"       {% if nf=='bicie' %}selected{% endif %}>Bicie</option>
-      <option value="dychové"     {% if nf=='dychové' %}selected{% endif %}>Dychové</option>
-      <option value="sláčikové"   {% if nf=='sláčikové' %}selected{% endif %}>Sláčikové</option>
-      <option value="iné"         {% if nf=='iné' %}selected{% endif %}>Iné</option>
-    </select>
-    <button type="submit" style="padding:.5rem 1rem;">🔎 Hľadaj</button>
-  </form>
+  <h2 style="margin:0 0 1rem 0;">🎵 Komunita</h2>
 
-  <!-- 🔠 Hlavička stĺpcov (malé, nenápadné) -->
-  <div class="columns-head" style="font-size:.85rem; color:#666; margin-bottom:.5rem;">
-    <div style="display:grid; grid-template-columns: 64px 1.2fr 1fr 1.4fr .8fr .8fr; gap:.75rem;">
+  {# jednotná filter lišta ako v bazári #}
+  {% set action_url = url_for('komunita.komunita') %}
+  {% set placeholder = 'Hľadať hudobníkov…' %}
+  {% set btn_label = 'Hľadať' %}
+  {% set show_mesto = True %}
+  {% set show_zaner = False %}
+  {% set show_kategoria = False %}
+  {% set q = q %}
+  {% set mesto = mesto %}
+  {% include "includes/filterbar.html" %}
+
+  {# hlavička stĺpcov #}
+  <div class="columns-head" style="font-size:.85rem;color:#666;margin:.5rem 0;">
+    <div class="kom-grid-head">
       <div>Foto</div>
-      <div>Meno / prezývka</div>
-      <div>Nástroj</div>
-      <div>Skupiny</div>
+      <div>Nick</div>
       <div>Obec</div>
-      <div>Akcia</div>
+      <div>Skupiny</div>
+      <div>Zaradenie</div>
+      <div>Akcie</div>
     </div>
   </div>
 
-  <!-- 👥 Zoznam v jednotných stĺpcoch -->
-  <div class="komunita-list" style="max-height:70vh; overflow:auto; border-top:1px solid #eee;">
-    {% for uzivatel in uzivatelia %}
-      {% set meno_disp = (uzivatel.prezyvka or (uzivatel.meno ~ ' ' ~ uzivatel.priezvisko))|trim %}
-      {% set foto_url = uzivatel.profil_fotka_url %}
-      {% set fallback_url = url_for('static', filename='profilovky/default.png') %}
-      <div class="kom-row"
-           style="display:grid; grid-template-columns: 64px 1.2fr 1fr 1.4fr .8fr .8fr;
-                  gap:.75rem; align-items:center; padding:.6rem 0; border-bottom:1px solid #f3f3f3;">
+  {# zoznam používateľov #}
+  <div class="list-rows">
+    {% for u in uzivatelia %}
+      {% set nick_disp = (u.prezyvka or (u.meno ~ ' ' ~ u.priezvisko))|trim %}
+      {% set foto_url = u.profil_fotka_url %}
+      <article class="list-row kom-grid-row">
         <!-- Foto -->
         <div>
           <img class="avatar"
                src="{{ foto_url }}"
-               data-fallback="{{ fallback_url }}"
+               data-fallback="{{ url_for('static', filename='profilovky/default.png') }}"
                alt="Profilová fotka"
                style="width:48px;height:48px;object-fit:cover;border-radius:50%;display:block;">
         </div>
 
-        <!-- Meno / prezývka -->
-        <div style="min-width:0;">
-          <a href="{{ url_for('uzivatel.verejny_profil', user_id=uzivatel.id) }}"
-            style="text-decoration:none; color:inherit; font-weight:600;">
-            {{ meno_disp }}
+        <!-- Nick (klik na profil) -->
+        <div class="text-clip">
+          <a class="link-plain" href="{{ url_for('uzivatel.verejny_profil', user_id=u.id) }}">
+            {{ nick_disp }}
           </a>
         </div>
 
-        <!-- Nástroj -->
-        <div>{{ uzivatel.instrument or '—' }}</div>
-
-        <!-- Skupiny -->
-        <div style="min-width:0;">
-          {% set skupiny = uzivatel.skupina_clen | map(attribute='nazov') | list %}
-          {% if skupiny and skupiny|length > 0 %}
-            {{ skupiny|join(', ') }}
-          {% else %}
-            ❌ Žiadna
-          {% endif %}
-        </div>
-
         <!-- Obec -->
-        <div>{{ uzivatel.obec or '—' }}</div>
+        <div class="text-clip">{{ u.obec or '—' }}</div>
 
-        <!-- Akcia: Pošli správu (preklik na spravy.napisat) -->
-        <div>
-          {% if current_user.is_authenticated %}
-            <a class="kom-msg-btn"
-               href="{{ url_for('spravy.napisat', komu_id=uzivatel.id) }}">
-               {# Ak chceš trackovať kontext, použi napr.: 
-                  url_for('spravy.napisat', kontekst='profil', kontekst_id=uzivatel.id, komu_id=uzivatel.id)
-               #}
-              ✉️ Pošli správu
-            </a>
+        <!-- Skupiny (klik na detail skupiny) -->
+        <div class="text-clip">
+          {% if u.skupina_clen and u.skupina_clen|length %}
+            {% for s in u.skupina_clen %}
+              <a class="link-plain" href="{{ url_for('skupina.skupina_detail', id=s.id) }}">{{ s.nazov }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
           {% else %}
-            <a class="btn btn--sm" href="#" data-modal-open="#modal-login">✉️ Pošli správu</a>
+            — 
           {% endif %}
         </div>
-      </div>
+
+        <!-- Zaradenie (nástroj) -->
+        <div class="text-clip">{{ u.instrument or '—' }}</div>
+
+        <!-- Akcie -->
+        <div class="row-actions">
+          {% if current_user.is_authenticated and current_user.id != u.id %}
+            <a class="kom-msg-btn" href="{{ url_for('spravy.napisat', komu_id=u.id, kontekst='profil', kontekst_id=u.id) }}">
+              ✉️ Správa
+            </a>
+          {% elif not current_user.is_authenticated %}
+            <a class="btn primary sm" href="#" data-modal-open="#modal-login">✉️ Správa</a>
+          {% endif %}
+          <a class="icon-btn" href="{{ url_for('uzivatel.verejny_profil', user_id=u.id) }}" title="Detail">👁️</a>
+        </div>
+      </article>
     {% else %}
-      <p style="padding:.75rem 0;">😢 Nenašli sa žiadni hudobníci podľa tvojho filtra.</p>
+      <p style="padding:.75rem 0;">😢 Nenašli sa žiadni hudobníci podľa zvolených filtrov.</p>
     {% endfor %}
   </div>
 </section>
 
-<!-- 🖼️ Avatar fallback (bez inline onerror) -->
 <script>
-  document.addEventListener('error', (e) => {
+  // avatar fallback (bez onerror)
+  document.addEventListener('error', function (e) {
     const img = e.target;
     if (!(img instanceof HTMLImageElement) || !img.classList.contains('avatar')) return;
-    img.classList.remove('avatar'); // zabráni opakovaniu
-    const fb = img.getAttribute('data-fallback') || '{{ url_for("static", filename="profilovky/default.png") }}';
-    img.src = fb;
+    img.classList.remove('avatar');
+    img.src = "{{ url_for('static', filename='profilovky/default.png') }}";
   }, true);
 </script>
 {% endblock %}
