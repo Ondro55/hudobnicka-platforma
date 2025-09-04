@@ -684,6 +684,20 @@ a.btn{
   gap:.75rem;
   align-items:center;
 }
+/* dopyty */
+.kom-grid-row.dopyt,
+.kom-grid-head.dopyt {
+  grid-template-columns: minmax(0, 2.8fr) .95fr 1.05fr .40fr max-content;
+}
+/* DOPYTY – prvý stĺpec: nech sa text normálne zalamuje a nepresahuje */
+.kom-grid-row.dopyt > div:first-child {
+  min-width: 0;
+  max-inline-size: 100%;
+  white-space: normal;        /* kľúčové – prebijeme .text-clip/nowrap */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  overflow: hidden;           /* vizuálna poistka proti presahu */
+}
 
 /* pomocné */
 .text-clip{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -696,3 +710,21 @@ a.btn{
 /* aby filterbar a tabuľka držali rovnakú šírku ako v bazári */
 .komunita-wrapper{ max-width:none; width: 100%; }
 
+/* <details>/<summary> správanie */
+.popis-summary { cursor: pointer; list-style: none; }
+.popis-summary::-webkit-details-marker { display: none; }
+
+/* prepínanie textov v summary */
+.summary-open { display: none; color: #666; font-size: .92em; }
+.popis[open] .summary-collapsed { display: none; }
+.popis[open] .summary-open { display: inline; }
+
+/* rozbalený text nesmie dediť orezanie */
+.popis-full {
+  margin-top: .35rem;
+  color: #444;
+  line-height: 1.45;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: initial;
+}

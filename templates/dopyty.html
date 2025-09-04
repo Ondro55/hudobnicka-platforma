@@ -14,7 +14,7 @@
     </div>
   </header>
 
-  {# ---- nastavenie pre jednotný filterbar ---- #}
+  {# ---- jednotný filterbar (ako v skupinách/komunite/bazári) ---- #}
   {% set action_url = url_for('dopyty.zobraz_dopyty') %}
   {% set placeholder = 'Hľadať dopyty…' %}
   {% set btn_label = 'Hľadať' %}
@@ -22,72 +22,107 @@
   {% set show_zaner = False %}
   {% set show_kategoria = False %}
 
-  {# zachovaj predvyplnené hodnoty, ak prišli z GETu #}
+  {# zachovaj predvyplnené hodnoty z GETu #}
   {% set q = q or request.args.get('q','') %}
   {% set mesto = mesto or request.args.get('mesto','') %}
 
   {% include "includes/filterbar.html" %}
 
-  {# ---- ZOZNAM DOPYTOV v jednotných kartách ---- #}
-  {% if dopyty and dopyty|length %}
-    <div class="result-grid">
+  {# ---- HLAVIČKA STĹPCOV (5 stĺpcov) ---- #}
+  <div class="columns-head" style="font-size:.85rem;color:#666;margin:.5rem 0;">
+    <div class="kom-grid-head dopyt" style="grid-template-columns:1.4fr .9fr 1fr .8fr .9fr;">
+      <div>Typ / Popis</div>
+      <div>Dátum & čas</div>
+      <div>Obec / Miesto</div>
+      <div>Rozpočet</div>
+      <div>Akcie</div>
+    </div>
+  </div>
+
+  {# ---- ZOZNAM v jednotných riadkoch ---- #}
+  <div class="list-rows">
+    {% if dopyty and dopyty|length %}
       {% for d in dopyty %}
-        <article class="card">
-          <div class="row">
-            <h4 style="margin:0;">
-              {{ d.typ_akcie|title if d.typ_akcie else 'Dopyt' }}
-            </h4>
-            <span class="meta">
-              {% if d.datum %}📅 {{ d.datum.strftime('%d.%m.%Y') }}{% endif %}
-              {% if d.cas_od or d.cas_do %}
-                • ⏰ {{ d.cas_od.strftime('%H:%M') if d.cas_od else '—' }} – {{ d.cas_do.strftime('%H:%M') if d.cas_do else '—' }}
+        <article class="list-row kom-grid-row dopyt" style="grid-template-columns:1.4fr .9fr 1fr .8fr .9fr;">
+
+          {# Typ / Popis – názov + rozbaliteľný popis bez zdvojenia riadku #}
+            <div>
+              <strong>{{ d.typ_akcie|title if d.typ_akcie else 'Dopyt' }}</strong>
+
+              {% if d.popis %}
+                <details class="popis" style="margin-top:.2rem;">
+                  <summary class="popis-summary">
+                    <span class="summary-collapsed text-clip">
+                      {{ d.popis | truncate(120, True, '… viac') }}
+                    </span>
+                    <span class="summary-open">Zbaliť popis ▲</span>
+                  </summary>
+                  <div class="popis-full">
+                    {{ d.popis }}
+                  </div>
+                </details>
               {% endif %}
-            </span>
+            </div>
+
+          {# Dátum & čas #}
+          <div class="text-clip">
+            {% if d.datum %}{{ d.datum.strftime('%d.%m.%Y') }}{% else %}—{% endif %}
+            {% if d.cas_od or d.cas_do %}
+              <span> • {{ d.cas_od.strftime('%H:%M') if d.cas_od else '—' }}–{{ d.cas_do.strftime('%H:%M') if d.cas_do else '—' }}</span>
+            {% endif %}
           </div>
 
-          <p class="meta" style="margin:.25rem 0 0;">
+          {# Obec / Miesto #}
+          <div class="text-clip">
             {% if d.mesto_ref %}
-              📍 {{ d.mesto_ref.nazov }}{% if d.mesto_ref.okres %}, {{ d.mesto_ref.okres }}{% endif %}{% if d.mesto_ref.kraj %}, {{ d.mesto_ref.kraj }}{% endif %}
+              {{ d.mesto_ref.nazov }}{% if d.mesto_ref.okres %}, {{ d.mesto_ref.okres }}{% endif %}{% if d.mesto_ref.kraj %}, {{ d.mesto_ref.kraj }}{% endif %}
             {% elif d.miesto %}
-              📍 {{ d.miesto }}
+              {{ d.miesto }}
+            {% else %}
+              —
             {% endif %}
-            • 💶 {{ ('%.0f'|format(d.rozpocet)) ~ ' €' if d.rozpocet is not none else 'dohodou' }}
-            {% if d.meno %} • 👤 {{ d.meno }}{% endif %}
-          </p>
+          </div>
 
-          {% if d.popis %}
-            <p style="margin:.5rem 0 0;">{{ d.popis | truncate(220, True, '…') }}</p>
-          {% endif %}
+          {# Rozpočet #}
+          <div class="text-clip">
+            {% if d.rozpocet is not none %}
+              {{ '%.0f'|format(d.rozpocet) }} €
+            {% else %}
+              dohodou
+            {% endif %}
+          </div>
 
-          <div class="row" style="margin-top:.6rem;">
+          {# Akcie #}
+          <div class="row-actions">
             {% if current_user.is_authenticated %}
               {% if d.email %}
-                <a class="btn primary"
+                <a class="kom-msg-btn"
                    href="{{ url_for('spravy.napisat', kontekst='dopyt', kontekst_id=d.id, komu_email=d.email) }}">
-                  ✉️ Pošli správu
+                  ✉️ Správa
                 </a>
-              {% else %}
-                <span class="meta">Kontakt nie je k dispozícii.</span>
               {% endif %}
             {% else %}
-              <a class="btn" href="{{ url_for('uzivatel.login') }}">Prihlás sa a reaguj</a>
+              <a class="btn primary sm" href="#" data-modal-open="#modal-login">✉️ Správa</a>
             {% endif %}
+
+            {#<a class="icon-btn" href="{{ url_for('dopyty.detail', dopyt_id=d.id) }}" title="Detail">👁️</a>#}
 
             {% if current_user.is_authenticated and d.pouzivatel_id == current_user.id %}
               <form method="post"
                     action="{{ url_for('dopyty.delete_mine', dopyt_id=d.id) }}"
                     onsubmit="return confirm('Naozaj zmazať tento dopyt?');"
-                    style="margin-left:auto;">
+                    style="margin-left:.5rem;">
                 <button type="submit" class="btn ghost">Zmazať</button>
               </form>
             {% endif %}
           </div>
+
         </article>
       {% endfor %}
-    </div>
-  {% else %}
-    <p class="sekcia-empty" style="margin-top:.75rem;">Zatiaľ žiadne dopyty podľa filtra.</p>
-  {% endif %}
+    {% else %}
+      <p style="padding:.75rem 0;">😕 Zatiaľ žiadne dopyty podľa filtra.</p>
+    {% endif %}
+  </div>
 
   {# modal s formulárom #}
   {% include 'modals/dopyt_form.html' %}
