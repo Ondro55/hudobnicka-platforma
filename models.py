@@ -5,7 +5,6 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 
-
 db = SQLAlchemy()
 
 class Pouzivatel(db.Model, UserMixin):
@@ -267,3 +266,78 @@ class SkupinaPozvanka(db.Model):
         if self.expires_at and datetime.utcnow() >= self.expires_at:
             return False
         return True
+
+# --- MODELY FÓRA ---
+
+# Ak máš inde definované:
+# from yourapp.models import Pouzivatel   # <- uprav podľa tvojej appky
+
+class ForumCategory(db.Model):
+    __tablename__ = "forum_category"
+    id = db.Column(db.Integer, primary_key=True)
+    nazov = db.Column(db.String(80), nullable=False, unique=True)
+    slug = db.Column(db.String(120), nullable=True, unique=True)
+
+    topics = db.relationship("ForumTopic", back_populates="kategoria", cascade="all, delete")
+
+class ForumTopic(db.Model):
+    __tablename__ = "forum_topic"
+    id = db.Column(db.Integer, primary_key=True)
+    nazov = db.Column(db.String(200), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    vytvorene_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    aktivita_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # vzťahy
+    autor_id = db.Column(db.Integer, db.ForeignKey("pouzivatel.id"), nullable=True)  # premenuj FK ak treba
+    kategoria_id = db.Column(db.Integer, db.ForeignKey("forum_category.id"), nullable=True)
+
+    autor = db.relationship("Pouzivatel")  # premenuj podľa seba
+    kategoria = db.relationship("ForumCategory", back_populates="topics")
+    posts = db.relationship("ForumPost", back_populates="topic", cascade="all, delete-orphan")
+
+    @property
+    def pocet_odpovedi(self) -> int:
+        # jednoduché – na štart stačí; neskôr vieme nahradiť agregáciou
+        return len(self.posts) if self.posts is not None else 0
+
+class ForumPost(db.Model):
+    __tablename__ = "forum_post"
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text, nullable=False)
+    vytvorene_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    is_answer = db.Column(db.Boolean, default=False, nullable=False)
+
+    autor_id = db.Column(db.Integer, db.ForeignKey("pouzivatel.id"), nullable=True)  # premenuj FK ak treba
+    topic_id = db.Column(db.Integer, db.ForeignKey("forum_topic.id"), nullable=False, index=True)
+
+    autor = db.relationship("Pouzivatel")  # premenuj podľa seba
+    topic = db.relationship("ForumTopic", back_populates="posts")
+
+class TopicWatch(db.Model):
+    __tablename__ = "forum_topic_watch"
+    # kto sleduje akú tému
+    user_id = db.Column(db.Integer, db.ForeignKey("pouzivatel.id"), primary_key=True)   # premenuj podľa seba
+    topic_id = db.Column(db.Integer, db.ForeignKey("forum_topic.id"), primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class RychlyDopyt(db.Model):
+    __tablename__ = "rychly_dopyt"
+
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.Text, nullable=False)
+
+    mesto_id = db.Column(db.Integer, db.ForeignKey("mesto.id"), nullable=True, index=True)
+    mesto_ref = db.relationship("Mesto")
+
+    autor_id = db.Column(db.Integer, db.ForeignKey("pouzivatel.id"), nullable=True, index=True)
+    autor = db.relationship("Pouzivatel")
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    plati_do = db.Column(db.DateTime, nullable=False, index=True)
+
+    aktivny = db.Column(db.Boolean, default=True, nullable=False, index=True)
+    archived_at = db.Column(db.DateTime, nullable=True)
+
+    def is_active(self) -> bool:
+        return self.aktivny and (self.plati_do is None or datetime.utcnow() < self.plati_do)

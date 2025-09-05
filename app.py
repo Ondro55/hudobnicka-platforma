@@ -1,5 +1,6 @@
 import os
 from flask import Flask
+from flask import flash, redirect, url_for
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
 from models import Pouzivatel, db, Mesto
@@ -20,6 +21,7 @@ from modules.komunita import komunita_bp
 from modules.sprava import spravy_bp
 from modules.moderacia import moder_bp
 from modules.reporting import report_bp
+from modules.forum import forum_bp
 from routes import bp as main_blueprint
 
 # Aplikácia
@@ -80,12 +82,17 @@ def global_housekeep():
     if _last_housekeep and (now - _last_housekeep) < _HOUSEKEEP_INTERVAL:
         return
     try:
-        # lazy import – vyhneme sa kruhovému importu
+        # lazy importy – vyhneme sa kruhovým importom
         from modules.dopyty import _housekeep_expired
         _housekeep_expired()
+
+        from modules.komunita import _housekeep_rychle_dopyty
+        _housekeep_rychle_dopyty()
+
         _last_housekeep = now
     except Exception as e:
         app.logger.debug(f"Housekeep skipped: {e}")
+
 
 
 @app.template_filter("localtime")
@@ -122,9 +129,10 @@ app.register_blueprint(komunita_bp)
 app.register_blueprint(spravy_bp)
 app.register_blueprint(moder_bp)
 app.register_blueprint(report_bp)
+app.register_blueprint(forum_bp, url_prefix="/komunita/forum")
 
 # Spustenie
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
+    # with app.app_context():
+    #     db.create_all()   # ← po baseline už netreba, budeme používať migrácie
     app.run(debug=True)

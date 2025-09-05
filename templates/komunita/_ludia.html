@@ -1,0 +1,77 @@
+{# templates/komunita/_ludia.html #}
+
+{# jednotná filter lišta ako na iných stránkach #}
+{% set action_url = url_for('komunita.hub', tab='ludia') %}
+{% set placeholder = 'Hľadať ľudí…' %}
+{% set btn_label = 'Hľadať' %}
+{% set show_mesto = True %}
+{% set show_zaner = False %}
+{% set show_kategoria = False %}
+
+{# zachovaj predvyplnené hodnoty z query stringu #}
+{% set q = request.args.get('q','') %}
+{% set mesto = request.args.get('mesto','') %}
+
+{% include "includes/filterbar.html" %}
+
+{# hlavička stĺpcov #}
+<div class="columns-head" style="font-size:.85rem;color:#666;margin:.5rem 0;">
+  <div class="kom-grid-head" style="grid-template-columns:64px 1.6fr 1fr 1fr .9fr;">
+    <div>Foto</div>
+    <div>Prezývka / Meno</div>
+    <div>Nástroj</div>
+    <div>Obec</div>
+    <div>Akcie</div>
+  </div>
+</div>
+
+{# zoznam používateľov #}
+<div class="list-rows">
+  {% for u in users %}
+    <article class="list-row kom-grid-row" style="grid-template-columns:64px 1.6fr 1fr 1fr .9fr;">
+      <!-- Foto -->
+      <div>
+        <img class="avatar"
+             src="{{ u.profil_fotka_url }}"
+             data-fallback="{{ url_for('static', filename='profilovky/default.png') }}"
+             alt="Profilová fotka"
+             style="width:48px;height:48px;object-fit:cover;border-radius:50%;display:block;">
+      </div>
+
+      <!-- Prezývka / Meno -->
+      <div class="text-clip">
+        <strong>{{ u.prezyvka }}</strong>
+        {% if u.meno %}
+          <span class="meta" style="color:#666;">({{ u.meno }})</span>
+        {% endif %}
+      </div>
+
+      <!-- Nástroj -->
+      <div class="text-clip">{{ u.instrument or '—' }}</div>
+
+      <!-- Obec -->
+      <div class="text-clip">{{ u.obec or '—' }}</div>
+
+      <!-- Akcie -->
+      <div class="row-actions">
+        {% if current_user.is_authenticated %}
+          <a class="btn sm" href="{{ url_for('spravy.napisat', komu_id=u.id) }}">✉️ Správa</a>
+        {% else %}
+          <a class="btn primary sm" href="#" data-modal-open="#modal-login">✉️ Správa</a>
+        {% endif %}
+      </div>
+    </article>
+  {% else %}
+    <p style="padding:.75rem 0;">😕 Nenašli sa žiadni používatelia podľa filtra.</p>
+  {% endfor %}
+</div>
+
+<script>
+  // avatar fallback (ak sa obrázok nepodarí načítať)
+  document.addEventListener('error', function (e) {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement) || !img.classList.contains('avatar')) return;
+    img.classList.remove('avatar');
+    img.src = "{{ url_for('static', filename='profilovky/default.png') }}";
+  }, true);
+</script>

@@ -1,0 +1,264 @@
+{# templates/komunita/_forum.html #}
+
+<header style="display:flex;justify-content:space-between;align-items:end;gap:1rem;margin-bottom:1rem;">
+  <div>
+    <h3 style="margin:0;">💬 Fórum</h3>
+    <p style="margin:.25rem 0 0;color:#666;">Pýtaj sa, radíme si navzájom. Znalosti ostanú pre všetkých.</p>
+  </div>
+  <div>
+    {% if current_user.is_authenticated %}
+      <a class="btn primary" href="#" data-modal-open="#forum-nova-tema">➕ Nová otázka</a>
+    {% else %}
+      <a class="btn primary" href="#" data-modal-open="#modal-login">➕ Nová otázka</a>
+    {% endif %}
+  </div>
+</header>
+
+<!-- Moja téma (rýchle hľadanie podobných + CTA) -->
+<div class="forum-mysearch" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.75rem;">
+  <div style="flex:1;min-width:240px;">
+    <input type="text" class="input" name="myquery"
+           placeholder="Napíš, o čom je tvoja otázka…"
+           autocomplete="off" style="width:100%;">
+  </div>
+  <div>
+    {% if current_user.is_authenticated %}
+      <a class="btn" href="#" data-modal-open="#forum-nova-tema">Založiť novú tému</a>
+    {% else %}
+      <a class="btn" href="#" data-modal-open="#modal-login">Založiť novú tému</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- (do budúcna) návrhy podobných tém – naplní sa JS-om -->
+<div class="forum-suggestions" style="display:none;margin:-.25rem 0 .75rem;">
+  <div class="meta" style="color:#666;margin-bottom:.25rem;">Možno už niekto riešil:</div>
+  <ul class="suggest-list" style="display:flex;flex-direction:column;gap:.25rem;"></ul>
+</div>
+
+<!-- Filter lišta: kategória + zoradenie + chipy Moje -->
+<div class="forum-filters" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:.25rem 0 .75rem;">
+  <form method="get" action="{{ url_for('komunita.hub') }}" style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+    <input type="hidden" name="tab" value="forum">
+    <select class="select" name="kategoria">
+      <option value="">— všetky kategórie —</option>
+      {% for cat in (categories or []) %}
+        <option value="{{ cat.id }}" {{ 'selected' if request.args.get('kategoria', type=int) == cat.id else '' }}>
+          {{ cat.nazov }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <select class="select" name="sort">
+      {% set _sort = request.args.get('sort','activity') %}
+      <option value="activity" {{ 'selected' if _sort=='activity' else '' }}>Podľa aktivity (default)</option>
+      <option value="newest"   {{ 'selected' if _sort=='newest'   else '' }}>Najnovšie</option>
+      <option value="answers"  {{ 'selected' if _sort=='answers'  else '' }}>Najviac odpovedí</option>
+    </select>
+
+    <button class="btn sm" type="submit">Filtrovať</button>
+  </form>
+
+  <div style="display:flex;gap:.25rem;">
+    <a href="{{ url_for('komunita.hub', tab='forum', view='mine') }}" class="btn ghost sm {{ 'active' if request.args.get('view')=='mine' else '' }}">Moje témy</a>
+    <a href="{{ url_for('komunita.hub', tab='forum', view='replied') }}" class="btn ghost sm {{ 'active' if request.args.get('view')=='replied' else '' }}">Moje odpovede</a>
+    <a href="{{ url_for('komunita.hub', tab='forum', view='watching') }}" class="btn ghost sm {{ 'active' if request.args.get('view')=='watching' else '' }}">Sledované</a>
+  </div>
+</div>
+
+<!-- Dvojstĺpcový layout: ľavo zoznam, pravo detail -->
+<div class="forum-layout" style="display:grid;grid-template-columns:minmax(280px,38%) 1fr;gap:1.25rem;">
+
+  <!-- ĽAVO: Zoznam tém -->
+  <section>
+    <!-- Hlavička stĺpcov zoznamu -->
+    <div class="columns-head" style="font-size:.85rem;color:#666;margin:.5rem 0;">
+      <div class="kom-grid-head forum"
+           style="display:grid;gap:.75rem;align-items:center;
+                  grid-template-columns:minmax(0,2.6fr) .9fr .8fr .9fr .7fr;">
+        <div>Téma / úryvok</div>
+        <div>Kategória</div>
+        <div>Odpovede</div>
+        <div>Aktivita</div>
+        <div>Akcie</div>
+      </div>
+    </div>
+
+    <div class="list-rows">
+      {% for t in (topics or []) %}
+        <article class="list-row kom-grid-row forum"
+                 style="display:grid;gap:.75rem;align-items:start;
+                        grid-template-columns:minmax(0,2.6fr) .9fr .8fr .9fr .7fr;">
+
+          <!-- Téma + úryvok -->
+          <div style="min-width:0;">
+            <a class="link-plain" href="{{ url_for('komunita.hub', tab='forum', t=t.id) }}">
+              <strong class="text-clip">{{ t.nazov }}</strong>
+            </a>
+            {% if t.body %}
+              <div style="color:#666;margin-top:.2rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                {{ t.body }}
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Kategória -->
+          <div class="text-clip">{{ t.kategoria.nazov if t.kategoria else '—' }}</div>
+
+          <!-- Počet odpovedí -->
+          <div class="text-clip">{{ t.pocet_odpovedi or 0 }}</div>
+
+          <!-- Posledná aktivita -->
+          <div class="text-clip">
+            {% if t.aktivita_at %}{{ t.aktivita_at|localtime }}{% else %}—{% endif %}
+          </div>
+
+          <!-- Akcie (sledovať, otvoriť) -->
+          <div class="row-actions">
+            {% set watching = current_user.is_authenticated and (t.id in (watched_ids or set())) %}
+            {% if current_user.is_authenticated %}
+              <form method="post" action="{{ url_for('forum.toggle_watch', topic_id=t.id) }}" style="display:inline;">
+                {{ csrf_token() if csrf_token is defined }}
+                <button class="icon-btn" title="{{ 'Zrušiť sledovanie' if watching else 'Sledovať' }}">
+                  {{ '⭐' if watching else '☆' }}
+                </button>
+              </form>
+              <a class="btn sm" href="{{ url_for('komunita.hub', tab='forum', t=t.id) }}">Otvoriť</a>
+            {% else %}
+              <button class="icon-btn" data-modal-open="#modal-login" title="Sledovať">☆</button>
+              <a class="btn primary sm" href="#" data-modal-open="#modal-login">Otvoriť</a>
+            {% endif %}
+          </div>
+
+        </article>
+      {% else %}
+        <p style="padding:.75rem 0;">😕 Zatiaľ žiadne témy. Skús vytvoriť prvú otázku!</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- PRAVO: Detail témy -->
+  <aside class="forum-detail" style="min-width:0;">
+    {% if selected_topic %}
+      <article class="card" style="padding:1rem;">
+        <!-- Hlava témy -->
+        <header style="display:flex;justify-content:space-between;align-items:start;gap:1rem;">
+          <div style="min-width:0;">
+            <h3 style="margin:.2rem 0 .25rem 0;line-height:1.25;">{{ selected_topic.nazov }}</h3>
+            <div class="meta" style="color:#666;">
+              🧑 {{ selected_topic.autor.meno if selected_topic.autor else 'Anonym' }}
+              • 🏷️ {{ selected_topic.kategoria.nazov if selected_topic.kategoria else '—' }}
+              • ⏱️ {{ selected_topic.vytvorene_at|localtime if selected_topic.vytvorene_at else '' }}
+            </div>
+          </div>
+          <div class="row-actions" style="flex-shrink:0;">
+            {% if current_user.is_authenticated %}
+              <form method="post" action="{{ url_for('forum.toggle_watch', topic_id=selected_topic.id) }}" style="display:inline;">
+                {{ csrf_token() if csrf_token is defined }}
+                {% set watching_detail = selected_topic.id in (watched_ids or set()) %}
+                <button class="icon-btn" title="{{ 'Zrušiť sledovanie' if watching_detail else 'Sledovať' }}">
+                  {{ '⭐' if watching_detail else '☆' }}
+                </button>
+              </form>
+              <button class="btn ghost sm" title="Nahlásiť" data-report-topic="{{ selected_topic.id }}">Nahlásiť</button>
+            {% else %}
+              <button class="icon-btn" data-modal-open="#modal-login" title="Sledovať">☆</button>
+              <button class="btn ghost sm" data-modal-open="#modal-login">Nahlásiť</button>
+            {% endif %}
+          </div>
+        </header>
+
+        <!-- Text otázky -->
+        {% if selected_topic.body %}
+          <div style="margin-top:.75rem;white-space:pre-wrap;">{{ selected_topic.body }}</div>
+        {% endif %}
+
+        <!-- Odpovede -->
+        <section style="margin-top:1rem;">
+          <h4 style="margin:0 0 .5rem 0;">Odpovede</h4>
+
+          {% for p in (selected_topic.posts or []) %}
+            <div class="list-row" id="post-{{ p.id }}" style="display:block;padding:.75rem;">
+              <div class="meta" style="color:#666;margin-bottom:.25rem;">
+                🧑 {{ p.autor.meno if p.autor else 'Používateľ' }}
+                • ⏱️ {{ p.vytvorene_at|localtime if p.vytvorene_at else '' }}
+                {% if p.is_answer %} • ✅ Najlepšia odpoveď{% endif %}
+              </div>
+              <div style="white-space:pre-wrap;">{{ p.body }}</div>
+              <div class="row-actions" style="margin-top:.35rem;">
+                {% if current_user.is_authenticated and selected_topic.autor_id == current_user.id and not p.is_answer %}
+                  <form method="post" action="{{ url_for('forum.mark_best', post_id=p.id) }}" style="display:inline;">
+                    {{ csrf_token() if csrf_token is defined }}
+                    <button class="btn sm">Označiť ako najlepšiu</button>
+                  </form>
+                {% endif %}
+                <button class="btn ghost sm" data-report-post="{{ p.id }}">Nahlásiť</button>
+              </div>
+            </div>
+          {% else %}
+            <p class="meta" style="color:#666;">Zatiaľ bez odpovedí. Buď prvý, kto poradí ✍️</p>
+          {% endfor %}
+        </section>
+
+        <!-- Formulár odpovede -->
+        <section style="margin-top:1rem;">
+          {% if current_user.is_authenticated %}
+            <form method="post" action="{{ url_for('forum.reply', topic_id=selected_topic.id) }}" style="display:flex;flex-direction:column;gap:.5rem;">
+              {{ csrf_token() if csrf_token is defined }}
+              <textarea class="input" name="body" rows="4" placeholder="Napíš tvoju odpoveď…"></textarea>
+              <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+                <button type="submit" class="btn">Odoslať odpoveď</button>
+              </div>
+            </form>
+          {% else %}
+            <a class="btn primary" href="#" data-modal-open="#modal-login">Prihlás sa a odpovedaj</a>
+          {% endif %}
+        </section>
+      </article>
+    {% else %}
+      <article class="card" style="padding:1rem;">
+        <p class="meta" style="margin:0;color:#666;">Vyber tému vľavo, alebo <a href="#" data-modal-open="#forum-nova-tema">vytvor novú otázku</a>.</p>
+      </article>
+    {% endif %}
+  </aside>
+
+</div>
+
+<!-- Modál „Nová téma“ -->
+<div id="forum-nova-tema" class="modal" hidden>
+  <div class="modal-content" style="max-width:720px;">
+    <header class="modal-header">
+      <h3 style="margin:0;">➕ Nová otázka</h3>
+      <button class="icon-btn" data-modal-close>✖</button>
+    </header>
+    <form method="post" action="{{ url_for('forum.create') }}">
+      {{ csrf_token() if csrf_token is defined }}
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:.75rem;">
+        <input class="input" name="nazov" placeholder="Opíš otázku jednou vetou…" />
+        <select class="select" name="kategoria_id" required>
+          <option value="">— vyber kategóriu —</option>
+          {% for cat in (categories or []) %}
+            <option value="{{ cat.id }}">{{ cat.nazov }}</option>
+          {% endfor %}
+        </select>
+        <textarea class="input" name="body" rows="6" placeholder="Čo presne potrebuješ? Čo si už skúšal/a? Nástroj/verzia…"></textarea>
+      </div>
+      <footer class="modal-footer" style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:.5rem;">
+        <button type="button" class="btn ghost" data-modal-close>Zrušiť</button>
+        {% if current_user.is_authenticated %}
+          <button type="submit" class="btn primary">Založiť tému</button>
+        {% else %}
+          <a class="btn primary" href="#" data-modal-open="#modal-login">Prihlásiť sa</a>
+        {% endif %}
+      </footer>
+    </form>
+  </div>
+</div>
+
+<!-- SCOPED CSS (len pre fórum) – môžeš presunúť do globálneho CSS -->
+<style>
+  .kom-grid-head.forum,
+  .kom-grid-row.forum { grid-template-columns: minmax(0, 2.6fr) .9fr .8fr .9fr .7fr; }
+  .kom-grid-row.forum > div { min-width:0; overflow-wrap:anywhere; word-break:break-word; }
+  .row-actions { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+</style>

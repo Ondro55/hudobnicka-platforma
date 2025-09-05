@@ -1,98 +1,34 @@
 {% extends 'base.html' %}
-{% block title %}Komunita hudobníkov | Muzikuj{% endblock %}
+{% block title %}Komunita | Muzikuj{% endblock %}
 
 {% block content %}
-<section class="komunita-wrapper " style="padding:2rem;">
+<section class="komunita-wrapper" style="padding:2rem;">
 
-  <h2 style="margin:0 0 1rem 0;">🎵 Komunita</h2>
-
-  {# jednotná filter lišta ako v bazári #}
-  {% set action_url = url_for('komunita.komunita') %}
-  {% set placeholder = 'Hľadať hudobníkov…' %}
-  {% set btn_label = 'Hľadať' %}
-  {% set show_mesto = True %}
-  {% set show_zaner = False %}
-  {% set show_kategoria = False %}
-  {% set q = q %}
-  {% set mesto = mesto %}
-  {% include "includes/filterbar.html" %}
-
-  {# hlavička stĺpcov #}
-  <div class="columns-head" style="font-size:.85rem;color:#666;margin:.5rem 0;">
-    <div class="kom-grid-head">
-      <div>Foto</div>
-      <div>Nick</div>
-      <div>Obec</div>
-      <div>Skupiny</div>
-      <div>Zaradenie</div>
-      <div>Akcie</div>
+  <header style="display:flex;justify-content:space-between;align-items:end;gap:1rem;margin-bottom:.5rem;">
+    <div>
+      <h2 style="margin:0;">👥 Komunita</h2>
+      <p class="meta" style="margin:.25rem 0 0;color:#666;">Ľudia, rýchle dopyty a fórum na jednom mieste.</p>
     </div>
-  </div>
+    <div><!-- priestor na akcie, ak bude treba --></div>
+  </header>
 
-  {# zoznam používateľov #}
-  <div class="list-rows">
-    {% for u in uzivatelia %}
-      {% set nick_disp = (u.prezyvka or (u.meno ~ ' ' ~ u.priezvisko))|trim %}
-      {% set foto_url = u.profil_fotka_url %}
-      <article class="list-row kom-grid-row">
-        <!-- Foto -->
-        <div>
-          <img class="avatar"
-               src="{{ foto_url }}"
-               data-fallback="{{ url_for('static', filename='profilovky/default.png') }}"
-               alt="Profilová fotka"
-               style="width:48px;height:48px;object-fit:cover;border-radius:50%;display:block;">
-        </div>
+  {# aktívna záložka: preferuj premennú z view, inak query param #}
+  {% set tab = (active_tab if active_tab is defined else request.args.get('tab','ludia')) %}
+  {% set active_tab = tab %}
 
-        <!-- Nick (klik na profil) -->
-        <div class="text-clip">
-          <a class="link-plain" href="{{ url_for('uzivatel.verejny_profil', user_id=u.id) }}">
-            {{ nick_disp }}
-          </a>
-        </div>
+  {# prepínače záložiek (Ľudia / Rýchly dopyt / Fórum) #}
+  {% include "includes/komunita_tabs.html" %}
 
-        <!-- Obec -->
-        <div class="text-clip">{{ u.obec or '—' }}</div>
+  {# obsah podľa zvolenej záložky #}
+  {% if tab == 'ludia' %}
+    {% include "komunita/_ludia.html" %}
+  {% elif tab == 'rychly-dopyt' %}
+    {% include "komunita/_rychly_dopyt.html" %}
+  {% elif tab == 'forum' %}
+    {% include "komunita/_forum.html" %}
+  {% else %}
+    {% include "komunita/_ludia.html" %}
+  {% endif %}
 
-        <!-- Skupiny (klik na detail skupiny) -->
-        <div class="text-clip">
-          {% if u.skupina_clen and u.skupina_clen|length %}
-            {% for s in u.skupina_clen %}
-              <a class="link-plain" href="{{ url_for('skupina.skupina_detail', id=s.id) }}">{{ s.nazov }}</a>{% if not loop.last %}, {% endif %}
-            {% endfor %}
-          {% else %}
-            — 
-          {% endif %}
-        </div>
-
-        <!-- Zaradenie (nástroj) -->
-        <div class="text-clip">{{ u.instrument or '—' }}</div>
-
-        <!-- Akcie -->
-        <div class="row-actions">
-          {% if current_user.is_authenticated and current_user.id != u.id %}
-            <a class="kom-msg-btn" href="{{ url_for('spravy.napisat', komu_id=u.id, kontekst='profil', kontekst_id=u.id) }}">
-              ✉️ Správa
-            </a>
-          {% elif not current_user.is_authenticated %}
-            <a class="btn primary sm" href="#" data-modal-open="#modal-login">✉️ Správa</a>
-          {% endif %}
-          <a class="icon-btn" href="{{ url_for('uzivatel.verejny_profil', user_id=u.id) }}" title="Detail">👁️</a>
-        </div>
-      </article>
-    {% else %}
-      <p style="padding:.75rem 0;">😢 Nenašli sa žiadni hudobníci podľa zvolených filtrov.</p>
-    {% endfor %}
-  </div>
 </section>
-
-<script>
-  // avatar fallback (bez onerror)
-  document.addEventListener('error', function (e) {
-    const img = e.target;
-    if (!(img instanceof HTMLImageElement) || !img.classList.contains('avatar')) return;
-    img.classList.remove('avatar');
-    img.src = "{{ url_for('static', filename='profilovky/default.png') }}";
-  }, true);
-</script>
 {% endblock %}

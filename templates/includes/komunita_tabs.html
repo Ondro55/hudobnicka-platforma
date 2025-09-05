@@ -1,0 +1,10 @@
+<nav class="kom-tabs" style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.5rem 0 1rem;">
+  <a class="btn ghost {{ 'active' if active_tab == 'ludia' else '' }}"
+     href="{{ url_for('komunita.hub', tab='ludia') }}">👥 Ľudia</a>
+
+  <a class="btn ghost {{ 'active' if active_tab == 'rychly-dopyt' else '' }}"
+     href="{{ url_for('komunita.hub', tab='rychly-dopyt') }}">⚡ Rýchly dopyt</a>
+
+  <a class="btn ghost {{ 'active' if active_tab == 'forum' else '' }}"
+     href="{{ url_for('komunita.hub', tab='forum') }}">💬 Fórum</a>
+</nav>
