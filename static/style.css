@@ -64,7 +64,12 @@ body {
 .social-icons img { width: 24px; height: 24px; display: block; }
 
 /* Užívateľské tlačidlá */
-.user-panel { display: flex; gap: .5rem; align-items: center; }
+.user-panel .msg-icon .badge{
+  display:inline-block; min-width:18px; height:18px;
+  padding:0 6px; font-size:12px; line-height:18px; text-align:center;
+  border-radius:10px; background:#e11d48; color:#fff;
+}
+
 .header-btn {
   background: transparent; border: 2px solid var(--tlacidlo);
   padding: 6px 12px; border-radius: 6px; color: var(--tlacidlo);
@@ -446,7 +451,7 @@ body.modal-open { overflow: hidden; }
 .sidebar ul{ list-style:none; padding:0; }
 .sidebar li{ margin-bottom:1rem; }
 .sidebar a{ text-decoration:none; color:var(--text); font-weight:700; }
-.main-content{ flex:1; padding:2rem; }
+.main-content{ flex:1; padding: 1rem 3rem 1rem 1rem; }
 
 /* Klikateľný box Nové dopyty */
 .news-box.linkbox { cursor: pointer !important; }
@@ -663,7 +668,7 @@ a.btn{
 .list-rows{
   display:grid;
   grid-template-columns:1fr;
-  gap:.5rem;
+  gap:.3rem;
 }
 
 .list-row{

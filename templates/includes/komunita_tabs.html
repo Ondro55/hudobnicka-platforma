@@ -1,10 +1,56 @@
-<nav class="kom-tabs" style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.5rem 0 1rem;">
-  <a class="btn ghost {{ 'active' if active_tab == 'ludia' else '' }}"
-     href="{{ url_for('komunita.hub', tab='ludia') }}">👥 Ľudia</a>
+{# templates/includes/komunita_tabs.html #}
+{% set tab = (active_tab if active_tab is defined else request.args.get('tab','ludia')) %}
 
-  <a class="btn ghost {{ 'active' if active_tab == 'rychly-dopyt' else '' }}"
-     href="{{ url_for('komunita.hub', tab='rychly-dopyt') }}">⚡ Rýchly dopyt</a>
+<nav class="kom-tabs" aria-label="Prepínače komunity">
+  <a class="kom-tab {{ 'active' if tab == 'ludia' else '' }}"
+     href="{{ url_for('komunita.hub', tab='ludia') }}">Ľudia</a>
 
-  <a class="btn ghost {{ 'active' if active_tab == 'forum' else '' }}"
-     href="{{ url_for('komunita.hub', tab='forum') }}">💬 Fórum</a>
+  <a class="kom-tab {{ 'active' if tab == 'rychly-dopyt' else '' }}"
+     href="{{ url_for('komunita.hub', tab='rychly-dopyt') }}">Rýchly dopyt</a>
+
+  <a class="kom-tab {{ 'active' if tab == 'forum' else '' }}"
+     href="{{ url_for('komunita.hub', tab='forum') }}">Fórum</a>
 </nav>
+
+<style>
+  /* Centrovanie a rovnaká šírka — len širší kontajner */
+  .kom-tabs{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:.5rem;
+    max-width: 960px;             /* bolo 720px → viac priestoru */
+    margin:.25rem auto .9rem;
+  }
+
+  /* Zachovaný štýl, len väčšia plocha a menší radius */
+  .kom-tab{
+    display:inline-flex;
+    justify-content:center;
+    align-items:center;
+    height:46px;                  /* bolo 42px → vyšší button */
+    padding:0 1.2rem;             /* bolo 0 .9rem → širší */
+    text-decoration:none;
+    font-weight:600;
+    color:#111;
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;           /* bolo 9999px → menej zaoblené */
+    box-shadow:0 1px 2px rgba(0,0,0,.04);
+    transition: all .15s ease;
+  }
+  .kom-tab:hover{
+    border-color:#c9ccd2;
+    transform: translateY(-1px);
+  }
+  .kom-tab.active{
+    background:#111;
+    color:#fff;
+    border-color:#111;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+  }
+
+  @media (max-width:560px){
+    .kom-tabs{ grid-template-columns: 1fr; }
+    .kom-tab{ height:48px; }
+  }
+</style>

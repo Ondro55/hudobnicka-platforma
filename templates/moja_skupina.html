@@ -107,8 +107,27 @@
       <div class="profil-right-card">
         {% if not skupina %}
           <section class="sekcia">
-            <h3>Žiadna skupina</h3>
-            <p>Zatiaľ nemáš vytvorenú skupinu.</p>
+            <h3>Vytvoriť skupinu</h3>
+            <p>Zatiaľ nemáš vytvorenú skupinu. Vyplň základné údaje:</p>
+
+            <form method="POST" action="{{ url_for('skupina.pridaj_skupinu') }}" class="form-profil" style="max-width:640px;">
+              {{ csrf_token() if csrf_token is defined }}
+
+              <div class="form-row">
+                <label>Názov skupiny *</label>
+                <input type="text" name="nazov" required>
+              </div>
+
+              <div class="form-row"><label>Mesto / obec</label><input type="text" name="mesto"></div>
+              <div class="form-row"><label>Hudobný žáner</label><input type="text" name="zaner"></div>
+              <div class="form-row"><label>E-mail (kontakt)</label><input type="email" name="email"></div>
+              <div class="form-row"><label>Web</label><input type="text" name="web" placeholder="https://..."></div>
+              <div class="form-row"><label>O skupine</label><textarea name="popis" rows="4"></textarea></div>
+
+              <div class="form-row btn-row">
+                <button type="submit" class="btn primary">➕ Vytvoriť skupinu</button>
+              </div>
+            </form>
           </section>
         {% else %}
           <section class="sekcia">

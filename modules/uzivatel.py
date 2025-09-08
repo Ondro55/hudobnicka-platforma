@@ -5,8 +5,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 from sqlalchemy.orm import joinedload
 from jinja2 import TemplateNotFound
-
-from models import Pouzivatel, db, GaleriaPouzivatel, VideoPouzivatel
+from models import Pouzivatel, db, GaleriaPouzivatel, VideoPouzivatel, Skupina
 
 uzivatel = Blueprint('uzivatel', __name__)
 profil_blueprint = Blueprint('profil', __name__)
@@ -302,22 +301,27 @@ def zmaz_video(id):
 # 🔹 Verejný (read-only) profil konkrétneho používateľa
 @uzivatel.route('/u/<int:user_id>', methods=['GET'])
 def verejny_profil(user_id):
-    user = (Pouzivatel.query
-            .options(
-                joinedload(Pouzivatel.galeria),
-                joinedload(Pouzivatel.videa),
-                joinedload(Pouzivatel.skupina_clen)
-            )
-            .get(user_id))
+    user = (
+        Pouzivatel.query
+        .options(
+            joinedload(Pouzivatel.galeria),
+            joinedload(Pouzivatel.videa),
+            joinedload(Pouzivatel.skupina_clen).joinedload(Skupina.clenovia),
+            joinedload(Pouzivatel.skupina_clen).joinedload(Skupina.galeria),
+        )
+        .get(user_id)
+    )
     if not user:
         abort(404)
 
     skupina = user.skupina_clen[0] if user.skupina_clen else None
     galeria = skupina.galeria if skupina else []
 
+    # ⬇️ toto si používal doteraz – nechávame tak
     return render_profile_template(
         pouzivatel=user,
         skupina=skupina,
         galeria=galeria,
         youtube_videa=user.videa
     )
+

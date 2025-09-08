@@ -166,11 +166,12 @@
           </div>
 
           {% if pouzivatel.galeria and pouzivatel.galeria|length > 0 %}
-          <div class="galeria-wrapper">
+          <div class="galeria-wrapper" id="profil-galeria">
             {% for foto in pouzivatel.galeria %}
               <div class="foto-blok">
                 <img src="{{ url_for('static', filename='galeria_pouzivatel/' ~ foto.nazov_suboru) }}"
-                    alt="Foto" class="galeria-foto">
+                     alt="Foto {{ loop.index }}" class="galeria-foto thumb"
+                     data-index="{{ loop.index0 }}">
 
                 {% if is_owner %}
                 <form method="POST"
@@ -260,5 +261,87 @@
     var fb = img.getAttribute('data-fallback') || '{{ url_for("static", filename="profilovky/default.png") }}';
     img.src = fb;
   }, true);
+</script>
+
+<!-- Lightbox (rovnaký ako v detail_inzerat) -->
+<div id="lightbox" class="lb hidden" aria-hidden="true">
+  <button class="lb-close" aria-label="Zavrieť">✖</button>
+  <button class="lb-prev" aria-label="Predošlá">‹</button>
+  <img id="lb-img" alt="Náhľad">
+  <button class="lb-next" aria-label="Ďalšia">›</button>
+</div>
+
+<style>
+  /* Náhľady galérie na profile */
+  .galeria-wrapper{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+    gap:.75rem;
+  }
+  .foto-blok{ position:relative; }
+  .galeria-foto.thumb{
+    width:100%; height:140px; object-fit:cover; border-radius:.5rem; cursor:pointer; display:block;
+  }
+  .delete-form{ position:absolute; top:.35rem; right:.35rem; }
+  .delete-btn{
+    background:rgba(0,0,0,.6); color:#fff; border:0; border-radius:.4rem; padding:.2rem .4rem; cursor:pointer;
+  }
+
+  /* Lightbox štýly – zhodné s detail_inzerat */
+  .lb { position:fixed; inset:0; background:rgba(0,0,0,.8); display:flex; align-items:center; justify-content:center; z-index:1000; }
+  .lb.hidden { display:none; }
+  #lb-img { max-width:90vw; max-height:85vh; border-radius:.5rem; }
+  .lb-close, .lb-prev, .lb-next {
+    position:absolute; background:rgba(255,255,255,.85); border:0; border-radius:.5rem; padding:.4rem .6rem; cursor:pointer; font-size:1.2rem;
+  }
+  .lb-close { top:1rem; right:1rem; }
+  .lb-prev { left:1rem; }
+  .lb-next { right:1rem; }
+</style>
+
+<script>
+(function(){
+  // len galéria na profile
+  const root = document.getElementById('profil-galeria');
+  if (!root) return;
+
+  const thumbs = Array.from(root.querySelectorAll('.thumb'));
+  if (!thumbs.length) return;
+
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lb-img');
+  const btnClose = lb.querySelector('.lb-close');
+  const btnPrev = lb.querySelector('.lb-prev');
+  const btnNext = lb.querySelector('.lb-next');
+
+  const sources = thumbs.map(t => t.src);
+  let i = 0;
+
+  function openAt(idx){
+    i = idx;
+    lbImg.src = sources[i];
+    lb.classList.remove('hidden');
+    lb.setAttribute('aria-hidden','false');
+  }
+  function close(){
+    lb.classList.add('hidden');
+    lb.setAttribute('aria-hidden','true');
+    lbImg.src = '';
+  }
+  function prev(){ i = (i - 1 + sources.length) % sources.length; lbImg.src = sources[i]; }
+  function next(){ i = (i + 1) % sources.length; lbImg.src = sources[i]; }
+
+  thumbs.forEach(t => t.addEventListener('click', e => openAt(parseInt(e.target.dataset.index, 10))));
+  btnClose.addEventListener('click', close);
+  btnPrev.addEventListener('click', prev);
+  btnNext.addEventListener('click', next);
+  lb.addEventListener('click', (e) => { if (e.target === lb) close(); });
+  document.addEventListener('keydown', (e) => {
+    if (lb.classList.contains('hidden')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') prev();
+    if (e.key === 'ArrowRight') next();
+  });
+})();
 </script>
 {% endblock %}

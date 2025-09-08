@@ -4,7 +4,17 @@
 {% block content %}
 <section class="komunita-wrapper" style="padding:2rem;">
 
-  <h2 style="margin:0 0 1rem 0;">🎤 Skupiny</h2>
+  <header style="display:flex;justify-content:space-between;align-items:end;gap:1rem;margin-bottom:1rem;">
+    <h2 style="margin:0;">🎤 Skupiny</h2>
+
+    {% if current_user.is_authenticated %}
+      <a class="btn primary" href="{{ url_for('skupina.skupina') }}">
+        ➕ Vytvoriť / spravovať skupinu
+      </a>
+    {% else %}
+      <a class="btn" href="{{ url_for('uzivatel.login') }}">Prihlásiť sa</a>
+    {% endif %}
+  </header>
 
   {# jednotná filter lišta ako v komunite/bazári #}
   {% set action_url = url_for('skupina.prehlad_skupin') %}

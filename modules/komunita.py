@@ -2,8 +2,8 @@
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import current_user, login_required
-from sqlalchemy import or_, func  # + func
-from models import db, Pouzivatel, ForumCategory, ForumTopic, TopicWatch, RychlyDopyt, Mesto
+from sqlalchemy import or_, func
+from models import db, Pouzivatel, ForumTopic, TopicWatch, RychlyDopyt
 from models import ForumPost
 
 komunita_bp = Blueprint("komunita", __name__, template_folder="../templates")
@@ -34,19 +34,22 @@ def hub():
         if view == "mine" and getattr(current_user, "is_authenticated", False):
             q = q.filter(RychlyDopyt.autor_id == current_user.id)
 
-        rychle = q.order_by(RychlyDopyt.created_at.desc()).limit(100).all()
-        ctx["rychle_dopyty"] = rychle
+        ctx["rychle_dopyty"] = q.order_by(RychlyDopyt.created_at.desc()).limit(100).all()
 
     elif tab == "forum":
-        kategoria_id = request.args.get("kategoria", type=int)
+        q_text = (request.args.get("q") or "").strip()
         sort = request.args.get("sort", "activity")
         view = request.args.get("view")
 
         q = ForumTopic.query
-        if kategoria_id:
-            q = q.filter(ForumTopic.kategoria_id == kategoria_id)
 
-        # „Moje“ pohľady
+        # fulltext-lite: názov + telo
+        if q_text:
+            like = f"%{q_text}%"
+            q = q.filter(or_(ForumTopic.nazov.ilike(like),
+                             ForumTopic.body.ilike(like)))
+
+        # moje pohľady
         if view and getattr(current_user, "is_authenticated", False):
             if view == "mine":
                 q = q.filter(ForumTopic.autor_id == current_user.id)
@@ -58,11 +61,10 @@ def hub():
                 q = q.join(TopicWatch, TopicWatch.topic_id == ForumTopic.id) \
                      .filter(TopicWatch.user_id == current_user.id)
 
-        # Zoradenie
+        # zoradenie
         if sort == "newest":
             q = q.order_by(ForumTopic.vytvorene_at.desc())
         elif sort == "answers":
-            # subquery s počtom odpovedí na tému
             answers_sq = db.session.query(
                 ForumPost.topic_id.label("tid"),
                 func.count(ForumPost.id).label("answers_count")
@@ -72,14 +74,24 @@ def hub():
                  .order_by(func.coalesce(answers_sq.c.answers_count, 0).desc(),
                            ForumTopic.aktivita_at.desc())
         else:
-            # default: podľa poslednej aktivity
             q = q.order_by(ForumTopic.aktivita_at.desc())
 
         topics = q.limit(50).all()
-        categories = ForumCategory.query.order_by(ForumCategory.nazov.asc()).all()
-
         selected_id = request.args.get("t", type=int)
         selected_topic = ForumTopic.query.get(selected_id) if selected_id else None
+
+        # ⭐️ BOD 6: automaticky označ notifikácie k vybranej téme ako prečítané
+        if selected_topic and getattr(current_user, "is_authenticated", False):
+            try:
+                from models import ForumNotification
+                (ForumNotification.query
+                    .filter_by(user_id=current_user.id,
+                            topic_id=selected_topic.id,
+                            read_at=None)
+                    .update({"read_at": datetime.utcnow()}, synchronize_session=False))
+                db.session.commit()
+            except Exception:
+                pass
 
         watched_ids = set()
         if getattr(current_user, "is_authenticated", False):
@@ -87,82 +99,55 @@ def hub():
                 r.topic_id for r in TopicWatch.query.filter_by(user_id=current_user.id).all()
             }
 
-        ctx.update(categories=categories,
-                   topics=topics,
-                   selected_topic=selected_topic,
-                   watched_ids=watched_ids)
+        ctx.update(topics=topics, selected_topic=selected_topic, watched_ids=watched_ids)
 
+    # ✅ jediné spoločné return pre všetky taby
     return render_template("komunita.html", **ctx)
 
-# --- Rýchly dopyt: vytvorenie ---
-@komunita_bp.route("/komunita/rychly-dopyt/nova", methods=["POST"])
+# --- RÝCHLY DOPYT: vytvorenie + zavretie ------------------------------------
+@komunita_bp.post("/komunita/rychly-dopyt/create")
 @login_required
-def qd_create():
+def rychly_dopyt_create():
+    from models import RychlyDopyt
     text = (request.form.get("text") or "").strip()
-    if not text:
-        flash("Napíš krátku správu.", "warning")
-        return redirect(url_for("komunita.hub", tab="rychly-dopyt"))
-
-    # rate-limit: 1 rýchly dopyt / 5 minút
-    recent_cnt = RychlyDopyt.query \
-        .filter(RychlyDopyt.autor_id == current_user.id,
-                RychlyDopyt.created_at >= datetime.utcnow() - timedelta(minutes=5)) \
-        .count()
-    if recent_cnt:
-        flash("Skús to prosím o pár minút – aby sme predišli spamu.", "warning")
-        return redirect(url_for("komunita.hub", tab="rychly-dopyt"))
-
-    # limit dĺžky (ochrana UX + spam)
-    if len(text) > 500:
-        text = text[:500]
-
     mesto_id = request.form.get("mesto_id", type=int)
-    ttl_days = request.form.get("ttl_days", type=int) or 30
-    if ttl_days not in (7, 14, 30):
-        ttl_days = 30
+    platnost_dni = request.form.get("platnost_dni", type=int) or 14
 
-    now = datetime.utcnow()
-    qd = RychlyDopyt(
+    if not text:
+        flash("Zadaj text dopytu.", "warning")
+        return redirect(url_for("komunita.hub", tab="rychly-dopyt"))
+
+    # anti-spam: max 1 dopyt / 2 min
+    two_min_ago = datetime.utcnow() - timedelta(minutes=2)
+    recent = (RychlyDopyt.query
+              .filter(RychlyDopyt.autor_id == current_user.id,
+                      RychlyDopyt.created_at >= two_min_ago)
+              .count())
+    if recent:
+        flash("Skús to prosím o chvíľu (antispam).", "warning")
+        return redirect(url_for("komunita.hub", tab="rychly-dopyt"))
+
+    rd = RychlyDopyt(
         text=text,
-        mesto_id=mesto_id,
         autor_id=current_user.id,
-        created_at=now,
-        plati_do=now + timedelta(days=ttl_days),
-        aktivny=True,
+        mesto_id=mesto_id if mesto_id else None,
+        created_at=datetime.utcnow(),
+        plati_do=(datetime.utcnow() + timedelta(days=max(1, min(60, platnost_dni)))),
+        aktivny=True
     )
-    db.session.add(qd)
+    db.session.add(rd)
     db.session.commit()
-
-    flash("Rýchly dopyt bol pridaný.", "success")
+    flash("Dopyt bol pridaný.", "success")
     return redirect(url_for("komunita.hub", tab="rychly-dopyt"))
 
-# --- Rýchly dopyt: zmazanie (len autor alebo admin/mod) ---
-@komunita_bp.route("/komunita/rychly-dopyt/<int:qd_id>/delete", methods=["POST"])
+@komunita_bp.post("/komunita/rychly-dopyt/<int:rd_id>/close")
 @login_required
-def qd_delete(qd_id: int):
-    qd = RychlyDopyt.query.get_or_404(qd_id)
-
-    if qd.autor_id != current_user.id and not getattr(current_user, "is_moderator", False) and not getattr(current_user, "is_admin", False):
+def rychly_dopyt_close(rd_id):
+    from models import RychlyDopyt
+    rd = RychlyDopyt.query.get_or_404(rd_id)
+    if rd.autor_id != current_user.id and not (getattr(current_user, "is_admin", False) or getattr(current_user, "is_moderator", False)):
         abort(403)
-
-    # soft delete (archivácia)
-    qd.aktivny = False
-    qd.archived_at = datetime.utcnow()
+    rd.aktivny = False
     db.session.commit()
-
-    flash("Rýchly dopyt bol odstránený.", "info")
+    flash("Dopyt bol označený ako vybavený.", "success")
     return redirect(url_for("komunita.hub", tab="rychly-dopyt"))
-
-# --- Housekeeping: automatická archivácia expirovaných ---
-def _housekeep_rychle_dopyty():
-    now = datetime.utcnow()
-    expired = RychlyDopyt.query.filter(
-        RychlyDopyt.aktivny.is_(True),
-        RychlyDopyt.plati_do <= now
-    ).all()
-    if not expired:
-        return
-    for r in expired:
-        r.aktivny = False
-        r.archived_at = now
-    db.session.commit()

@@ -48,6 +48,25 @@ class Pouzivatel(db.Model, UserMixin):
             return url_for('static', filename=f'profilovky/{self.profil_fotka}')
         return url_for('static', filename='profilovky/default.png')
     @property
+    def profil_url(self):
+        """Bezpečne vygeneruje link na verejný profil používateľa (podľa toho, čo máš v appke)."""
+        candidates = [
+            ('profil.detail',       {'user_id': self.id}),
+            ('profil.view',         {'user_id': self.id}),
+            ('uzivatel.profil_detail', {'id': self.id}),
+            ('uzivatel.profil_public', {'id': self.id}),
+        ]
+        for endpoint, params in candidates:
+            try:
+                return url_for(endpoint, **params)
+            except Exception:
+                continue
+        # fallback – aspoň na vlastný profil alebo nič
+        try:
+            return url_for('uzivatel.profil')
+        except Exception:
+            return '#'
+    @property
     def is_banned(self) -> bool:
         return self.banned_until is not None and datetime.utcnow() < self.banned_until
 
@@ -341,3 +360,21 @@ class RychlyDopyt(db.Model):
 
     def is_active(self) -> bool:
         return self.aktivny and (self.plati_do is None or datetime.utcnow() < self.plati_do)
+    
+
+class ForumNotification(db.Model):
+    __tablename__ = 'forum_notification'
+    id        = db.Column(db.Integer, primary_key=True)
+    user_id   = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), index=True, nullable=False)
+    topic_id  = db.Column(db.Integer, index=True, nullable=False)
+    post_id   = db.Column(db.Integer, index=True, nullable=False)
+    reason    = db.Column(db.String(32))         # 'reply', 'watch', 'mention'
+    created_at= db.Column(db.DateTime, default=datetime.utcnow)
+    read_at   = db.Column(db.DateTime)
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'post_id', name='uq_forumnotif_user_post'),  # žiadne duplikáty
+    )
+
+    def __repr__(self):
+            return f"<ForumNotification user={self.user_id} post={self.post_id} reason={self.reason}>"

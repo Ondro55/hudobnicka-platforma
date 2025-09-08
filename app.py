@@ -115,6 +115,45 @@ def block_banned_users():
             return redirect(url_for('uzivatel.profil'))  # alebo info stránka o bane
 
 
+@app.context_processor
+def inject_header_badges():
+    data = {
+        "neprecitane_count": 0,           # SPRÁVY
+        "neprecitane_forum_count": 0,     # FÓRUM
+    }
+    try:
+        if current_user.is_authenticated:
+            # --- SPRÁVY: presne ako v spravy.inbox unread_prijate ---
+            try:
+                from models import Sprava
+                data["neprecitane_count"] = (
+                    Sprava.query
+                    .filter_by(
+                        komu_id=current_user.id,
+                        precitane=False,
+                        deleted_by_recipient=False
+                    )
+                    .count()
+                )
+            except Exception:
+                pass
+
+            # --- FÓRUM ---
+            try:
+                from models import ForumNotification
+                data["neprecitane_forum_count"] = (
+                    ForumNotification.query
+                    .filter_by(user_id=current_user.id, read_at=None)
+                    .count()
+                )
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return data
+
+
+
 # Blueprinty
 app.register_blueprint(uzivatel)
 app.register_blueprint(profil_blueprint)

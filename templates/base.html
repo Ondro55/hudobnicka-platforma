@@ -33,12 +33,24 @@
         {% if current_user.is_authenticated %}
           <a href="{{ url_for('spravy.inbox') }}"
             class="msg-icon {{ 'has-unread' if neprecitane_count and neprecitane_count > 0 else '' }}"
-            aria-label="Správy">
+            aria-label="Správy"
+            title="Správy">
             <span class="icon">✉️</span>
             {% if neprecitane_count and neprecitane_count > 0 %}
               <span class="badge">{{ neprecitane_count }}</span>
             {% endif %}
           </a>
+
+          {% set has_unread = (neprecitane_forum_count|default(0)|int) > 0 %}
+          <a href="{{ url_for('forum.goto_unread') if has_unread else url_for('komunita.hub', tab='forum') + '#tab-forum' }}"
+            class="msg-icon {{ 'has-unread' if has_unread else '' }}"
+            aria-label="Fórum" title="Fórum">
+            <span class="icon">💬</span>
+            {% if has_unread %}
+              <span class="badge">{{ neprecitane_forum_count|default(0)|int }}</span>
+            {% endif %}
+          </a>
+
 
           <span class="user-info">
             👋 {{ current_user.prezyvka }}
