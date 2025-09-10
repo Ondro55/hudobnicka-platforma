@@ -17,5 +17,63 @@
   </div>
 </section>
 
+{% if events %}
+<section class="home-events" style="padding:1.25rem 0;">
+  <h2 style="margin:0 0 .75rem 0;">📣 Podujatia</h2>
+  <div class="events-grid" style="display:grid; gap:.75rem; grid-template-columns:repeat(auto-fill,minmax(220px,1fr));">
+    {% for e in events %}
+      <article class="event-card" style="border:1px solid #eee;border-radius:.75rem;overflow:hidden;background:#fff;">
+        <div style="height:120px;overflow:hidden;">
+          <img src="{{ e.foto_url }}" alt="Foto podujatia"
+               style="width:100%;height:120px;object-fit:cover;display:block;">
+        </div>
+        <div style="padding:.6rem .75rem;">
+          <div style="font-weight:700;" class="text-clip">{{ e.nazov }}</div>
+          <div class="meta" style="color:#666;">
+            {{ e.start_dt | localtime('%d.%m.%Y %H:%M') }}{% if e.miesto %} • {{ e.miesto }}{% endif %}
+          </div>
+          {% if e.organizator %}<div style="color:#444;margin-top:.25rem;">{{ e.organizator }}</div>{% endif %}
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+<section class="feed" style="padding:1rem 0;">
+  <div style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-bottom:.5rem;">
+    <a class="chip {% if typ=='vsetko' %}active{% endif %}" href="{{ url_for('uzivatel.index', typ='vsetko') }}">Všetko</a>
+    <a class="chip {% if typ=='podujatia' %}active{% endif %}" href="{{ url_for('uzivatel.index', typ='podujatia') }}">Podujatia</a>
+    <a class="chip {% if typ=='reklamy' %}active{% endif %}" href="{{ url_for('uzivatel.index', typ='reklamy') }}">Reklamy</a>
+  </div>
+
+  {% if feed and feed|length %}
+    <div class="list-rows">
+      {% for kind, ts, item in feed %}
+        {% if kind == 'event' %}
+          <article class="list-row" style="display:grid; grid-template-columns:80px 1fr; gap:1rem; align-items:center;">
+            <div><img src="{{ item.foto_url }}" alt="Podujatie" style="width:72px;height:72px;object-fit:cover;border-radius:.5rem;"></div>
+            <div class="text-clip">
+              <div><strong>{{ item.nazov }}</strong></div>
+              <div class="meta" style="color:#666;">{{ item.start_dt|localtime('%d.%m.%Y %H:%M') }}{% if item.miesto %} • {{ item.miesto }}{% endif %}</div>
+              {% if item.organizator %}<div style="color:#444;">{{ item.organizator }}</div>{% endif %}
+            </div>
+          </article>
+        {% else %}
+          <article class="list-row" style="display:grid; grid-template-columns:80px 1fr; gap:1rem; align-items:center; border-left:4px solid rgba(182,140,98,.4);">
+            <div><img src="{{ item.foto_url }}" alt="Reklama" style="width:72px;height:72px;object-fit:cover;border-radius:.5rem;"></div>
+            <div class="text-clip">
+              <div><strong>Reklama:</strong> {{ item.nazov }} {% if item.is_top %}<span class="role-badge">TOP</span>{% endif %}</div>
+              {% if item.text %}<div style="color:#444;">{{ item.text }}</div>{% endif %}
+              {% if item.url %}<div><a href="{{ item.url }}" target="_blank" rel="noopener">Viac »</a></div>{% endif %}
+            </div>
+          </article>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <p style="color:#666;">Zatiaľ žiadne novinky.</p>
+  {% endif %}
+</section>
+
 {% include 'modals/dopyt_form.html' %}
 {% endblock %}

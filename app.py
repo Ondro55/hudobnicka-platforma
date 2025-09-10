@@ -8,6 +8,8 @@ from datetime import timezone, datetime, timedelta
 from zoneinfo import ZoneInfo
 from datetime import date
 from sqlalchemy import or_
+from features import has_feature, get_quota, user_plan
+
 
 # Blueprinty
 from modules.uzivatel import uzivatel, profil_blueprint
@@ -22,6 +24,8 @@ from modules.sprava import spravy_bp
 from modules.moderacia import moder_bp
 from modules.reporting import report_bp
 from modules.forum import forum_bp
+from modules.podujatie import podujatie_bp
+from modules.reklama import reklama_bp
 from routes import bp as main_blueprint
 
 # Aplikácia
@@ -152,7 +156,13 @@ def inject_header_badges():
         pass
     return data
 
-
+@app.context_processor
+def inject_features():
+    return dict(
+        has_feature=has_feature,
+        get_quota=get_quota,
+        user_plan=user_plan
+    )
 
 # Blueprinty
 app.register_blueprint(uzivatel)
@@ -169,6 +179,8 @@ app.register_blueprint(spravy_bp)
 app.register_blueprint(moder_bp)
 app.register_blueprint(report_bp)
 app.register_blueprint(forum_bp, url_prefix="/komunita/forum")
+app.register_blueprint(podujatie_bp)
+app.register_blueprint(reklama_bp)
 
 # Spustenie
 if __name__ == "__main__":

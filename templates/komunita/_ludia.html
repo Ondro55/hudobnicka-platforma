@@ -25,24 +25,53 @@
   </div>
 </div>
 
+{% if current_user.is_authenticated and current_user.is_admin %}
+  <form method="get" class="inline-filters" style="margin:.5rem 0; display:flex; gap:.5rem; align-items:center;">
+    {# udrž tab = ludia a zachovaj existujúce vyhľadávanie #}
+    <input type="hidden" name="tab" value="ludia">
+    <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+
+    <label class="chip" style="display:inline-flex;gap:.35rem;align-items:center;">
+      <input type="checkbox" name="vip" value="1" {% if request.args.get('vip') == '1' %}checked{% endif %}>
+      Iba VIP
+    </label>
+
+    <button class="btn sm" type="submit">Filtrovať</button>
+
+    {% if request.args.get('vip') == '1' %}
+      {# Zruší len VIP filter, ponechá tab a q #}
+      <a class="btn sm"
+        href="{{ url_for('komunita.hub', tab='ludia', q=request.args.get('q','')) }}">
+        Zrušiť VIP filter
+      </a>
+    {% endif %}
+  </form>
+  {% endif %}
+
+
 {# zoznam používateľov #}
 <div class="list-rows">
   {% for u in users %}
     <article class="list-row kom-grid-row" style="grid-template-columns:64px 1.6fr 1fr 1fr .9fr;">
       <!-- Foto -->
       <div>
+        {% set foto = url_for('static', filename='profilovky/' ~ (u.profil_fotka or 'avatar-user.svg')) %}
         <img class="avatar"
-             src="{{ u.profil_fotka_url }}"
-             data-fallback="{{ url_for('static', filename='profilovky/default.png') }}"
-             alt="Profilová fotka"
-             style="width:48px;height:48px;object-fit:cover;border-radius:50%;display:block;">
+            src="{{ foto }}"
+            data-fallback="{{ url_for('static', filename='profilovky/avatar-user.svg') }}"
+            alt="Profilová fotka"
+            style="width:48px;height:48px;object-fit:cover;border-radius:50%;display:block;">
       </div>
 
+
       <!-- Prezývka / Meno -->
-      <div class="text-clip">
+      <div class="text-clip" style="display:flex; align-items:center; gap:.35rem;">
         <a class="link-plain" href="{{ url_for('uzivatel.verejny_profil', user_id=u.id) }}">
           <strong>{{ u.prezyvka }}</strong>
         </a>
+        {% if current_user.is_authenticated and current_user.is_admin and u.is_vip %}
+          <span class="role-badge vip" title="VIP">⭐</span>
+        {% endif %}
       </div>
 
 

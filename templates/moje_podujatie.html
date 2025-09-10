@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Moje podujatia | Muzikuj{% endblock %}
+
+{% block content %}
+<section class="komunita-wrapper" style="padding:2rem;">
+  <h2 style="margin:0 0 1rem 0;">📣 Moje podujatia</h2>
+
+  <!-- Vytvoriť nové -->
+  <article class="card" style="padding:1rem; margin-bottom:1rem;">
+    <h3 style="margin-top:0;">Vytvoriť podujatie</h3>
+    <form action="{{ url_for('podujatie.vytvor') }}" method="POST" enctype="multipart/form-data" class="grid" style="gap:.75rem;">
+      <label>Názov
+        <input type="text" name="nazov" required>
+      </label>
+
+      <label>Organizátor
+        <input type="text" name="organizator" placeholder="(predvyplníš názvom organizácie)">
+      </label>
+
+      <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+        <label>Dátum
+          <input type="date" name="datum" required>
+        </label>
+        <label>Čas
+          <input type="time" name="cas" required>
+        </label>
+        <label>Miesto
+          <input type="text" name="miesto" placeholder="Mesto / priestor">
+        </label>
+      </div>
+
+      <label>Popis
+        <textarea name="popis" rows="4" placeholder="Krátky popis podujatia"></textarea>
+      </label>
+
+      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+        <label>Bulletin fotka (1 ks)
+          <input type="file" name="foto" accept="image/*">
+        </label>
+        <small style="color:#666;">Povolené: PNG, JPG, JPEG, WEBP, GIF</small>
+      </div>
+
+      <div>
+        <button class="btn primary" type="submit">➕ Vytvoriť</button>
+      </div>
+    </form>
+  </article>
+
+  <!-- AKTÍVNE -->
+<h3 style="margin:1rem 0 .5rem 0;">Aktívne</h3>
+{% if aktivne and aktivne|length %}
+  <div class="list-rows">
+    {% for e in aktivne %}
+    <article class="list-row" style="display:grid; grid-template-columns:80px 1fr auto; gap:1rem; align-items:center;">
+      <div>
+        <img src="{{ e.foto_url }}" alt="Foto podujatia"
+             style="width:72px;height:72px;object-fit:cover;border-radius:.5rem;display:block;">
+      </div>
+      <div class="text-clip">
+        <div style="font-weight:600;">{{ e.nazov }}</div>
+        <div class="meta" style="color:#666;">
+          {{ e.organizator or '—' }} • {{ e.miesto or '—' }} • {{ e.start_dt | localtime('%d.%m.%Y %H:%M') }}
+        </div>
+        {% if e.popis %}<div style="color:#444;margin-top:.25rem;white-space:pre-wrap;">{{ e.popis }}</div>{% endif %}
+      </div>
+      <div class="row-actions" style="display:flex; gap:.5rem; align-items:center;">
+        <a class="btn sm" href="{{ url_for('podujatie.edit', id=e.id) }}">✏️ Upraviť</a>
+
+        <form action="{{ url_for('podujatie.upload_foto', id=e.id) }}" method="POST" enctype="multipart/form-data">
+          <label class="btn sm">
+            Zmeniť fotku
+            <input type="file" name="foto" accept="image/*" hidden onchange="this.form.submit()">
+          </label>
+        </form>
+
+        {% if e.foto_nazov %}
+        <form action="{{ url_for('podujatie.zmaz_foto', id=e.id) }}" method="POST"
+              onsubmit="return confirm('Odstrániť fotku tohto podujatia?');">
+          <button class="btn sm" type="submit">Zmazať fotku</button>
+        </form>
+        {% endif %}
+
+        <form action="{{ url_for('podujatie.zmaz', id=e.id) }}" method="POST"
+              onsubmit="return confirm('Zmazať celé podujatie?');">
+          <button class="btn" type="submit">🗑️ Zmazať</button>
+        </form>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <p style="color:#666;">Žiadne aktívne podujatia.</p>
+{% endif %}
+
+<!-- ARCHÍV -->
+<h3 style="margin:1.25rem 0 .5rem 0;">Archív</h3>
+{% if archiv and archiv|length %}
+  <div class="list-rows">
+    {% for e in archiv %}
+    <article class="list-row" style="display:grid; grid-template-columns:80px 1fr auto; gap:1rem; align-items:center; opacity:.9;">
+      <div>
+        <img src="{{ e.foto_url }}" alt="Foto podujatia"
+             style="width:72px;height:72px;object-fit:cover;border-radius:.5rem;display:block;">
+      </div>
+      <div class="text-clip">
+        <div style="font-weight:600;">{{ e.nazov }}</div>
+        <div class="meta" style="color:#666;">
+          {{ e.organizator or '—' }} • {{ e.miesto or '—' }} • {{ e.start_dt | localtime('%d.%m.%Y %H:%M') }}
+        </div>
+        {% if e.popis %}<div style="color:#444;margin-top:.25rem;white-space:pre-wrap;">{{ e.popis }}</div>{% endif %}
+      </div>
+      <div class="row-actions" style="display:flex; gap:.5rem; align-items:center;">
+        <a class="btn sm" href="{{ url_for('podujatie.edit', id=e.id) }}">✏️ Upraviť</a>
+        <form action="{{ url_for('podujatie.zmaz', id=e.id) }}" method="POST"
+              onsubmit="return confirm('Zmazať celé podujatie?');">
+          <button class="btn" type="submit">🗑️ Zmazať</button>
+        </form>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <p style="color:#666;">Archív je prázdny.</p>
+{% endif %}
+</section>
+{% endblock %}

@@ -7,9 +7,11 @@
     <!-- ĽAVÁ strana -->
     <aside class="profil-left">
       <div class="profil-fotka-wrapper">
+        {% set pf = skupina.profil_fotka_skupina %}
         <img class="profilovka"
-             src="{{ url_for('static', filename='profilovky_skupina/' ~ (skupina.profil_fotka_skupina or 'default-kapela.jpg')) }}"
-             alt="Skupinová fotka">
+            src="{{ url_for('static', filename='profilovky_skupina/' ~ (pf or 'avatar-group.svg')) }}"
+            alt="Skupina {{ skupina.nazov }}"
+            loading="lazy">
       </div>
 
       <div class="profil-nickline">

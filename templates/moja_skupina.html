@@ -7,22 +7,19 @@
     <!-- ĽAVÝ panel: fotka -> názov -> akcie (rovnako ako profil) -->
     <aside class="profil-left">
       <div class="profil-fotka-wrapper">
-        {% if skupina and skupina.profil_fotka_skupina %}
-          <img class="profilovka avatar"
-               src="{{ url_for('static', filename='profilovky_skupina/' ~ skupina.profil_fotka_skupina) }}"
-               data-fallback="{{ url_for('static', filename='profilovky/default.png') }}"
-               alt="Skupinová fotka">
-        {% else %}
-          <img class="profilovka avatar"
-               src="{{ url_for('static', filename='profilovky/default.png') }}"
-               alt="Skupinová fotka">
-        {% endif %}
+        {% set pf = (skupina.profil_fotka_skupina if skupina else None) %}
+
+        <img class="profilovka avatar"
+            src="{{ url_for('static', filename='profilovky_skupina/' ~ (pf or 'avatar-group.svg')) }}"
+            data-fallback="{{ url_for('static', filename='profilovky_skupina/avatar-group.svg') }}"
+            alt="Skupinová fotka"
+            loading="lazy">
 
         {% if is_owner_group and skupina and skupina.profil_fotka_skupina %}
           <a href="{{ url_for('skupina.odstranit_fotku_skupina') }}"
-          class="foto-action delete"
-          title="Odstrániť fotku"
-          onclick="return confirm('Naozaj odstrániť profilovú fotku skupiny?');">✖</a>
+            class="foto-action delete"
+            title="Odstrániť fotku"
+            onclick="return confirm('Naozaj odstrániť profilovú fotku skupiny?');">✖</a>
         {% endif %}
 
         {% if is_owner_group %}

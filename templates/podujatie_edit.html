@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Upraviť podujatie | Muzikuj{% endblock %}
+
+{% block content %}
+<section class="komunita-wrapper" style="padding:2rem;">
+  <h2 style="margin:0 0 1rem 0;">✏️ Upraviť podujatie</h2>
+
+  <form action="{{ url_for('podujatie.update', id=e.id) }}" method="POST" class="grid" style="gap:.75rem; max-width:680px;">
+    <label>Názov
+      <input type="text" name="nazov" required value="{{ e.nazov }}">
+    </label>
+
+    <label>Organizátor
+      <input type="text" name="organizator" value="{{ e.organizator or '' }}">
+    </label>
+
+    <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+      {% set d = e.start_dt.strftime('%Y-%m-%d') %}
+      {% set t = e.start_dt.strftime('%H:%M') %}
+      <label>Dátum
+        <input type="date" name="datum" required value="{{ d }}">
+      </label>
+      <label>Čas
+        <input type="time" name="cas" required value="{{ t }}">
+      </label>
+      <label>Miesto
+        <input type="text" name="miesto" value="{{ e.miesto or '' }}">
+      </label>
+    </div>
+
+    <label>Popis
+      <textarea name="popis" rows="4">{{ e.popis or '' }}</textarea>
+    </label>
+
+    <div class="form-actions" style="display:flex; gap:.5rem;">
+      <button class="btn primary" type="submit">💾 Uložiť</button>
+      <a class="btn" href="{{ url_for('podujatie.moje') }}">Zrušiť</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

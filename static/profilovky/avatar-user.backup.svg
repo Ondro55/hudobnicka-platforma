@@ -1,0 +1,16 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bgUser" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4e7cff"/>
+      <stop offset="100%" stop-color="#00d1ff"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="62" fill="url(#bgUser)"/>
+  <!-- 1 silueta -->
+  <g fill="#fff" opacity="0.96" transform="translate(0,2)">
+    <!-- hlava -->
+    <circle cx="64" cy="46" r="16"/>
+    <!-- plecia / trup -->
+    <path d="M28 92c2-14 18-24 36-24s34 10 36 24c0 3-2 6-6 6H34c-4 0-6-3-6-6z"/>
+  </g>
+</svg>

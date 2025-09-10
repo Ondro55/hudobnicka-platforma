@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
+{# vlastníctvo a právo editácie #}
 {% set is_owner = current_user.is_authenticated and current_user.id == pouzivatel.id %}
+{% set can_edit = is_owner and (not public_view) %}
 
 {% block content %}
 <section class="profil-page">
@@ -7,13 +9,13 @@
     <!-- ĽAVÁ STRANA -->
     <aside class="profil-left" id="profilLeft">
       <div class="profil-fotka-wrapper">
-        {% set foto_url = pouzivatel.profil_fotka_url %}
+        {% set foto_url = url_for('static', filename='profilovky/' ~ (pouzivatel.profil_fotka or 'avatar-user.svg')) %}
         <img class="profilovka avatar"
              src="{{ foto_url }}"
              data-fallback="{{ url_for('static', filename='profilovky/default.png') }}"
              alt="Profilová fotka">
 
-        {% if is_owner %}
+        {% if can_edit %}
           <!-- overlay: zmena fotky (✏️) -->
           <form id="upload-form-user" action="{{ url_for('uzivatel.upload_fotka') }}" method="post" enctype="multipart/form-data" class="profil-upload-fotky">
             <input id="upload-input-user" type="file" name="profil_fotka" accept="image/*" onchange="this.form.submit()" hidden>
@@ -23,26 +25,53 @@
           {% if pouzivatel.profil_fotka %}
           <!-- overlay: odstrániť fotku (✖) -->
           <a href="{{ url_for('uzivatel.odstranit_fotku') }}" class="foto-action delete" title="Odstrániť fotku" onclick="return confirm('Naozaj chceš odstrániť profilovú fotku?');">✖</a>
-
           {% endif %}
         {% endif %}
       </div>
 
-      <!-- Nick + edit / správa pod fotkou -->
+      <!-- Nick + akcie pod fotkou -->
       <div class="profil-nickline">
-        <h2 class="profil-nick">
+        <h2 class="profil-nick" title="{{ pouzivatel.prezyvka }}">
           {{ pouzivatel.prezyvka or (pouzivatel.meno ~ ' ' ~ pouzivatel.priezvisko)|trim }}
+          {% if pouzivatel.is_vip %}
+            <span class="role-badge" title="VIP">⭐</span>
+          {% endif %}
         </h2>
 
-        {% if is_owner %}
+        {% if can_edit %}
           <button type="button" id="editButton" class="edit-icon" title="Upraviť profil">✏️</button>
-        {% else %}
+        {% elif not is_owner %}
           <a class="btn primary sm"
              href="{{ url_for('spravy.napisat', komu_id=pouzivatel.id, kontekst='profil', kontekst_id=pouzivatel.id) }}">
             ✉️ Pošli správu
           </a>
         {% endif %}
       </div>
+
+      {# VIP prepínač – len admin a len na public view #}
+      {% if public_view and current_user.is_authenticated and current_user.is_admin %}
+        <div class="admin-controls" style="margin:.5rem 0; display:flex; gap:.5rem; align-items:center;">
+          <span class="badge" style="padding:.2rem .5rem; border:1px solid #ddd; border-radius:.5rem;">
+            Stav: {{ 'VIP (PRO výhody)' if pouzivatel.is_vip else 'Bežný' }}
+          </span>
+
+          {% if pouzivatel.is_vip %}
+            <form method="POST"
+                  action="{{ url_for('uzivatel.admin_set_vip', user_id=pouzivatel.id, action='off') }}"
+                  onsubmit="return confirm('Naozaj chceš zrušiť VIP pre {{ pouzivatel.prezyvka or pouzivatel.email }}?');">
+              <input type="hidden" name="next" value="{{ request.url }}">
+              <button type="submit" class="btn" style="padding:.4rem .7rem;">Zrušiť VIP</button>
+            </form>
+          {% else %}
+            <form method="POST"
+                  action="{{ url_for('uzivatel.admin_set_vip', user_id=pouzivatel.id, action='on') }}"
+                  onsubmit="return confirm('Naozaj chceš prepnúť {{ pouzivatel.prezyvka or pouzivatel.email }} na VIP (PRO výhody)?');">
+              <input type="hidden" name="next" value="{{ request.url }}">
+              <button type="submit" class="btn primary" style="padding:.4rem .7rem;">Urobiť VIP</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endif %}
 
       <!-- Zobrazenie údajov -->
       <div id="udaje-zobraz" class="profil-udaje">
@@ -66,8 +95,8 @@
         {% endif %}
       </div>
 
-      <!-- Editačný formulár (skrytý, zapína sa tlačidlom) -->
-      {% if is_owner %}
+      <!-- Editačný formulár (len vlastník v „Moje konto“) -->
+      {% if can_edit %}
       <form id="editForm" method="POST" action="{{ url_for('uzivatel.profil') }}" class="form-profil">
         <div class="form-row"><label>Prezývka:</label><input type="text" name="prezyvka" value="{{ pouzivatel.prezyvka }}" required></div>
         <div class="form-row"><label>Meno:</label><input type="text" name="meno" value="{{ pouzivatel.meno }}"></div>
@@ -135,8 +164,7 @@
           <div class="sekcia-head">
             <h3>Galéria</h3>
 
-            {# tlačidlo "Nahrať" ukáž len vlastníkovi; NEskrývaj ho, iba disable pri limite #}
-            {% if is_owner %}
+            {% if can_edit %}
               {% set max_foto = 10 %}
               {% set pocet = pouzivatel.galeria|length %}
               {% set zostava = (max_foto - pocet) if pocet < max_foto else 0 %}
@@ -169,11 +197,13 @@
           <div class="galeria-wrapper" id="profil-galeria">
             {% for foto in pouzivatel.galeria %}
               <div class="foto-blok">
-                <img src="{{ url_for('static', filename='galeria_pouzivatel/' ~ foto.nazov_suboru) }}"
-                     alt="Foto {{ loop.index }}" class="galeria-foto thumb"
+                {% set img_src = url_for('static', filename='galeria_pouzivatel/' ~ foto.nazov_suboru) %}
+                <img src="{{ img_src }}"
+                     alt="Foto {{ loop.index }}"
+                     class="galeria-foto thumb"
                      data-index="{{ loop.index0 }}">
 
-                {% if is_owner %}
+                {% if can_edit %}
                 <form method="POST"
                       action="{{ url_for('profil.zmaz_fotku', id=foto.id) }}"
                       class="delete-form"
@@ -187,15 +217,17 @@
           {% else %}
             <p class="sekcia-empty">Zatiaľ bez fotiek.</p>
           {% endif %}
+        </section>
+
         <section class="sekcia">
           <div class="sekcia-head">
             <h3>Videá</h3>
             <p class="profil-pocet-videi" style="margin:0; color:#666;">Počet videí: {{ youtube_videa | length }}</p>
           </div>
 
-          {% if is_owner %}
+          {% if can_edit %}
           <form action="{{ url_for('profil.pridaj_video') }}" method="POST" class="profil-videoform">
-            <input type="text" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
+            <input type="url" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
             <input type="text" name="popis" placeholder="Krátky popis (voliteľné)">
             <button type="submit" class="btn primary">➕ Pridať video</button>
           </form>
@@ -206,9 +238,9 @@
             {% for video in youtube_videa %}
               <div class="profil-youtube-video">
                 <iframe src="https://www.youtube.com/embed/{{ video.youtube_url | youtube_id }}"
-                        title="YouTube video" frameborder="0" allowfullscreen></iframe>
+                        title="YouTube video" frameborder="0" allowfullscreen loading="lazy"></iframe>
                 {% if video.popis %}<p class="video-popis">{{ video.popis }}</p>{% endif %}
-                {% if is_owner %}
+                {% if can_edit %}
                 <form action="{{ url_for('profil.zmaz_video', id=video.id) }}" method="POST" class="delete-form">
                   <button type="submit" class="delete-btn" title="Zmazať video" onclick="return confirm('Naozaj chceš zmazať video?')">✖</button>
                 </form>
@@ -263,7 +295,7 @@
   }, true);
 </script>
 
-<!-- Lightbox (rovnaký ako v detail_inzerat) -->
+<!-- LIGHTBOX -->
 <div id="lightbox" class="lb hidden" aria-hidden="true">
   <button class="lb-close" aria-label="Zavrieť">✖</button>
   <button class="lb-prev" aria-label="Predošlá">‹</button>
@@ -287,7 +319,7 @@
     background:rgba(0,0,0,.6); color:#fff; border:0; border-radius:.4rem; padding:.2rem .4rem; cursor:pointer;
   }
 
-  /* Lightbox štýly – zhodné s detail_inzerat */
+  /* Lightbox štýly */
   .lb { position:fixed; inset:0; background:rgba(0,0,0,.8); display:flex; align-items:center; justify-content:center; z-index:1000; }
   .lb.hidden { display:none; }
   #lb-img { max-width:90vw; max-height:85vh; border-radius:.5rem; }
@@ -331,7 +363,7 @@
   function prev(){ i = (i - 1 + sources.length) % sources.length; lbImg.src = sources[i]; }
   function next(){ i = (i + 1) % sources.length; lbImg.src = sources[i]; }
 
-  thumbs.forEach(t => t.addEventListener('click', e => openAt(parseInt(e.target.dataset.index, 10))));
+  thumbs.forEach((t, idx) => t.addEventListener('click', () => openAt(idx)));
   btnClose.addEventListener('click', close);
   btnPrev.addEventListener('click', prev);
   btnNext.addEventListener('click', next);

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import current_user, login_required
 from sqlalchemy import or_, func
-from models import db, Pouzivatel, ForumTopic, TopicWatch, RychlyDopyt
+from models import db, Pouzivatel, ForumTopic, TopicWatch, RychlyDopyt, RychlyDopyt
 from models import ForumPost
 
 komunita_bp = Blueprint("komunita", __name__, template_folder="../templates")
@@ -14,8 +14,27 @@ def hub():
     ctx = dict(active_tab=tab)
 
     if tab == "ludia":
-        users = Pouzivatel.query.order_by(Pouzivatel.prezyvka.asc()).all()
-        ctx["users"] = users
+        q_text = (request.args.get("q") or "").strip()
+        vip_only = request.args.get("vip") == "1"
+
+        qry = Pouzivatel.query
+
+        # fulltext-lite: prezývka, meno, priezvisko, email
+        if q_text:
+            like = f"%{q_text}%"
+            qry = qry.filter(or_(
+                Pouzivatel.prezyvka.ilike(like),
+                Pouzivatel.meno.ilike(like),
+                Pouzivatel.priezvisko.ilike(like),
+                Pouzivatel.email.ilike(like),
+            ))
+
+        # VIP filter len pre admina (ostatným ignorujeme parameter)
+        if vip_only and getattr(current_user, "is_authenticated", False) and getattr(current_user, "is_admin", False):
+            qry = qry.filter(Pouzivatel.is_vip.is_(True))
+
+        users = qry.order_by(Pouzivatel.prezyvka.asc()).all()
+        ctx.update(users=users, q=q_text, vip_only=vip_only)
 
     elif tab == "rychly-dopyt":
         q_text = (request.args.get("q") or "").strip()
@@ -43,13 +62,11 @@ def hub():
 
         q = ForumTopic.query
 
-        # fulltext-lite: názov + telo
         if q_text:
             like = f"%{q_text}%"
             q = q.filter(or_(ForumTopic.nazov.ilike(like),
                              ForumTopic.body.ilike(like)))
 
-        # moje pohľady
         if view and getattr(current_user, "is_authenticated", False):
             if view == "mine":
                 q = q.filter(ForumTopic.autor_id == current_user.id)
@@ -61,7 +78,6 @@ def hub():
                 q = q.join(TopicWatch, TopicWatch.topic_id == ForumTopic.id) \
                      .filter(TopicWatch.user_id == current_user.id)
 
-        # zoradenie
         if sort == "newest":
             q = q.order_by(ForumTopic.vytvorene_at.desc())
         elif sort == "answers":
@@ -80,14 +96,13 @@ def hub():
         selected_id = request.args.get("t", type=int)
         selected_topic = ForumTopic.query.get(selected_id) if selected_id else None
 
-        # ⭐️ BOD 6: automaticky označ notifikácie k vybranej téme ako prečítané
         if selected_topic and getattr(current_user, "is_authenticated", False):
             try:
                 from models import ForumNotification
                 (ForumNotification.query
                     .filter_by(user_id=current_user.id,
-                            topic_id=selected_topic.id,
-                            read_at=None)
+                               topic_id=selected_topic.id,
+                               read_at=None)
                     .update({"read_at": datetime.utcnow()}, synchronize_session=False))
                 db.session.commit()
             except Exception:
@@ -101,8 +116,8 @@ def hub():
 
         ctx.update(topics=topics, selected_topic=selected_topic, watched_ids=watched_ids)
 
-    # ✅ jediné spoločné return pre všetky taby
     return render_template("komunita.html", **ctx)
+
 
 # --- RÝCHLY DOPYT: vytvorenie + zavretie ------------------------------------
 @komunita_bp.post("/komunita/rychly-dopyt/create")
@@ -151,3 +166,6 @@ def rychly_dopyt_close(rd_id):
     db.session.commit()
     flash("Dopyt bol označený ako vybavený.", "success")
     return redirect(url_for("komunita.hub", tab="rychly-dopyt"))
+
+def _housekeep_rychle_dopyty():
+    pass

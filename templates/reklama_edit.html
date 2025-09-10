@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Upraviť reklamu | Muzikuj{% endblock %}
+{% block content %}
+<section class="komunita-wrapper" style="padding:2rem;">
+  <h2>✏️ Upraviť reklamu</h2>
+  <form method="POST" action="{{ url_for('reklama.edit', id=ad.id) }}" class="grid" style="gap:.75rem; max-width:680px;">
+    <label>Názov<input type="text" name="nazov" value="{{ ad.nazov }}" required></label>
+    <label>Text<textarea name="text" rows="3">{{ ad.text or '' }}</textarea></label>
+    <label>Cieľová URL<input type="url" name="url" value="{{ ad.url or '' }}"></label>
+    <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+      <label>Začiatok<input type="datetime-local" name="start" value="{{ ad.start_dt.strftime('%Y-%m-%dT%H:%M') }}"></label>
+      <label>Koniec<input type="datetime-local" name="end" value="{{ ad.end_dt.strftime('%Y-%m-%dT%H:%M') if ad.end_dt }}"></label>
+      <label class="chip"><input type="checkbox" name="is_top" value="1" {% if ad.is_top %}checked{% endif %}> Topovať</label>
+    </div>
+    <div class="form-actions"><button class="btn primary">💾 Uložiť</button> <a class="btn" href="{{ url_for('reklama.moje') }}">Zrušiť</a></div>
+  </form>
+</section>
+{% endblock %}

@@ -427,3 +427,32 @@ def skupina_detail(id):
     is_owner_group = current_user.is_authenticated and s.zakladatel_id == current_user.id
     return render_template('skupina_detail.html', skupina=s, is_owner_group=is_owner_group)
 
+
+@skupina_bp.route('/skupina/fotka/zmaz/<int:id>', methods=['GET', 'POST'])
+@login_required
+def zmaz_fotku_skupina(id):
+    # 1) Nájdeme záznam fotky v GALÉRII
+    foto = GaleriaSkupina.query.get_or_404(id)
+
+    # 2) Skupina fotky + autorizácia (musíš byť člen)
+    skupina = getattr(foto, 'skupina', None) or Skupina.query.get(foto.skupina_id)
+    if not skupina or (current_user not in skupina.clenovia):
+        abort(403)
+
+    # 3) Zmažeme fyzický súbor z /static/galeria_skupina
+    upload_dir = os.path.join(current_app.root_path, 'static', 'galeria_skupina')
+    filepath = os.path.join(upload_dir, foto.nazov_suboru)
+    if os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+        except Exception:
+            # nech to nepadne na OS chybe
+            pass
+
+    # 4) Zmažeme DB záznam
+    db.session.delete(foto)
+    db.session.commit()
+
+    flash("Fotka bola z galérie odstránená.", "success")
+    return redirect(url_for('skupina.skupina'))
+

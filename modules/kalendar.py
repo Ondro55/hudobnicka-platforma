@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from models import db, Udalost
 from datetime import datetime, time, date
+from features import feature_required
 
 kalendar_bp = Blueprint('kalendar', __name__)
 
@@ -175,3 +176,9 @@ def nacitaj_udalost(udalost_id):
         'cas_do': udalost.cas_do.strftime('%H:%M') if udalost.cas_do else '',
         'celodenne': not udalost.cas_od and not udalost.cas_do
     })
+
+@kalendar_bp.route('/')
+@login_required
+@feature_required('calendar')
+def kalendar_home():
+    ...

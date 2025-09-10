@@ -36,6 +36,13 @@ class Pouzivatel(db.Model, UserMixin):
     ico = db.Column(db.String(20), nullable=True)
     organizacia_nazov = db.Column(db.String(150), nullable=True)
 
+    plan = db.Column(db.String(20), nullable=False, default='free')  # 'free' | 'pro' | 'business'
+    account_type = db.Column(db.String(20), nullable=False, default='individual')  # 'individual' | 'organization'
+    searchable = db.Column(db.Boolean, nullable=False, default=False)  # viditeľnosť vo vyhľadávači (PRO/Business)
+
+    is_vip = db.Column(db.Boolean, nullable=False, default=False)          # VIP = PRO výhody bez platby
+    billing_exempt = db.Column(db.Boolean, nullable=False, default=False)  # oslobodený od fakturácie
+
     def over_heslo(self, zadane_heslo):
         return check_password_hash(self.heslo, zadane_heslo)
 
@@ -378,3 +385,76 @@ class ForumNotification(db.Model):
 
     def __repr__(self):
             return f"<ForumNotification user={self.user_id} post={self.post_id} reason={self.reason}>"
+    
+
+class Podujatie(db.Model):
+    __tablename__ = 'podujatie'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pouzivatel_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False, index=True)
+
+    nazov = db.Column(db.String(120), nullable=False)
+    organizator = db.Column(db.String(120), nullable=True)
+    miesto = db.Column(db.String(120), nullable=True)
+
+    # dátum + čas začiatku (stačí jeden začiatok; prípadne neskôr doplníme koniec)
+    start_dt = db.Column(db.DateTime, nullable=False)
+
+    popis = db.Column(db.Text, nullable=True)
+
+    # presne 1 „bulletin“ fotka (ak chýba, zobrazíme default)
+    foto_nazov = db.Column(db.String(255), nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    autor = db.relationship('Pouzivatel', backref=db.backref('podujatia', lazy='dynamic'))
+
+    @property
+    def foto_url(self):
+        from flask import url_for
+        if self.foto_nazov:
+            return url_for('static', filename=f'podujatia/{self.foto_nazov}')
+        return url_for('static', filename='podujatia/event-default.svg')
+    
+    @property
+    def visible_until(self):
+        return (self.start_dt or datetime.utcnow()) + timedelta(days=1)
+
+    @property
+    def is_public_active(self):
+        return datetime.utcnow() < self.visible_until
+
+class Reklama(db.Model):
+    __tablename__ = 'reklama'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pouzivatel_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False, index=True)
+
+    nazov = db.Column(db.String(120), nullable=False)
+    text = db.Column(db.Text, nullable=True)
+    url = db.Column(db.String(255), nullable=True)
+
+    foto_nazov = db.Column(db.String(255), nullable=True)
+
+    start_dt = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    end_dt = db.Column(db.DateTime, nullable=True)           # ak None → berme 7 dní od startu (nižšie v property)
+
+    is_top = db.Column(db.Boolean, nullable=False, default=False)  # topovanie
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    autor = db.relationship('Pouzivatel', backref=db.backref('reklamy', lazy='dynamic'))
+
+    @property
+    def foto_url(self):
+        from flask import url_for
+        if self.foto_nazov:
+            return url_for('static', filename=f'reklamy/{self.foto_nazov}')
+        return url_for('static', filename='podujatia/event-default.svg')  # použijeme jemnú defaultku
+
+    def is_active_now(self):
+        now = datetime.utcnow()
+        if self.end_dt:
+            return self.start_dt <= now <= self.end_dt
+        # defaultne 7 dní, ak end_dt nie je zadané
+        from datetime import timedelta
+        return self.start_dt <= now <= (self.start_dt + timedelta(days=7))

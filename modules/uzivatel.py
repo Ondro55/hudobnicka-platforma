@@ -5,7 +5,9 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 from sqlalchemy.orm import joinedload
 from jinja2 import TemplateNotFound
-from models import Pouzivatel, db, GaleriaPouzivatel, VideoPouzivatel, Skupina
+from models import Pouzivatel, db, GaleriaPouzivatel, VideoPouzivatel, Skupina, Podujatie, Reklama
+from flask import request, redirect, url_for, flash, abort
+from datetime import datetime, timedelta
 
 uzivatel = Blueprint('uzivatel', __name__)
 profil_blueprint = Blueprint('profil', __name__)
@@ -25,7 +27,31 @@ def test():
 # 🔹 Domovská stránka
 @uzivatel.route('/')
 def index():
-    return render_template('index.html')
+    typ = request.args.get('typ', 'vsetko')  # vsetko|podujatia|reklamy
+    now = datetime.utcnow()
+    threshold = now - timedelta(days=1)
+
+    events_q = (Podujatie.query
+                .filter(Podujatie.start_dt >= threshold)
+                .order_by(Podujatie.start_dt.asc()))
+
+    ads_all = Reklama.query.all()
+    active_ads = [ad for ad in ads_all if ad.is_active_now()]
+    # TOP najprv
+    active_ads.sort(key=lambda a: (not a.is_top, a.start_dt), reverse=False)
+
+    feed = []
+    if typ in ('vsetko','podujatia'):
+        for e in events_q.limit(50).all():
+            feed.append(('event', e.start_dt, e))
+    if typ in ('vsetko','reklamy'):
+        for ad in active_ads:
+            feed.append(('ad', ad.created_at, ad))
+
+    # najnovšie hore (podľa času; TOP už je zvýhodnený vyššie v sort)
+    feed.sort(key=lambda r: r[1], reverse=True)
+
+    return render_template('index.html', feed=feed, typ=typ)
 
 # 🔹 Login
 @uzivatel.route('/login', methods=['GET', 'POST'])
@@ -317,11 +343,33 @@ def verejny_profil(user_id):
     skupina = user.skupina_clen[0] if user.skupina_clen else None
     galeria = skupina.galeria if skupina else []
 
-    # ⬇️ toto si používal doteraz – nechávame tak
+    
+    # Verejný profil má vlastnú šablónu
     return render_profile_template(
-        pouzivatel=user,
-        skupina=skupina,
-        galeria=galeria,
-        youtube_videa=user.videa
-    )
+    pouzivatel=user,
+    skupina=skupina,
+    galeria=galeria,
+    youtube_videa=user.videa,
+    public_view=True   # ⟵ dôležité, tým odlíšime verejné zobrazenie
+)
 
+
+
+@uzivatel.route('/admin/user/<int:user_id>/vip/<string:action>', methods=['POST'])
+@login_required
+def admin_set_vip(user_id, action):
+    # len admin môže prepínať VIP
+    if not getattr(current_user, 'is_admin', False):
+        abort(403)
+
+    user = Pouzivatel.query.get_or_404(user_id)
+    turn_on = (action.lower() == 'on')
+
+    user.is_vip = bool(turn_on)
+    user.billing_exempt = bool(turn_on)  # VIP automaticky bez fakturácie
+    db.session.commit()
+
+    flash(f"VIP pre používateľa #{user.id} {'zapnuté' if turn_on else 'vypnuté'}.", "success")
+    # návrat späť na stránku, odkiaľ si prišiel (alebo na profil)
+    next_url = request.form.get('next') or request.referrer or url_for('uzivatel.profil')
+    return redirect(next_url)

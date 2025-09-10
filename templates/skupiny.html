@@ -41,17 +41,17 @@
   {# zoznam skupín v rovnakom wrapperi a štýle ako komunita #}
   <div class="list-rows">
     {% for s in skupiny %}
-      {% set pf = s.profil_fotka_skupina %}
-      {% set foto_url = (url_for('static', filename='profilovky_skupina/' ~ pf) if pf else url_for('static', filename='profilovky/default.png')) %}
+      {% set fn = s.profil_fotka_skupina %}
+      {% set foto_url = url_for('static', filename='profilovky_skupina/' ~ (fn if fn else 'avatar-group.svg')) %}
 
       <article class="list-row kom-grid-row" style="grid-template-columns:64px 1.4fr 1fr .8fr .9fr;">
         <!-- Foto -->
         <div>
           <img class="avatar"
-               src="{{ foto_url }}"
-               data-fallback="{{ url_for('static', filename='profilovky/default.png') }}"
-               alt="Skupinová fotka"
-               style="width:48px;height:48px;object-fit:cover;border-radius:50%;display:block;">
+              src="{{ foto_url }}"
+              alt="Skupina {{ s.nazov }}"
+              style="width:48px;height:48px;object-fit:cover;border-radius:50%;display:block;"
+              loading="lazy">
         </div>
 
         <!-- Názov (klik na detail) -->
