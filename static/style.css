@@ -736,5 +736,34 @@ a.btn{
 
 .profilovka { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; display: block; }
 
-/* jemný vzhľad pre VIP hviezdičku */
+:root{
+  --side: 260px;
+  --center: 720px;
+  --gap: 16px;
+}
+
+.home-grid{
+  display:grid;
+  grid-template-columns: var(--side) minmax(0, var(--center)) var(--side);
+  gap: var(--gap);
+  max-width: calc(var(--side)*2 + var(--center) + var(--gap)*2);
+  margin: 0 auto;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+
+.home-left { align-self: start; position: sticky; top: 84px; }
+.home-center { min-width: 0; }
+.home-right { display: none; }        /* zatiaľ skryté */
+@media (min-width: 1400px){ .home-right{ display:block; } }
+
+.home-left .sidebar-btn{ width:100%; }
+
+.button-container.is-home { display: block; }
+.home-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 12px;
+}
+
 

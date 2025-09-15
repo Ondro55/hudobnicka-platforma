@@ -1,58 +1,214 @@
 {% extends "base.html" %}
-{% block title %}Moje reklamy | Muzikuj{% endblock %}
+{% block title %}Moje reklamy{% endblock %}
+
 {% block content %}
 <section class="komunita-wrapper" style="padding:2rem;">
-  <h2 style="margin:0 0 1rem 0;">📢 Moje reklamy</h2>
+  <h2 style="margin-top:0;">Moje reklamy</h2>
 
-  <article class="card" style="padding:1rem; margin-bottom:1rem;">
-    <h3 style="margin-top:0;">Vytvoriť reklamu</h3>
-    <form action="{{ url_for('reklama.vytvor') }}" method="POST" enctype="multipart/form-data" class="grid" style="gap:.75rem;">
-      <label>Názov<input type="text" name="nazov" required></label>
-      <label>Text<textarea name="text" rows="3" placeholder="Krátky text reklamy"></textarea></label>
-      <label>Cieľová URL<input type="url" name="url" placeholder="https://..."></label>
-      <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
-        <label>Začiatok<input type="datetime-local" name="start"></label>
-        <label>Koniec<input type="datetime-local" name="end"></label>
-        <label class="chip"><input type="checkbox" name="is_top" value="1"> Topovať</label>
+  <div class="ad-grid">
+    <!-- ĽAVO: formulár -->
+    <form method="POST" action="{{ url_for('reklama.vytvor') }}"
+          enctype="multipart/form-data"
+          id="ad-form" class="card ad-form">
+      <div>
+        <div class="form-row">
+          <label>Názov</label>
+          <input class="input-line" type="text" name="nazov" id="inp-nazov" required>
+        </div>
+
+        <div class="form-row">
+          <label>Popis / text</label>
+          <textarea class="input-area" name="text" id="inp-text" rows="5"
+                    placeholder="Krátky text reklamy…"></textarea>
+        </div>
+
+        <div class="form-row">
+          <label>Cieľový odkaz (URL)</label>
+          <input class="input-line" type="url" name="url" id="inp-url" placeholder="https://…">
+        </div>
+
+        <div class="form-row two">
+          <div>
+            <label>Začiatok</label>
+            <input class="input-line" type="datetime-local" name="start" id="inp-start">
+          </div>
+          <div>
+            <label>Koniec (voliteľné)</label>
+            <input class="input-line" type="datetime-local" name="end" id="inp-end">
+          </div>
+        </div>
+
+        <div class="form-row" style="display:flex;align-items:center;gap:.5rem;">
+          <input type="checkbox" id="inp-top" name="is_top" value="1">
+          <label for="inp-top" style="margin:0;">Topovať (zvýrazniť)</label>
+        </div>
+
+        <div class="form-row">
+          <label>Obrázok (1 ks)</label>
+          <input class="input-file" type="file" name="foto" id="inp-foto" accept="image/*">
+        </div>
       </div>
-      <label>Obrázok<input type="file" name="foto" accept="image/*"></label>
-      <button class="btn primary" type="submit">➕ Vytvoriť</button>
-    </form>
-  </article>
 
-  {% if reklamy and reklamy|length %}
+      <div class="form-actions">
+        <button type="submit" class="btn primary">🚀 Uložiť & zverejniť</button>
+      </div>
+    </form>
+
+    <!-- PRAVO: náhľad -->
+    <article class="card ad-preview">
+      <div class="preview-copy">
+        <h4 id="prev-nazov" class="prev-title">Názov reklamy</h4>
+        <p id="prev-text" class="prev-desc">Krátky text reklamy…</p>
+        <div id="prev-url" class="prev-url"></div>
+      </div>
+
+      <div class="preview-toolbar">
+        <label class="fit-opt">
+          <input type="radio" name="fitMode" value="contain" checked>
+          Bez orezania
+        </label>
+        <label class="fit-opt">
+          <input type="radio" name="fitMode" value="cover">
+          Orez (vyplniť)
+        </label>
+      </div>
+
+      {% set default_img = url_for('static', filename='reklamy/default-ad.jpg') %}
+      <div class="preview-frame">
+        <img id="preview-img" src="{{ default_img }}" alt="Náhľad">
+      </div>
+    </article>
+  </div>
+
+  <hr style="margin:1.25rem 0;">
+  <section>
+    <h3>Moje uložené reklamy</h3>
     <div class="list-rows">
       {% for ad in reklamy %}
-      <article class="list-row" style="display:grid; grid-template-columns:80px 1fr auto; gap:1rem; align-items:center;">
-        <div><img src="{{ ad.foto_url }}" alt="Reklama" style="width:72px;height:72px;object-fit:cover;border-radius:.5rem;"></div>
-        <div class="text-clip">
-          <div style="font-weight:600;">{{ ad.nazov }} {% if ad.is_top %}<span class="role-badge">TOP</span>{% endif %}</div>
-          <div class="meta" style="color:#666;">
-            {{ ad.start_dt|localtime('%d.%m.%Y %H:%M') }}
-            – {{ ad.end_dt|localtime('%d.%m.%Y %H:%M') if ad.end_dt else 'bez konca (7 dní default)'}}
+        <article class="list-row ad-row">
+          <div class="ad-row-left">
+            <img src="{{ ad.foto_url }}" alt="" style="width:64px;height:40px;object-fit:cover;border-radius:.35rem;">
+            <div>
+              <strong>{{ ad.nazov }}</strong><br>
+              <small>
+                {{ ad.start_dt.strftime('%d.%m.%Y %H:%M') }}
+                {% if ad.end_dt %} – {{ ad.end_dt.strftime('%d.%m.%Y %H:%M') }}{% endif %}
+              </small>
+            </div>
           </div>
-          {% if ad.text %}<div style="color:#444; margin-top:.25rem; white-space:pre-wrap;">{{ ad.text }}</div>{% endif %}
-          {% if ad.url %}<div><a href="{{ ad.url }}" target="_blank" rel="noopener">Odkaz</a></div>{% endif %}
-        </div>
-        <div class="row-actions" style="display:flex; gap:.5rem;">
-          <a class="btn sm" href="{{ url_for('reklama.edit', id=ad.id) }}">✏️ Upraviť</a>
-          <form action="{{ url_for('reklama.upload_foto', id=ad.id) }}" method="POST" enctype="multipart/form-data">
-            <label class="btn sm">Zmeniť obrázok<input type="file" name="foto" hidden accept="image/*" onchange="this.form.submit()"></label>
-          </form>
-          {% if ad.foto_nazov %}
-          <form action="{{ url_for('reklama.zmaz_foto', id=ad.id) }}" method="POST" onsubmit="return confirm('Odstrániť obrázok?');">
-            <button class="btn sm">Zmazať obrázok</button>
-          </form>
-          {% endif %}
-          <form action="{{ url_for('reklama.zmaz', id=ad.id) }}" method="POST" onsubmit="return confirm('Zmazať reklamu?');">
-            <button class="btn">🗑️ Zmazať</button>
-          </form>
-        </div>
-      </article>
+          <div class="row-actions">
+            <a class="btn sm" href="{{ url_for('reklama.edit', id=ad.id) }}">Upraviť</a>
+            <form method="POST" action="{{ url_for('reklama.zmaz', id=ad.id) }}"
+                  onsubmit="return confirm('Zmazať reklamu?')">
+              <button class="btn sm">Zmazať</button>
+            </form>
+          </div>
+        </article>
+      {% else %}
+        <p>Zatiaľ nemáš žiadne reklamy.</p>
       {% endfor %}
     </div>
-  {% else %}
-    <p style="color:#666;">Zatiaľ nemáš žiadne reklamy.</p>
-  {% endif %}
+  </section>
 </section>
+
+<style>
+  .ad-grid{
+    display:grid;
+    grid-template-columns: 340px minmax(0,1fr);
+    gap:1.25rem;
+    align-items: stretch;
+  }
+  .ad-form{
+    flex:0 0 340px;
+    display:flex; flex-direction:column;
+  }
+  .ad-preview{
+    display:flex; flex-direction:column; padding:0; overflow:hidden;
+  }
+
+  .form-row{ margin-bottom:.85rem; }
+  .form-row.two{ display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+  .input-line, .input-area, .input-file{
+    width:100%; padding:.6rem .2rem .5rem .2rem;
+    border:none; border-bottom:1px solid #ddd; background:transparent; outline:none;
+  }
+  .input-area{ min-height:110px; resize:vertical; }
+  .input-line:focus, .input-area:focus{ border-bottom-color:#999; }
+  .form-actions{ margin-top:.9rem; display:flex; gap:.5rem; }
+
+  .preview-copy{ padding:1rem 1rem .6rem 1rem; }
+  .prev-title{ margin:.1rem 0 .35rem 0; }
+  .prev-desc{ margin:.35rem 0 0 0; white-space:pre-wrap; color:#333; }
+  .prev-url{ margin-top:.4rem; font-size:.95rem; color:#666; }
+
+  .preview-toolbar{
+    display:flex; gap:1rem; align-items:center;
+    padding:.6rem 1rem .4rem 1rem; border-top:1px solid #eee;
+  }
+  .preview-toolbar .fit-opt{ display:flex; align-items:center; gap:.35rem; font-size:.95rem; }
+
+  .preview-frame{
+    position:relative; aspect-ratio:16/9; background:#fff; border-top:1px solid #eee;
+  }
+  .preview-frame img{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit: contain; object-position: center;
+    display:block;
+  }
+
+  .ad-row{
+    display:grid; grid-template-columns:1fr auto; gap:.75rem; align-items:center;
+  }
+  .ad-row-left{
+    display:flex; align-items:center; gap:.6rem;
+  }
+
+  @media (max-width: 980px){
+    .ad-grid{ grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+  (function(){
+    const $ = s => document.querySelector(s);
+
+    const inpNazov = $('#inp-nazov');
+    const inpText  = $('#inp-text');
+    const inpUrl   = $('#inp-url');
+    const inpFoto  = $('#inp-foto');
+
+    const prevNazov = $('#prev-nazov');
+    const prevText  = $('#prev-text');
+    const prevUrl   = $('#prev-url');
+    const prevImg   = $('#preview-img');
+
+    const fitRadios = document.querySelectorAll('input[name="fitMode"]');
+
+    function render(){
+      prevNazov.textContent = (inpNazov.value || 'Názov reklamy').trim();
+      prevText.textContent  = (inpText.value || 'Krátky text reklamy…');
+      const u = (inpUrl.value || '').trim();
+      prevUrl.textContent   = u ? ('Odkaz: ' + u) : '';
+    }
+
+    [inpNazov, inpText, inpUrl].forEach(el => el && el.addEventListener('input', render));
+    render();
+
+    if (inpFoto) {
+      inpFoto.addEventListener('change', () => {
+        const f = inpFoto.files && inpFoto.files[0];
+        if (!f) return;
+        const url = URL.createObjectURL(f);
+        prevImg.onload = () => URL.revokeObjectURL(url);
+        prevImg.src = url;
+      });
+    }
+
+    function applyFit(mode){
+      prevImg.style.objectFit = (mode === 'cover') ? 'cover' : 'contain';
+      prevImg.style.objectPosition = 'center';
+    }
+    fitRadios.forEach(r => r.addEventListener('change', () => applyFit(r.value)));
+  })();
+</script>
 {% endblock %}

@@ -32,3 +32,5 @@ def auto_moderate_text(text: str) -> Dict[str, str]:
     if hits:
         return {"flag": True, "reason": "nevhodny_obsah", "note": "zachytené: " + ", ".join(hits[:5])}
     return {"flag": False}
+
+

@@ -443,6 +443,7 @@ class Reklama(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     autor = db.relationship('Pouzivatel', backref=db.backref('reklamy', lazy='dynamic'))
+    reports = db.relationship('ReklamaReport', backref='reklama', cascade='all, delete-orphan', lazy='dynamic')
 
     @property
     def foto_url(self):
@@ -458,3 +459,20 @@ class Reklama(db.Model):
         # defaultne 7 dní, ak end_dt nie je zadané
         from datetime import timedelta
         return self.start_dt <= now <= (self.start_dt + timedelta(days=7))
+
+
+class ReklamaReport(db.Model):
+    __tablename__ = "reklama_report"
+    id = db.Column(db.Integer, primary_key=True)
+    reklama_id = db.Column(db.Integer, db.ForeignKey("reklama.id", ondelete="CASCADE"), nullable=False)
+    reporter_id = db.Column(db.Integer, db.ForeignKey("pouzivatel.id", ondelete="SET NULL"))
+    reason = db.Column(db.String(32), nullable=False)        # 'nsfw' | 'vulgar' | 'violence' | 'hate' | 'spam' | 'scam' | 'other'
+    details = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    handled = db.Column(db.Boolean, default=False, nullable=False)
+    handled_by = db.Column(db.Integer, db.ForeignKey("pouzivatel.id"))
+    handled_at = db.Column(db.DateTime)
+    action = db.Column(db.String(16))  # 'keep' | 'pause' | 'remove' | 'warn'
+    
+    reporter = db.relationship('Pouzivatel', foreign_keys=[reporter_id])
+    handler  = db.relationship('Pouzivatel', foreign_keys=[handled_by])

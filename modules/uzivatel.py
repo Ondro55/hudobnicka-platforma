@@ -8,6 +8,7 @@ from jinja2 import TemplateNotFound
 from models import Pouzivatel, db, GaleriaPouzivatel, VideoPouzivatel, Skupina, Podujatie, Reklama
 from flask import request, redirect, url_for, flash, abort
 from datetime import datetime, timedelta
+from sqlalchemy import or_
 
 uzivatel = Blueprint('uzivatel', __name__)
 profil_blueprint = Blueprint('profil', __name__)
@@ -31,24 +32,36 @@ def index():
     now = datetime.utcnow()
     threshold = now - timedelta(days=1)
 
-    events_q = (Podujatie.query
-                .filter(Podujatie.start_dt >= threshold)
-                .order_by(Podujatie.start_dt.asc()))
+    # Podujatia: ukazujeme od včera (ako máš)
+    events_q = (
+        Podujatie.query
+        .filter(Podujatie.start_dt >= threshold)
+        .order_by(Podujatie.start_dt.asc())
+    )
 
-    ads_all = Reklama.query.all()
-    active_ads = [ad for ad in ads_all if ad.is_active_now()]
-    # TOP najprv
-    active_ads.sort(key=lambda a: (not a.is_top, a.start_dt), reverse=False)
+    # Reklamy: aktívne teraz (DB filter) + autora pre link
+    ads_q = (
+        Reklama.query
+        .options(joinedload(Reklama.autor))
+        .filter(
+            Reklama.start_dt <= now,
+            or_(Reklama.end_dt == None, Reklama.end_dt >= now)
+        )
+        .order_by(Reklama.is_top.desc(), Reklama.created_at.desc())
+        .limit(100)
+    )
 
     feed = []
-    if typ in ('vsetko','podujatia'):
+    if typ in ('vsetko', 'podujatia'):
         for e in events_q.limit(50).all():
             feed.append(('event', e.start_dt, e))
-    if typ in ('vsetko','reklamy'):
-        for ad in active_ads:
+
+    if typ in ('vsetko', 'reklamy'):
+        for ad in ads_q.all():
+            # pre feed použijeme čas vzniku reklamy; ak chceš, môžeš dať ad.start_dt
             feed.append(('ad', ad.created_at, ad))
 
-    # najnovšie hore (podľa času; TOP už je zvýhodnený vyššie v sort)
+    # najnovšie hore
     feed.sort(key=lambda r: r[1], reverse=True)
 
     return render_template('index.html', feed=feed, typ=typ)
@@ -64,12 +77,20 @@ def login():
         if pouzivatel and pouzivatel.over_heslo(heslo):
             login_user(pouzivatel)
             flash("Prihlásenie prebehlo úspešne.", "success")
-            return redirect(url_for('uzivatel.profil'))  # alias funguje
+
+            # podpora ?next=/niekam  (len relatívne URL sú povolené)
+            next_url = request.args.get('next') or request.form.get('next')
+            if next_url and next_url.startswith('/'):
+                return redirect(next_url)
+
+            # DEFAULT: DOMOV (homepage stredný feed)
+            return redirect(url_for('uzivatel.index'))
         else:
             flash("Nesprávne prihlasovacie údaje.", "warning")
             return redirect(url_for('uzivatel.login'))
 
     return render_template('login.html')
+
 
 # 🔹 Registrácia
 @uzivatel.route('/registracia', methods=['GET', 'POST'])

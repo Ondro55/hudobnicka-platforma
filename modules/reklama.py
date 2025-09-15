@@ -5,8 +5,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, abort
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-
-from models import db, Reklama
+from models import db, Reklama, ReklamaReport, Pouzivatel
 
 reklama_bp = Blueprint('reklama', __name__, url_prefix='/reklamy')
 
@@ -156,3 +155,77 @@ def zmaz(id):
     db.session.delete(ad); db.session.commit()
     flash("Reklama zmazaná.", "info")
     return redirect(url_for('reklama.moje'))
+
+@reklama_bp.route('/<int:id>/report', methods=['POST'])
+@login_required
+def report(id):
+    ad = Reklama.query.get_or_404(id)
+    reason = (request.form.get('reason') or '').strip()
+    details = (request.form.get('details') or '').strip()[:500]
+
+    if not reason:
+        flash('Vyber dôvod nahlásenia.', 'warning')
+        return redirect(request.referrer or url_for('uzivatel.index'))
+
+    # anti-spam: 1 report / reklama / 24h / user
+    last = (ReklamaReport.query
+            .filter_by(reklama_id=id, reporter_id=current_user.id)
+            .order_by(ReklamaReport.created_at.desc())
+            .first())
+    if last and (datetime.utcnow() - last.created_at).total_seconds() < 24*3600:
+        flash('Túto reklamu si už dnes nahlásil.', 'info')
+        return redirect(request.referrer or url_for('uzivatel.index'))
+
+    rep = ReklamaReport(
+        reklama_id=id,
+        reporter_id=current_user.id,
+        reason=reason,
+        details=details
+    )
+    db.session.add(rep)
+    db.session.commit()
+
+    try:
+        _notify_admins_new_ad_report(rep, ad)
+    except Exception:
+        current_app.logger.warning("Nepodarilo sa odoslať admin notifikáciu o reporte reklamy.", exc_info=True)
+
+    flash('Ďakujeme za nahlásenie. Moderátor to skontroluje.', 'success')
+    return redirect(request.referrer or url_for('uzivatel.index'))
+
+
+def _notify_admins_new_ad_report(rep, ad):
+    import smtplib
+    from email.message import EmailMessage
+
+    admins = Pouzivatel.query.filter_by(is_admin=True).all()
+    to_list = [a.email for a in admins if a.email]
+    if not to_list:
+        return
+
+    msg = EmailMessage()
+    msg['Subject'] = f"[Muzikuj] Nahlásená reklama #{ad.id}"
+    msg['From'] = current_app.config.get('SMTP_SENDER', 'noreply@muzikuj.sk')
+    msg['To'] = ', '.join(to_list)
+
+    body = (
+        f"Reklama ID: {ad.id}\n"
+        f"Inzerent: {(ad.autor.prezyvka or ad.autor.email) if ad.autor else '-'}\n"
+        f"Dôvod: {rep.reason}\n"
+        f"Detail: {rep.details or '-'}\n"
+        f"Link: {url_for('moderacia.reklamy_reports', _external=True)}\n"
+    )
+    msg.set_content(body)
+
+    server = current_app.config.get('SMTP_SERVER', 'smtp.gmail.com')
+    port = int(current_app.config.get('SMTP_PORT', 587))
+    user = current_app.config.get('SMTP_USERNAME')
+    pwd  = current_app.config.get('SMTP_PASSWORD')
+
+    with smtplib.SMTP(server, port) as s:
+        s.starttls()
+        if user and pwd:
+            s.login(user, pwd)
+        s.send_message(msg)
+
+

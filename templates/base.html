@@ -15,6 +15,34 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/komunita.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/spravy.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Open+Sans&display=swap" rel="stylesheet" />
+
+  <!-- Minimal CSS len pre FB home grid (nezávislé od zvyšku) -->
+  <style>
+    .home-grid{
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr) 300px;
+      gap: 1rem;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    .home-left, .home-right{
+      position: sticky; top: 84px;
+      align-self: start;
+      display: flex; flex-direction: column; gap: .5rem;
+    }
+    .home-center{ min-width: 0; }
+    .home-right > .card{ padding: .75rem; }
+    .home-main{ max-width:1100px; margin:0 auto; padding:1rem; }
+    .sidebar-btn{ display:block; width:100%; text-decoration:none; }
+    .role-badge{ display:inline-flex; align-items:center; gap:.25rem; padding:.1rem .4rem; border-radius:.4rem; background:#eee; font-size:.8rem; }
+    .role-badge.admin{ background:#fee2e2; }
+    .role-badge.mod{ background:#e0f2fe; }
+    .flash-message{ margin:.35rem auto; max-width:1100px; padding:.6rem .8rem; border-radius:.5rem; background:#fff3cd; border:1px solid #ffe69c; }
+    .flash-message.success{ background:#e6ffed; border-color:#b7f0c0; }
+    .flash-message.danger{ background:#ffeaea; border-color:#ffb3b3; }
+  </style>
 </head>
 
 <body data-zobraz="{{ zobraz_formular }}">
@@ -33,8 +61,7 @@
         {% if current_user.is_authenticated %}
           <a href="{{ url_for('spravy.inbox') }}"
             class="msg-icon {{ 'has-unread' if neprecitane_count and neprecitane_count > 0 else '' }}"
-            aria-label="Správy"
-            title="Správy">
+            aria-label="Správy" title="Správy">
             <span class="icon">✉️</span>
             {% if neprecitane_count and neprecitane_count > 0 %}
               <span class="badge">{{ neprecitane_count }}</span>
@@ -61,8 +88,7 @@
           </span>
 
           {% if current_user.is_admin or current_user.is_moderator %}
-            <a href="{{ url_for('moderacia.dashboard' if current_user.is_admin else 'moderacia.queue') }}"
-              class="header-btn">
+            <a href="{{ url_for('moderacia.dashboard' if current_user.is_admin else 'moderacia.queue') }}" class="header-btn">
               🛡️ {{ 'Admin' if current_user.is_admin else 'Moderácia' }}
             </a>
           {% endif %}
@@ -70,8 +96,9 @@
           <a href="{{ url_for('uzivatel.profil') }}" class="header-btn">Moje konto</a>
           <a href="{{ url_for('uzivatel.logout') }}" class="header-btn logout-btn">Odhlásiť sa</a>
         {% else %}
-          <button type="button" class="header-btn" data-modal-open="#modal-login">Prihlásiť sa</button>
-          <button type="button" class="header-btn" data-modal-open="#user-form-panel">Registrovať sa</button>
+          <!-- ⬇️ Fallback link + modal trigger -->
+          <a href="{{ url_for('uzivatel.login') }}" class="header-btn" data-modal-open="#modal-login">Prihlásiť sa</a>
+          <a href="{{ url_for('uzivatel.registracia') }}" class="header-btn" data-modal-open="#user-form-panel">Registrovať sa</a>
         {% endif %}
       </div>
     </div>
@@ -81,7 +108,7 @@
     <button class="hamburger" onclick="toggleMenu()">☰</button>
     <div class="nav-wrapper">
       <nav class="main-nav">
-        <a href="{{ url_for('uzivatel.profil') if current_user.is_authenticated else url_for('uzivatel.index') }}">Domov</a>
+        <a href="{{ url_for('uzivatel.index') }}">Domov</a>
 
         {% if current_user.is_authenticated %}
           <a href="{{ url_for('dopyty.zobraz_dopyty') }}">📬 Dopyty</a>
@@ -105,50 +132,90 @@
   </div>
 </header>
 
-<div class="button-container">
-  {% if current_user.is_authenticated and request.endpoint != 'uzivatel.index' %}
-    <aside class="button-sidebar">
-      <a href="{{ url_for('uzivatel.profil') }}" class="sidebar-btn {% if request.endpoint == 'uzivatel.profil' %}active{% endif %}">👤 Profil</a>
-
-      {% if current_user.typ_subjektu != 'ico' %}
-        <a href="{{ url_for('skupina.skupina') }}" class="sidebar-btn {% if request.endpoint == 'skupina.skupina' %}active{% endif %}">🎸 Moja skupina</a>
-        <a href="{{ url_for('inzerat.moj_bazar') }}" class="sidebar-btn {% if request.endpoint == 'inzerat.moj_bazar' %}active{% endif %}">🛍️ Môj bazár</a>
+{# =======================
+   HOMEPAGE (FB štýl)
+   ======================= #}
+{% if request.endpoint == 'uzivatel.index' %}
+  <div class="home-grid">
+    <!-- ĽAVÝ PANEL -->
+    <aside class="home-left">
+      {% if current_user.is_authenticated %}
+        <a class="sidebar-btn" href="{{ url_for('uzivatel.profil') }}">👤 Profil</a>
+        {% if current_user.typ_subjektu != 'ico' %}
+          <a class="sidebar-btn" href="{{ url_for('skupina.skupina') }}">🎸 Moja skupina</a>
+          <a class="sidebar-btn" href="{{ url_for('inzerat.moj_bazar') }}">🛍️ Môj bazár</a>
+        {% endif %}
+        {% if has_feature(current_user, 'calendar') %}
+          <a class="sidebar-btn" href="{{ url_for('kalendar.kalendar') }}">📅 Kalendár</a>
+        {% endif %}
+        <a class="sidebar-btn" href="{{ url_for('spravy.inbox') }}">📨 Správy</a>
+        {% set can_events = (current_user.is_authenticated and (current_user.typ_subjektu == 'ico'
+            or current_user.is_admin or current_user.is_vip or (current_user.plan|default('free') == 'pro'))) %}
+        {% if can_events %}
+          <a class="sidebar-btn" href="{{ url_for('podujatie.moje') }}">📣 Moje podujatia</a>
+        {% endif %}
+        {% if current_user.typ_subjektu == 'ico' or current_user.is_admin %}
+          <a class="sidebar-btn" href="{{ url_for('reklama.moje') }}">📢 Moje reklamy</a>
+        {% endif %}
+      {% else %}
+        <a class="sidebar-btn" href="{{ url_for('komunita.hub', tab='ludia') }}">🔎 Hľadať hudobníkov</a>
+        <a class="sidebar-btn" href="{{ url_for('skupina.prehlad_skupin') }}">🎸 Nájsť skupiny</a>
+        <!-- Kľúčové: smer na domov + hash, aj data-modal-open -->
+        <a class="sidebar-btn" href="{{ url_for('uzivatel.index') }}#dopyt-form" data-modal-open="#dopyt-form">📢 Zadať dopyt</a>
       {% endif %}
-
-      {% if has_feature(current_user, 'calendar') %}
-        <a href="{{ url_for('kalendar.kalendar') }}" class="sidebar-btn {% if request.endpoint == 'kalendar.kalendar' %}active{% endif %}">📅 Kalendár</a>
-      {% endif %}
-
-      <a href="{{ url_for('spravy.inbox') }}" class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('spravy') %}active{% endif %}">📨 Správy</a>
-
-      {% set can_events = (current_user.is_authenticated and (current_user.typ_subjektu == 'ico' or
-          current_user.is_admin or
-          current_user.is_vip or
-          (current_user.plan|default('free') == 'pro')
-        )
-      ) %}
-
-      {% if can_events %}
-        <a href="{{ url_for('podujatie.moje') }}"
-          class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('podujatie.') %}active{% endif %}">
-          📣 Moje podujatia
-        </a>
-      {% endif %}
-        {% if current_user.is_authenticated and (current_user.typ_subjektu == 'ico' or current_user.is_admin) %}
-        <a href="{{ url_for('reklama.moje') }}"
-          class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('reklama.') %}active{% endif %}">
-          📢 Moje reklamy
-        </a>
-      {% endif %}
-
     </aside>
-    <main class="main-content">
-  {% else %}
-    <main class="main-no-sidebar">
-  {% endif %}
+
+    <!-- STRED (sem renderuje index.html svoj feed) -->
+    <main class="home-center">
+      {% block home_content %}{% endblock %}
+    </main>
+
+    <!-- PRAVÝ PANEL (voliteľné boxy) -->
+    <aside class="home-right">
+      {% block home_right %}
+        {# sem si môžeš dávať malé karty: “Novinky”, “TOP promo”, videá… #}
+      {% endblock %}
+    </aside>
+  </div>
+
+{# =======================
+   OSTATNÉ STRÁNKY
+   ======================= #}
+{% else %}
+  <div class="button-container">
+    {% if current_user.is_authenticated %}
+      <aside class="button-sidebar">
+        <a href="{{ url_for('uzivatel.profil') }}" class="sidebar-btn {% if request.endpoint == 'uzivatel.profil' %}active{% endif %}">👤 Profil</a>
+
+        {% if current_user.typ_subjektu != 'ico' %}
+          <a href="{{ url_for('skupina.skupina') }}" class="sidebar-btn {% if request.endpoint == 'skupina.skupina' %}active{% endif %}">🎸 Moja skupina</a>
+          <a href="{{ url_for('inzerat.moj_bazar') }}" class="sidebar-btn {% if request.endpoint == 'inzerat.moj_bazar' %}active{% endif %}">🛍️ Môj bazár</a>
+        {% endif %}
+
+        {% if has_feature(current_user, 'calendar') %}
+          <a href="{{ url_for('kalendar.kalendar') }}" class="sidebar-btn {% if request.endpoint == 'kalendar.kalendar' %}active{% endif %}">📅 Kalendár</a>
+        {% endif %}
+
+        <a href="{{ url_for('spravy.inbox') }}" class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('spravy') %}active{% endif %}">📨 Správy</a>
+
+        {% set can_events = (current_user.is_authenticated and (current_user.typ_subjektu == 'ico'
+            or current_user.is_admin or current_user.is_vip or (current_user.plan|default('free') == 'pro'))) %}
+        {% if can_events %}
+          <a href="{{ url_for('podujatie.moje') }}" class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('podujatie.') %}active{% endif %}">📣 Moje podujatia</a>
+        {% endif %}
+
+        {% if current_user.typ_subjektu == 'ico' or current_user.is_admin %}
+          <a href="{{ url_for('reklama.moje') }}" class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('reklama.') %}active{% endif %}">📢 Moje reklamy</a>
+        {% endif %}
+      </aside>
+    {% endif %}
+
+    {# ⚠️ JEDINÝ výskyt block content v celom base.html #}
+    <main class="{{ 'main-content' if current_user.is_authenticated else 'main-no-sidebar' }}">
       {% block content %}{% endblock %}
     </main>
-</div>
+  </div>
+{% endif %}
 
 {% include 'includes/novinky.html' %}
 
@@ -169,11 +236,49 @@
   </div>
 {% endif %}
 
-<!-- MODÁLNE FORMULÁRE (login/registrácia) -->
+<!-- MODÁLY -->
 {% include 'modals/prihlasenie.html' %}
 {% include 'modals/registracia.html' %}
 
-<!-- 🧹 Dedup len pre istotu -->
+
+<!-- Extra modal pre správy (unifikované triedy, BEZ inline štýlov) -->
+<div id="sprava-modal" class="modal-root" hidden aria-hidden="true" role="dialog" aria-labelledby="sprava-title">
+  <div class="modal-backdrop" data-modal-close></div>
+  <div class="modal-card">
+    <form id="sprava-form" method="POST" action="#">
+      <h3 id="sprava-title">Napísať reakciu</h3>
+      <input type="hidden" name="dopyt_id">
+      <div class="form-fields">
+        <label>Komu <input type="email" name="to" placeholder="prijímateľ" required></label>
+        <label>Predmet <input type="text" name="subject" required></label>
+        <label>Správa <textarea name="message" rows="6" placeholder="Tvoja ponuka, dostupnosť, cena…" required></textarea></label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-modal-close>Zavrieť</button>
+        <button type="submit" class="btn primary">Odoslať</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<section id="kontakt" class="kontakt">
+  <h2>Kontaktujte nás</h2>
+  <div class="kontakt-boxy">
+    <div class="kontakt-box"><h3>Email</h3><p><a href="mailto:info@muzikuj.sk">info@muzikuj.sk</a></p></div>
+    <div class="kontakt-box"><h3>Telefón</h3><p>+421 900 123 456</p></div>
+    <div class="kontakt-box"><h3>Sociálne siete</h3><p><a href="#">Facebook</a> | <a href="#">Instagram</a></p></div>
+  </div>
+</section>
+
+<footer><p>&copy; 2025 Muzikuj.sk | Všetky práva vyhradené</p></footer>
+
+<!-- Burger menu -->
+<script>
+  function toggleMenu(){ document.querySelector('.main-nav')?.classList.toggle('active'); }
+</script>
+
+<!-- Dedup modálov (ak by sa niekde vložili 2x) -->
 <script>
   (function () {
     ['modal-login', 'user-form-panel', 'dopyt-form', 'form-inzerat'].forEach(id => {
@@ -186,44 +291,7 @@
   })();
 </script>
 
-<section id="kontakt" class="kontakt">
-  <h2>Kontaktujte nás</h2>
-  <div class="kontakt-boxy">
-    <div class="kontakt-box"><h3>Email</h3><p><a href="mailto:info@muzikuj.sk">info@muzikuj.sk</a></p></div>
-    <div class="kontakt-box"><h3>Telefón</h3><p>+421 900 123 456</p></div>
-    <div class="kontakt-box"><h3>Sociálne siete</h3><p><a href="#">Facebook</a> | <a href="#">Instagram</a></p></div>
-  </div>
-</section>
-
-<!-- 📩 Správy – extra modal (ponechané) -->
-<div id="sprava-modal" class="modal" hidden aria-hidden="true" role="dialog" aria-labelledby="sprava-title">
-  <div class="modal-backdrop" data-modal-close style="position:fixed;inset:0;background:rgba(0,0,0,.5);"></div>
-  <div class="modal-panel" style="position:fixed;inset:10% auto auto 50%;transform:translateX(-50%);
-       max-width:620px;width:calc(100% - 2rem);background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);">
-    <form id="sprava-form" method="POST" action="#" style="padding:1rem;">
-      <h3 id="sprava-title" style="margin:0 0 .5rem 0;">Napísať reakciu</h3>
-      <input type="hidden" name="dopyt_id">
-      <div style="display:grid;gap:.75rem;">
-        <label>Komu <input type="email" name="to" placeholder="prijímateľ" required></label>
-        <label>Predmet <input type="text" name="subject" required></label>
-        <label>Správa <textarea name="message" rows="6" placeholder="Tvoja ponuka, dostupnosť, cena…" required></textarea></label>
-      </div>
-      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
-        <button type="button" class="btn" data-modal-close>Zavrieť</button>
-        <button type="submit" class="btn primary">Odoslať</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<footer><p>&copy; 2025 Muzikuj.sk | Všetky práva vyhradené</p></footer>
-
-<!-- drobná utilita pre burger -->
-<script>
-  function toggleMenu(){ document.querySelector('.main-nav')?.classList.toggle('active'); }
-</script>
-
-<!-- Jeden spoľahlivý správca modálov (portál + fokus) -->
+<!-- Správca modálov + fallback na URL, ak modal nie je v DOM (bez dopisovania štýlov) -->
 <script>
   (function () {
     if (window.__PORTAL_MODAL_MGR__) return; window.__PORTAL_MODAL_MGR__ = true;
@@ -231,53 +299,77 @@
     const $$ = (s, r=document) => [...r.querySelectorAll(s)];
     let lastOpener = null;
 
-    function toBodyTop(modal){
-      if (!modal) return;
-      if (modal.parentNode !== document.body || modal !== document.body.lastElementChild) {
-        document.body.appendChild(modal);
-      }
-      modal.style.position = 'fixed';
-      modal.style.inset = '0';
-      modal.style.zIndex = '2147483647';
-      modal.style.pointerEvents = 'auto';
-      const card = modal.querySelector('.modal-card, .modal-panel');
-      if (card) { card.style.position = 'relative'; card.style.zIndex = '2'; card.style.pointerEvents = 'auto'; }
-      const bd = modal.querySelector('.modal-backdrop');
-      if (bd)   { bd.style.zIndex = '1'; bd.style.pointerEvents = 'auto'; }
-    }
-    function focusFirst(modal){
-      const first = modal.querySelector('[autofocus], select, input, textarea, button, [href], [tabindex]:not([tabindex="-1"])');
-      if (first) { first.focus({preventScroll:true}); return; }
-      modal.setAttribute('tabindex', '-1'); modal.focus({preventScroll:true});
-    }
-    function getLast(sel){ const all = $$(sel); return all[all.length - 1] || null; }
-
     function openModal(selOrEl) {
-      const m = (typeof selOrEl === 'string') ? getLast(selOrEl) : selOrEl;
-      if (!m) return;
-      toBodyTop(m); m.hidden = false; m.setAttribute('aria-hidden','false'); m.classList.add('open');
-      document.body.classList.add('modal-open'); setTimeout(() => focusFirst(m), 0);
+      const isSelector = typeof selOrEl === 'string';
+      const m = isSelector ? $(selOrEl) : selOrEl;
+
+      if (!m) {
+        const sel = isSelector ? selOrEl : '';
+        if (sel === '#modal-login') {
+          window.location.href = "{{ url_for('uzivatel.login') }}";
+        } else if (sel === '#user-form-panel') {
+          window.location.href = "{{ url_for('uzivatel.registracia') }}";
+        } else if (sel === '#dopyt-form') {
+          window.location.href = "{{ url_for('uzivatel.index') }}#dopyt-form";
+        }
+        return;
+      }
+
+      // ŽIADNE dopisovanie štýlov – len toggly tried a aria
+      m.hidden = false;
+      m.setAttribute('aria-hidden','false');
+      m.classList.add('open');
+      document.body.classList.add('modal-open');
+
+      const first = m.querySelector('[autofocus], input, select, textarea, button, [href], [tabindex]:not([tabindex="-1"])');
+      if (first) first.focus({preventScroll:true});
     }
+
     function closeModal(node) {
       const m = node?.closest?.('.modal-root, .modal') || node; if (!m) return;
       if (m.contains(document.activeElement)) document.activeElement.blur();
-      m.classList.remove('open'); m.hidden = true; m.setAttribute('aria-hidden','true');
-      if (!$('.modal-root.open, .modal:not([hidden])')) document.body.classList.remove('modal-open');
+      m.classList.remove('open');
+      m.hidden = true;
+      m.setAttribute('aria-hidden','true');
+
+      if (!document.querySelector('.modal-root.open, .modal.open')) {
+        document.body.classList.remove('modal-open');
+      }
       if (lastOpener && document.body.contains(lastOpener)) lastOpener.focus({preventScroll:true});
     }
 
     document.addEventListener('click', (e) => {
-      const opener = e.target.closest('[data-modal-open]'); if (opener){ e.preventDefault(); lastOpener = opener; openModal(opener.getAttribute('data-modal-open')); return; }
-      const closer = e.target.closest('[data-modal-close], .modal-close'); if (closer){ e.preventDefault(); closeModal(closer); return; }
-      if (e.target.classList?.contains('modal-backdrop')) {e.preventDefault(); closeModal(e.target);}
+      const opener = e.target.closest('[data-modal-open]');
+      if (opener){
+        e.preventDefault();
+        lastOpener = opener;
+        openModal(opener.getAttribute('data-modal-open'));
+        return;
+      }
+      const closer = e.target.closest('[data-modal-close], .modal-close');
+      if (closer){ e.preventDefault(); closeModal(closer); return; }
+      if (e.target.classList?.contains('modal-backdrop')) { e.preventDefault(); closeModal(e.target); }
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.modal-root.open, .modal:not([hidden])').forEach(m => closeModal(m)); });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') $$('.modal-root.open, .modal.open').forEach(m => closeModal(m));
+    });
 
     window.openModal = openModal; window.closeModal = closeModal;
   })();
 </script>
 
-<!-- projektové skripty -->
+<!-- Auto-otvorenie dopytu pri príchode s #dopyt-form -->
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    if (location.hash === '#dopyt-form' && document.querySelector('#dopyt-form')) {
+      if (typeof window.openModal === 'function') window.openModal('#dopyt-form');
+    }
+  });
+</script>
+
+
+<!-- Projektové skripty -->
 <script src="{{ url_for('static', filename='main.js') }}" defer></script>
 <script src="{{ url_for('static', filename='vyskakovacie_okno.js') }}" defer></script>
 </body>

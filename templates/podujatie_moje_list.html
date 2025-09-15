@@ -1,0 +1,42 @@
+<hr style="margin:1.25rem 0;">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+  <section>
+    <h3 style="margin:.25rem 0;">Aktívne</h3>
+    <div class="list-rows">
+      {% for e in aktivne %}
+        <article class="list-row" style="display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;">
+          <div>
+            <strong>{{ e.nazov }}</strong><br>
+            <small>{{ e.start_dt.strftime('%d.%m.%Y • %H:%M') }}{% if e.miesto %} • {{ e.miesto }}{% endif %}</small>
+          </div>
+          <a class="btn sm" href="{{ url_for('podujatie.edit', id=e.id) }}">Upraviť</a>
+          <form method="POST" action="{{ url_for('podujatie.zmaz', id=e.id) }}" onsubmit="return confirm('Zmazať podujatie?')">
+            <button class="btn sm">Zmazať</button>
+          </form>
+        </article>
+      {% else %}
+        <p>Žiadne aktívne.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <h3 style="margin:.25rem 0;">Archív</h3>
+    <div class="list-rows">
+      {% for e in archiv %}
+        <article class="list-row" style="display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;">
+          <div>
+            <strong>{{ e.nazov }}</strong><br>
+            <small>{{ e.start_dt.strftime('%d.%m.%Y • %H:%M') }}{% if e.miesto %} • {{ e.miesto }}{% endif %}</small>
+          </div>
+          <a class="btn sm" href="{{ url_for('podujatie.edit', id=e.id) }}">Upraviť</a>
+          <form method="POST" action="{{ url_for('podujatie.zmaz', id=e.id) }}" onsubmit="return confirm('Zmazať podujatie?')">
+            <button class="btn sm">Zmazať</button>
+          </form>
+        </article>
+      {% else %}
+        <p>Žiadny archív.</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>

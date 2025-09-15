@@ -1,126 +1,317 @@
+{# templates/podujatie_moje.html #}
 {% extends "base.html" %}
-{% block title %}Moje podujatia | Muzikuj{% endblock %}
+{% block title %}Moje podujatie{% endblock %}
 
 {% block content %}
+{% set form_action = action or url_for('podujatie.vytvor') %}
 <section class="komunita-wrapper" style="padding:2rem;">
-  <h2 style="margin:0 0 1rem 0;">📣 Moje podujatia</h2>
+  <h2 style="margin-top:0;">Moje podujatie</h2>
 
-  <!-- Vytvoriť nové -->
-  <article class="card" style="padding:1rem; margin-bottom:1rem;">
-    <h3 style="margin-top:0;">Vytvoriť podujatie</h3>
-    <form action="{{ url_for('podujatie.vytvor') }}" method="POST" enctype="multipart/form-data" class="grid" style="gap:.75rem;">
-      <label>Názov
-        <input type="text" name="nazov" required>
-      </label>
-
-      <label>Organizátor
-        <input type="text" name="organizator" placeholder="(predvyplníš názvom organizácie)">
-      </label>
-
-      <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
-        <label>Dátum
-          <input type="date" name="datum" required>
-        </label>
-        <label>Čas
-          <input type="time" name="cas" required>
-        </label>
-        <label>Miesto
-          <input type="text" name="miesto" placeholder="Mesto / priestor">
-        </label>
-      </div>
-
-      <label>Popis
-        <textarea name="popis" rows="4" placeholder="Krátky popis podujatia"></textarea>
-      </label>
-
-      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
-        <label>Bulletin fotka (1 ks)
-          <input type="file" name="foto" accept="image/*">
-        </label>
-        <small style="color:#666;">Povolené: PNG, JPG, JPEG, WEBP, GIF</small>
-      </div>
-
+  <div class="evt-grid">
+    <!-- ĽAVO: formulár -->
+    <form method="POST" action="{{ form_action }}" enctype="multipart/form-data"
+          id="event-form" class="card evt-form">
       <div>
-        <button class="btn primary" type="submit">➕ Vytvoriť</button>
+        <div class="form-row">
+          <label>Názov</label>
+          <input class="input-line" type="text" name="nazov" id="inp-nazov"
+                 value="{{ event.nazov if event else '' }}" required>
+        </div>
+
+        <div class="form-row">
+          <label>Organizátor (voliteľné)</label>
+          <input class="input-line" type="text" name="organizator" id="inp-org"
+                 value="{{ event.organizator if event else '' }}">
+        </div>
+
+        <div class="form-row">
+          <label>Miesto</label>
+          <input class="input-line" type="text" name="miesto" id="inp-miesto"
+                 value="{{ event.miesto if event else '' }}">
+        </div>
+
+        <div class="form-row two">
+          <div>
+            <label>Dátum</label>
+            <input class="input-line" type="date" name="datum" id="inp-datum"
+                   value="{{ event.start_dt.strftime('%Y-%m-%d') if event and event.start_dt else '' }}" required>
+          </div>
+          <div>
+            <label>Začiatok</label>
+            <input class="input-line" type="time" name="cas" id="inp-cas"
+                   value="{{ event.start_dt.strftime('%H:%M') if event and event.start_dt else '' }}" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Vstupné (€) – voliteľné</label>
+          <input class="input-line" type="text" name="vstupne" id="inp-vstupne"
+                 value="{{ ('%.2f' % event.vstupne).rstrip('0').rstrip('.') if event and event.vstupne is not none else '' }}"
+                 inputmode="decimal" placeholder="napr. 9 alebo 9.90">
+        </div>
+
+        <div class="form-row">
+          <label>Popis</label>
+          <textarea class="input-area" name="popis" id="inp-popis" rows="6"
+                    placeholder="Krátky popis programu…">{{ event.popis if event else '' }}</textarea>
+        </div>
+
+        <div class="form-row">
+          <label>Obrázok podujatia (1 ks)</label>
+          <input class="input-file" type="file" name="foto" id="inp-foto" accept="image/*">
+          {% if event and event.foto_nazov %}
+            <div class="file-inline">
+              <small>Aktuálne: {{ event.foto_nazov }}</small>
+              <form method="POST" action="{{ url_for('podujatie.zmaz_foto', id=event.id) }}"
+                    onsubmit="return confirm('Odstrániť obrázok podujatia?');">
+                <button class="btn sm">Zmazať obrázok</button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+
+        <input type="hidden" name="zverejnit" value="1">
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn primary">🚀 Uložiť & zverejniť</button>
+        {% if event %}
+          <a class="btn" href="{{ url_for('podujatie.moje') }}">Nové podujatie</a>
+        {% endif %}
       </div>
     </form>
-  </article>
 
-  <!-- AKTÍVNE -->
-<h3 style="margin:1rem 0 .5rem 0;">Aktívne</h3>
-{% if aktivne and aktivne|length %}
-  <div class="list-rows">
-    {% for e in aktivne %}
-    <article class="list-row" style="display:grid; grid-template-columns:80px 1fr auto; gap:1rem; align-items:center;">
-      <div>
-        <img src="{{ e.foto_url }}" alt="Foto podujatia"
-             style="width:72px;height:72px;object-fit:cover;border-radius:.5rem;display:block;">
-      </div>
-      <div class="text-clip">
-        <div style="font-weight:600;">{{ e.nazov }}</div>
-        <div class="meta" style="color:#666;">
-          {{ e.organizator or '—' }} • {{ e.miesto or '—' }} • {{ e.start_dt | localtime('%d.%m.%Y %H:%M') }}
+    <!-- PRAVO: živý náhľad -->
+    {% set default_img = url_for('static', filename='podujatia/default-event.jpg') %}
+    {% set current_img = (url_for('static', filename='podujatia/' ~ event.foto_nazov) if event and event.foto_nazov else default_img) %}
+
+    <article class="card evt-preview">
+      <div class="preview-copy">
+        <h4 id="prev-nazov" class="prev-title">
+          {{ event.nazov if event else 'Názov podujatia' }}
+        </h4>
+        <div id="prev-meta" class="prev-meta">
+          {% if event and event.start_dt %}
+            {{ event.start_dt.strftime('%d.%m.%Y') }} • {{ event.start_dt.strftime('%H:%M') }}{% if event.miesto %} • {{ event.miesto }}{% endif %}
+          {% else %}
+            01.08.2025 • 19:00 • Bratislava
+          {% endif %}
         </div>
-        {% if e.popis %}<div style="color:#444;margin-top:.25rem;white-space:pre-wrap;">{{ e.popis }}</div>{% endif %}
+        <div id="prev-vstupne" class="prev-price">
+          {% if event and event.vstupne is not none %}
+            Vstupné: {{ ('%.2f' % event.vstupne).rstrip('0').rstrip('.') }} €
+          {% endif %}
+        </div>
+        <p id="prev-popis" class="prev-desc">
+          {{ event.popis if event else 'Krátky popis programu…' }}
+        </p>
       </div>
-      <div class="row-actions" style="display:flex; gap:.5rem; align-items:center;">
-        <a class="btn sm" href="{{ url_for('podujatie.edit', id=e.id) }}">✏️ Upraviť</a>
 
-        <form action="{{ url_for('podujatie.upload_foto', id=e.id) }}" method="POST" enctype="multipart/form-data">
-          <label class="btn sm">
-            Zmeniť fotku
-            <input type="file" name="foto" accept="image/*" hidden onchange="this.form.submit()">
-          </label>
-        </form>
+      <div class="preview-toolbar">
+        <label class="fit-opt">
+          <input type="radio" name="fitMode" value="contain" checked>
+          Bez orezania
+        </label>
+        <label class="fit-opt">
+          <input type="radio" name="fitMode" value="cover">
+          Orez (vyplniť)
+        </label>
+      </div>
 
-        {% if e.foto_nazov %}
-        <form action="{{ url_for('podujatie.zmaz_foto', id=e.id) }}" method="POST"
-              onsubmit="return confirm('Odstrániť fotku tohto podujatia?');">
-          <button class="btn sm" type="submit">Zmazať fotku</button>
-        </form>
-        {% endif %}
-
-        <form action="{{ url_for('podujatie.zmaz', id=e.id) }}" method="POST"
-              onsubmit="return confirm('Zmazať celé podujatie?');">
-          <button class="btn" type="submit">🗑️ Zmazať</button>
-        </form>
+      <div class="preview-frame">
+        <img id="preview-img" src="{{ current_img }}" alt="Náhľad">
       </div>
     </article>
-    {% endfor %}
   </div>
-{% else %}
-  <p style="color:#666;">Žiadne aktívne podujatia.</p>
-{% endif %}
 
-<!-- ARCHÍV -->
-<h3 style="margin:1.25rem 0 .5rem 0;">Archív</h3>
-{% if archiv and archiv|length %}
-  <div class="list-rows">
-    {% for e in archiv %}
-    <article class="list-row" style="display:grid; grid-template-columns:80px 1fr auto; gap:1rem; align-items:center; opacity:.9;">
-      <div>
-        <img src="{{ e.foto_url }}" alt="Foto podujatia"
-             style="width:72px;height:72px;object-fit:cover;border-radius:.5rem;display:block;">
+  <hr style="margin:1.25rem 0;">
+  <div class="evt-lists">
+    <section>
+      <h3>Aktívne</h3>
+      <div class="list-rows">
+        {% for e in aktivne %}
+          <article class="list-row evt-row">
+            <div>
+              <strong>{{ e.nazov }}</strong><br>
+              <small>{{ e.start_dt.strftime('%d.%m.%Y • %H:%M') }}{% if e.miesto %} • {{ e.miesto }}{% endif %}</small>
+            </div>
+            <a class="btn sm" href="{{ url_for('podujatie.edit', id=e.id) }}">Upraviť</a>
+            <form method="POST" action="{{ url_for('podujatie.zmaz', id=e.id) }}"
+                  onsubmit="return confirm('Zmazať podujatie?')">
+              <button class="btn sm">Zmazať</button>
+            </form>
+          </article>
+        {% else %}
+          <p>Žiadne aktívne.</p>
+        {% endfor %}
       </div>
-      <div class="text-clip">
-        <div style="font-weight:600;">{{ e.nazov }}</div>
-        <div class="meta" style="color:#666;">
-          {{ e.organizator or '—' }} • {{ e.miesto or '—' }} • {{ e.start_dt | localtime('%d.%m.%Y %H:%M') }}
-        </div>
-        {% if e.popis %}<div style="color:#444;margin-top:.25rem;white-space:pre-wrap;">{{ e.popis }}</div>{% endif %}
+    </section>
+
+    <section>
+      <h3>Archív</h3>
+      <div class="list-rows">
+        {% for e in archiv %}
+          <article class="list-row evt-row">
+            <div>
+              <strong>{{ e.nazov }}</strong><br>
+              <small>{{ e.start_dt.strftime('%d.%m.%Y • %H:%M') }}{% if e.miesto %} • {{ e.miesto }}{% endif %}</small>
+            </div>
+            <a class="btn sm" href="{{ url_for('podujatie.edit', id=e.id) }}">Upraviť</a>
+            <form method="POST" action="{{ url_for('podujatie.zmaz', id=e.id) }}"
+                  onsubmit="return confirm('Zmazať podujatie?')">
+              <button class="btn sm">Zmazať</button>
+            </form>
+          </article>
+        {% else %}
+          <p>Žiadny archív.</p>
+        {% endfor %}
       </div>
-      <div class="row-actions" style="display:flex; gap:.5rem; align-items:center;">
-        <a class="btn sm" href="{{ url_for('podujatie.edit', id=e.id) }}">✏️ Upraviť</a>
-        <form action="{{ url_for('podujatie.zmaz', id=e.id) }}" method="POST"
-              onsubmit="return confirm('Zmazať celé podujatie?');">
-          <button class="btn" type="submit">🗑️ Zmazať</button>
-        </form>
-      </div>
-    </article>
-    {% endfor %}
+    </section>
   </div>
-{% else %}
-  <p style="color:#666;">Archív je prázdny.</p>
-{% endif %}
 </section>
+
+<style>
+  .evt-grid{
+    display:grid;
+    grid-template-columns: 340px minmax(0,1fr);
+    gap:1.25rem;
+    align-items: stretch; /* NATIAHNE OBA STĹPCE NA ROVNAKÚ VÝŠKU */
+  }
+  
+  .evt-form{
+  flex:0 0 340px;           /* šírku si vieš upraviť (napr. 320–380px) */
+  display:flex;
+  flex-direction:column;
+  margin:0;                 /* žiadne spodné margíny, nech nič „nepreteká“ */
+  }
+  
+  .evt-preview{
+    display:flex;
+    flex-direction:column;
+    padding:0;
+    overflow:hidden;
+    height:100%;                /* vyrovnanie výšky s formulárom */
+  }
+
+  .form-row{ margin-bottom:.85rem; }
+  .form-row.two{ display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+  .input-line, .input-area, .input-file{
+    width:100%; padding:.6rem .2rem .5rem .2rem;
+    border:none; border-bottom:1px solid #ddd; background:transparent; outline:none;
+  }
+  .input-area{ min-height:120px; resize:vertical; }
+  .input-line:focus, .input-area:focus{ border-bottom-color:#999; }
+  .file-inline{ margin-top:.5rem; display:flex; gap:.5rem; align-items:center; }
+  .form-actions{ margin-top:.9rem; display:flex; gap:.5rem; }
+
+  .preview-copy{ padding:1rem 1rem .6rem 1rem; }
+  .prev-title{ margin:.1rem 0 .35rem 0; }
+  .prev-meta{ color:#666; font-size:.95rem; margin-bottom:.3rem; }
+  .prev-price{ color:#444; font-size:.95rem; margin-bottom:.4rem; }
+  .prev-desc{ margin:.35rem 0 0 0; white-space:pre-wrap; }
+
+  .preview-toolbar{
+    display:flex; gap:1rem; align-items:center;
+    padding:.6rem 1rem .4rem 1rem; border-top:1px solid #eee;
+  }
+  .preview-toolbar .fit-opt{ display:flex; align-items:center; gap:.35rem; font-size:.95rem; }
+
+  .preview-frame{
+    position:relative; aspect-ratio:16/9; background:#fff;
+    border-top:1px solid #eee;
+    flex-grow:1;               /* zaberie zvyšok a dorovná výšku kľudne aj pri malom texte */
+  }
+  .preview-frame img{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit: contain; object-position: center; /* default: bez orezania */
+    display:block;
+  }
+
+  .evt-lists{ display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
+  .evt-row{ display:grid; grid-template-columns:1fr auto auto; gap:.5rem; align-items:center; }
+
+@media (max-width: 980px){
+  .evt-grid{ grid-template-columns: 1fr; }
+  .evt-grid > .card{ height:auto; }
+}
+
+</style>
+
+<script>
+  // Živý náhľad textov/meta + obrázka
+  (function(){
+    const $ = s => document.querySelector(s);
+    const nazov  = $('#inp-nazov');
+    const datum  = $('#inp-datum');
+    const cas    = $('#inp-cas');
+    const miesto = $('#inp-miesto');
+    const popis  = $('#inp-popis');
+    const vstup  = $('#inp-vstupne');
+    const file   = $('#inp-foto');
+
+    const prevNazov = $('#prev-nazov');
+    const prevMeta  = $('#prev-meta');
+    const prevPopis = $('#prev-popis');
+    const prevVst   = $('#prev-vstupne');
+    const prevImg   = $('#preview-img');
+
+    function render(){
+      const n = nazov?.value?.trim() || 'Názov podujatia';
+      const d = datum?.value || '';
+      const c = cas?.value || '';
+      const m = miesto?.value?.trim() || '';
+      const p = popis?.value || '';
+      const v = vstup?.value?.trim();
+
+      prevNazov.textContent = n;
+
+      let meta = '';
+      if (d) {
+        try {
+          const dt = new Date(d);
+          const dd = String(dt.getDate()).padStart(2,'0');
+          const mm = String(dt.getMonth()+1).padStart(2,'0');
+          const yyyy = dt.getFullYear();
+          meta += `${dd}.${mm}.${yyyy}`;
+        } catch {}
+      }
+      if (c) meta += (meta ? ' • ' : '') + c;
+      if (m) meta += (meta ? ' • ' : '') + m;
+      prevMeta.textContent = meta || '01.08.2025 • 19:00 • Bratislava';
+
+      prevPopis.textContent = p || 'Krátky popis programu…';
+      prevVst.textContent = v ? `Vstupné: ${v.replace(',', '.')} €` : '';
+    }
+
+    [nazov, datum, cas, miesto, popis, vstup].forEach(el => el && el.addEventListener('input', render));
+    render();
+
+    if (file) {
+      file.addEventListener('change', () => {
+        const f = file.files && file.files[0];
+        if (!f) return;
+        const url = URL.createObjectURL(f);
+        prevImg.onload = () => URL.revokeObjectURL(url);
+        prevImg.src = url;
+      });
+    }
+  })();
+
+  // Prepínač orezania (contain/cover)
+  (function(){
+    const img = document.getElementById('preview-img');
+    const fitRadios = document.querySelectorAll('input[name="fitMode"]');
+
+    function applyFit(mode){
+      img.style.objectFit = (mode === 'cover') ? 'cover' : 'contain';
+      img.style.objectPosition = 'center';
+    }
+    function refresh(){ applyFit(Array.from(fitRadios).find(r => r.checked)?.value || 'contain'); }
+
+    fitRadios.forEach(r => r.addEventListener('change', refresh));
+
+    if (img.complete && img.naturalWidth) refresh();
+    else img.addEventListener('load', refresh);
+  })();
+</script>
 {% endblock %}

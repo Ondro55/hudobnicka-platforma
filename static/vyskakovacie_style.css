@@ -1,0 +1,44 @@
+/* === Unified modal system (vyskakovacie_okno.css) === */
+:root{
+  --modal-max-w: 720px;
+  --modal-radius: 14px;
+  --modal-shadow: 0 20px 60px rgba(0,0,0,.35);
+}
+body.modal-open{ overflow:hidden; }
+
+/* Root (podporujem tvoje staré aj nové triedy) */
+.mu-modal, .modal-root, .modal{
+  position:fixed; inset:0; display:none;
+}
+.mu-modal.open, .modal-root.open, .modal.open{ display:block; }
+.mu-modal[hidden], .modal-root[hidden], .modal[hidden]{ display:none !important; }
+
+/* Backdrop */
+.mu-backdrop, .modal-backdrop{
+  position:absolute; inset:0; background:rgba(0,0,0,.5);
+}
+
+/* Panel/karta */
+.mu-card, .modal-card, .modal-panel{
+  position:absolute; left:50%; top:10%; transform:translateX(-50%);
+  width:min(var(--modal-max-w), calc(100% - 2rem));
+  background:var(--pozadie, #fff);
+  color:var(--text, #111);
+  border-radius:var(--modal-radius);
+  box-shadow:var(--modal-shadow);
+  padding:1rem;
+}
+
+.modal-card h3, .modal-panel h3, .mu-card h3{ margin:0 0 .75rem 0; }
+
+/* Layout polí formulára – voliteľné, nech to drží pekne */
+.form-fields{ display:grid; gap:.75rem; }
+.form-fields .row-2{ display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+@media (max-width:600px){ .form-fields .row-2{ grid-template-columns:1fr; } }
+
+.modal-actions, .mu-actions{
+  display:flex; justify-content:flex-end; gap:.5rem; margin-top:1rem;
+}
+
+/* Tlačidlá – využívam tvoje CSS premenné, ak ich máš */
+.btn.primary{ background:var(--tlacidlo, #1a73e8); color:#fff; }

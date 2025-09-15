@@ -1,79 +1,101 @@
 {% extends 'base.html' %}
-{% block title %}Muzikuj.sk - Domov{% endblock %}
+{% block title %}Muzikuj.sk – Domov{% endblock %}
 
-{% block content %}
-<section class="hero-grid">
-  <div class="pulzujuci-kruh" role="button" tabindex="0" data-modal-open="#dopyt-form">
-    🔍 Nájdi si kapelu<br>Zadaj dopyt
-  </div>
-
-  <div class="hero-uvod">
-    <h1>Vitajte na Muzikuj.sk</h1>
-    <a href="#" class="btn">Zisti viac</a>
-  </div>
-
-  <div class="hero-media">
-    <img src="{{ url_for('static', filename='galeria/hudba.jpg') }}" alt="hudba" />
-  </div>
-</section>
-
-{% if events %}
-<section class="home-events" style="padding:1.25rem 0;">
-  <h2 style="margin:0 0 .75rem 0;">📣 Podujatia</h2>
-  <div class="events-grid" style="display:grid; gap:.75rem; grid-template-columns:repeat(auto-fill,minmax(220px,1fr));">
-    {% for e in events %}
-      <article class="event-card" style="border:1px solid #eee;border-radius:.75rem;overflow:hidden;background:#fff;">
-        <div style="height:120px;overflow:hidden;">
-          <img src="{{ e.foto_url }}" alt="Foto podujatia"
-               style="width:100%;height:120px;object-fit:cover;display:block;">
-        </div>
-        <div style="padding:.6rem .75rem;">
-          <div style="font-weight:700;" class="text-clip">{{ e.nazov }}</div>
-          <div class="meta" style="color:#666;">
-            {{ e.start_dt | localtime('%d.%m.%Y %H:%M') }}{% if e.miesto %} • {{ e.miesto }}{% endif %}
+{% block home_content %}
+  {# ========== STREDNÝ FEED ========== #}
+  <div id="home-feed">
+    {% if feed and feed|length %}
+      {% for kind, ts, obj in feed %}
+        <article class="feed-card {{ 'is-ad' if kind=='ad' else 'is-event' }}">
+          <img src="{{ obj.foto_url }}" alt="" class="cover">
+          <div class="copy">
+            {% if kind == 'event' %}
+              <h3 class="title">{{ obj.nazov }}</h3>
+              <div class="meta">
+                {{ obj.start_dt|localtime('%d.%m.%Y %H:%M') }}{% if obj.miesto %} • {{ obj.miesto }}{% endif %}
+              </div>
+              {% if obj.organizator %}<div class="meta">{{ obj.organizator }}</div>{% endif %}
+            {% else %}
+              <h3 class="title">Promo: {{ obj.nazov }} {% if obj.is_top %}<span class="badge">TOP</span>{% endif %}</h3>
+              {% if obj.text %}<p class="desc">{{ obj.text }}</p>{% endif %}
+              {% if obj.url %}<a class="link" href="{{ obj.url }}" target="_blank" rel="noopener">Viac »</a>{% endif %}
+            {% endif %}
           </div>
-          {% if e.organizator %}<div style="color:#444;margin-top:.25rem;">{{ e.organizator }}</div>{% endif %}
-        </div>
-      </article>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-<section class="feed" style="padding:1rem 0;">
-  <div style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-bottom:.5rem;">
-    <a class="chip {% if typ=='vsetko' %}active{% endif %}" href="{{ url_for('uzivatel.index', typ='vsetko') }}">Všetko</a>
-    <a class="chip {% if typ=='podujatia' %}active{% endif %}" href="{{ url_for('uzivatel.index', typ='podujatia') }}">Podujatia</a>
-    <a class="chip {% if typ=='reklamy' %}active{% endif %}" href="{{ url_for('uzivatel.index', typ='reklamy') }}">Reklamy</a>
-  </div>
-
-  {% if feed and feed|length %}
-    <div class="list-rows">
-      {% for kind, ts, item in feed %}
-        {% if kind == 'event' %}
-          <article class="list-row" style="display:grid; grid-template-columns:80px 1fr; gap:1rem; align-items:center;">
-            <div><img src="{{ item.foto_url }}" alt="Podujatie" style="width:72px;height:72px;object-fit:cover;border-radius:.5rem;"></div>
-            <div class="text-clip">
-              <div><strong>{{ item.nazov }}</strong></div>
-              <div class="meta" style="color:#666;">{{ item.start_dt|localtime('%d.%m.%Y %H:%M') }}{% if item.miesto %} • {{ item.miesto }}{% endif %}</div>
-              {% if item.organizator %}<div style="color:#444;">{{ item.organizator }}</div>{% endif %}
-            </div>
-          </article>
-        {% else %}
-          <article class="list-row" style="display:grid; grid-template-columns:80px 1fr; gap:1rem; align-items:center; border-left:4px solid rgba(182,140,98,.4);">
-            <div><img src="{{ item.foto_url }}" alt="Reklama" style="width:72px;height:72px;object-fit:cover;border-radius:.5rem;"></div>
-            <div class="text-clip">
-              <div><strong>Reklama:</strong> {{ item.nazov }} {% if item.is_top %}<span class="role-badge">TOP</span>{% endif %}</div>
-              {% if item.text %}<div style="color:#444;">{{ item.text }}</div>{% endif %}
-              {% if item.url %}<div><a href="{{ item.url }}" target="_blank" rel="noopener">Viac »</a></div>{% endif %}
-            </div>
-          </article>
-        {% endif %}
+        </article>
       {% endfor %}
-    </div>
-  {% else %}
-    <p style="color:#666;">Zatiaľ žiadne novinky.</p>
-  {% endif %}
-</section>
+    {% else %}
+      <p class="empty">Zatiaľ žiadne novinky.</p>
+    {% endif %}
+  </div>
 
-{% include 'modals/dopyt_form.html' %}
+  <style>
+    #home-feed{ max-width: 720px; margin: 0 auto; }
+    .feed-card{ border:1px solid #eee; border-radius:12px; overflow:hidden; background:#fff; margin-bottom:12px; }
+    .feed-card.is-ad{ border-left:4px solid rgba(182,140,98,.45); }
+    .feed-card .cover{ width:100%; height:320px; object-fit:cover; display:block; }
+    .feed-card .copy{ padding:12px 14px; }
+    .feed-card .title{ margin:0 0 6px 0; font-size:1.1rem; }
+    .feed-card .badge{ background:#e6d2b8; padding:.05rem .4rem; border-radius:.4rem; font-size:.8rem; }
+    .feed-card .meta{ color:#666; font-size:.95rem; }
+    .feed-card .desc{ margin:.35rem 0 0; }
+    .empty{ color:#666; text-align:center; padding:20px 0; }
+    @media (max-width:640px){ .feed-card .cover{ height:220px; } }
+  </style>
+
+ 
+  {# ===== MODAL „Zadať dopyt“ – unifikované triedy ===== #}
+  <div id="dopyt-form" class="modal-root" hidden aria-hidden="true" role="dialog" aria-labelledby="dopyt-title">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-card">
+      <form id="form-dopyt" method="POST" action="#">
+        <h3 id="dopyt-title">📢 Zadať dopyt</h3>
+
+        <div class="form-fields">
+          <label>Názov dopytu
+            <input type="text" name="nazov" placeholder="Hľadám kapelu na svadbu" required>
+          </label>
+
+          <div class="row-2">
+            <label>Dátum
+              <input type="date" name="datum" required>
+            </label>
+            <label>Čas (od – do)
+              <input type="text" name="cas" placeholder="19:00 – 00:00">
+            </label>
+          </div>
+
+          <div class="row-2">
+            <label>Mesto / Obec
+              <input type="text" name="mesto" placeholder="Bratislava" required>
+            </label>
+            <label>Rozpočet (EUR)
+              <input type="number" name="rozpocet" min="0" step="1" placeholder="500">
+            </label>
+          </div>
+
+          <label>Popis
+            <textarea name="popis" rows="6" placeholder="Typ akcie, žáner, dĺžka hrania, technické požiadavky…" required></textarea>
+          </label>
+
+          <div class="row-2">
+            <label>Kontakt (e-mail)
+              <input type="email" name="email" placeholder="tvoj@email.sk" required>
+            </label>
+            <label>Telefón
+              <input type="tel" name="telefon" placeholder="+421 9..">
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn" data-modal-close>Zavrieť</button>
+          <button type="submit" class="btn primary">Odoslať dopyt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block home_right %}
+  {# pravý stĺpec – zatiaľ prázdny alebo novinky neskôr #}
 {% endblock %}

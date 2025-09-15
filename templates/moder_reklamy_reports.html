@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Nahlásenia reklám{% endblock %}
+
+{% block content %}
+<section class="komunita-wrapper" style="padding:2rem;">
+  <h2 style="margin:0 0 1rem 0;">Nahlásenia reklám</h2>
+
+  <div class="list-rows">
+    {% for rep in reports %}
+      {% set ad = rep.reklama %} {# <<< definujem 'ad' z rep.reklama, aby šablóna nepádla #}
+
+      <article class="list-row" style="align-items:flex-start; gap:1rem;">
+        <div style="min-width:180px;max-width:180px;">
+          {% if ad and ad.foto_url %}
+            <img src="{{ ad.foto_url }}" alt="" style="width:100%;height:auto;border-radius:.5rem;">
+          {% else %}
+            <div style="width:100%;aspect-ratio:16/9;border:1px dashed #ddd;border-radius:.5rem;display:grid;place-items:center;color:#888;">
+              bez obrázka
+            </div>
+          {% endif %}
+        </div>
+
+        <div style="flex:1 1 auto;">
+          <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;">
+            <div>
+              <strong>{{ ad.nazov if ad else '—' }}</strong><br>
+              <small>
+                Reportoval:
+                {{ rep.reporter.prezyvka or rep.reporter.email if rep.reporter else '—' }}
+                • {{ rep.created_at.strftime('%d.%m.%Y %H:%M') if rep.created_at else '' }}
+              </small>
+            </div>
+            {% if ad and ad.url %}
+              <a class="btn sm" href="{{ ad.url }}" target="_blank" rel="noopener">Otvoriť URL</a>
+            {% endif %}
+          </div>
+
+          <div style="margin:.5rem 0;">
+            <span class="badge" style="border:1px solid #ddd;padding:.15rem .4rem;border-radius:.35rem;">
+              Dôvod: {{ rep.reason }}
+            </span>
+            {% if rep.details %}
+              <div style="margin-top:.35rem;white-space:pre-wrap;color:#444;">{{ rep.details }}</div>
+            {% endif %}
+          </div>
+
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
+            <form method="post" action="{{ url_for('moderacia.reklamy_report_action', rid=rep.id, action='keep') }}">
+              <button class="btn sm">Ponechať</button>
+            </form>
+            <form method="post" action="{{ url_for('moderacia.reklamy_report_action', rid=rep.id, action='pause') }}">
+              <button class="btn sm">Pozastaviť</button>
+            </form>
+            <form method="post" action="{{ url_for('moderacia.reklamy_report_action', rid=rep.id, action='remove') }}"
+                  onsubmit="return confirm('Naozaj zmazať túto reklamu?')">
+              <button class="btn sm">Zmazať</button>
+            </form>
+          </div>
+        </div>
+      </article>
+    {% else %}
+      <p>Žiadne otvorené nahlásenia.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

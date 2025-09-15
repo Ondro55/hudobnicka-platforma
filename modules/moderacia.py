@@ -1,9 +1,11 @@
 # modules/moderacia.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
-from flask_login import current_user
-from models import db, Report, ModerationLog, Pouzivatel, Dopyt, Sprava, Inzerat
+import os
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, current_app
+from flask_login import current_user, login_required
+from models import db, Report, ModerationLog, Pouzivatel, Dopyt, Sprava, Inzerat, Reklama, ReklamaReport
 from datetime import datetime, timedelta
 from utils.auth import admin_required, mod_required
+from sqlalchemy.orm import joinedload
 
 moder_bp = Blueprint("moderacia", __name__, url_prefix="/admin")
 
@@ -163,3 +165,56 @@ def enqueue_report(entity_type: str, entity_id: int, reason: str, details: str, 
     db.session.commit()
     return r
 
+@moder_bp.route('/reklamy/nahlasenia', methods=['GET'])
+@login_required
+def reklamy_reports():
+    if not (current_user.is_admin or current_user.is_moderator):
+        abort(403)
+    reps = (ReklamaReport.query
+            .options(
+                joinedload(ReklamaReport.reklama),
+                joinedload(ReklamaReport.reporter)
+            )
+            .filter_by(handled=False)
+            .order_by(ReklamaReport.created_at.asc())
+            .all())
+    return render_template('moder_reklamy_reports.html', reports=reps)
+
+
+@moder_bp.route('/reklamy/report/<int:rid>/<action>', methods=['POST'])
+@login_required
+def reklamy_report_action(rid, action):
+    if not (current_user.is_admin or current_user.is_moderator):
+        abort(403)
+    rep = ReklamaReport.query.get_or_404(rid)
+    ad = Reklama.query.get(rep.reklama_id)
+
+    if action == 'keep':
+        rep.action = 'keep'
+
+    elif action == 'pause' and ad:
+        # Minimal pauza: ukonči zobrazovanie hneď teraz
+        ad.end_dt = datetime.utcnow()
+        rep.action = 'pause'
+
+    elif action == 'remove' and ad:
+        # Zmaž súbor aj záznam
+        try:
+            if ad.foto_nazov:
+                p = os.path.join(current_app.root_path, 'static', 'reklamy', ad.foto_nazov)
+                if os.path.exists(p):
+                    os.remove(p)
+            db.session.delete(ad)
+        except Exception:
+            pass
+        rep.action = 'remove'
+
+    else:
+        abort(400)
+
+    rep.handled = True
+    rep.handled_by = current_user.id
+    rep.handled_at = datetime.utcnow()
+    db.session.commit()
+    flash('Nahlásenie spracované.', 'success')
+    return redirect(url_for('moderacia.reklamy_reports'))
