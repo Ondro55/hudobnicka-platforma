@@ -5,44 +5,55 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Muzikuj{% endblock %}</title>
 
-  <!-- Štýly -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Open+Sans&display=swap" rel="stylesheet" />
+
+  <!-- 1) Tokens & Base -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+
+  <!-- 2) Layout -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/header.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/sidebar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/footer.css') }}">
+
+  <!-- 3) Components -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/button.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/modal.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/sidebar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/alert.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/role-badge.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/header-icons.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/mini-list.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/filterbar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/grids.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/card.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/novinky.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/notice.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/formbox.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/utils.css') }}">
+
+  <!-- 4) Forms -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+
+  <!-- 5) Pages -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/home.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/kontakt.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/podujatie.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/reklama.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/registracia.css') }}">
+
+  <!-- 6) Špecifické sekcie -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/profil.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/skupina.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/vyskakovacie_okno.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/kalendar.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/inzerat.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/komunita.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/spravy.css') }}">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Open+Sans&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dopyty.css') }}">
 
-  <!-- Minimal CSS len pre FB home grid (nezávislé od zvyšku) -->
-  <style>
-    .home-grid{
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 260px minmax(0, 1fr) 300px;
-      gap: 1rem;
-      padding: 1rem;
-      box-sizing: border-box;
-    }
-    .home-left, .home-right{
-      position: sticky; top: 84px;
-      align-self: start;
-      display: flex; flex-direction: column; gap: .5rem;
-    }
-    .home-center{ min-width: 0; }
-    .home-right > .card{ padding: .75rem; }
-    .home-main{ max-width:1100px; margin:0 auto; padding:1rem; }
-    .sidebar-btn{ display:block; width:100%; text-decoration:none; }
-    .role-badge{ display:inline-flex; align-items:center; gap:.25rem; padding:.1rem .4rem; border-radius:.4rem; background:#eee; font-size:.8rem; }
-    .role-badge.admin{ background:#fee2e2; }
-    .role-badge.mod{ background:#e0f2fe; }
-    .flash-message{ margin:.35rem auto; max-width:1100px; padding:.6rem .8rem; border-radius:.5rem; background:#fff3cd; border:1px solid #ffe69c; }
-    .flash-message.success{ background:#e6ffed; border-color:#b7f0c0; }
-    .flash-message.danger{ background:#ffeaea; border-color:#ffb3b3; }
-  </style>
+  <!-- 7) Poistka (legacy spoločné štýly – môže zostať prázdny) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body data-zobraz="{{ zobraz_formular }}">
@@ -60,8 +71,8 @@
       <div class="user-panel">
         {% if current_user.is_authenticated %}
           <a href="{{ url_for('spravy.inbox') }}"
-            class="msg-icon {{ 'has-unread' if neprecitane_count and neprecitane_count > 0 else '' }}"
-            aria-label="Správy" title="Správy">
+             class="msg-icon {{ 'has-unread' if neprecitane_count and neprecitane_count > 0 else '' }}"
+             aria-label="Správy" title="Správy">
             <span class="icon">✉️</span>
             {% if neprecitane_count and neprecitane_count > 0 %}
               <span class="badge">{{ neprecitane_count }}</span>
@@ -70,8 +81,8 @@
 
           {% set has_unread = (neprecitane_forum_count|default(0)|int) > 0 %}
           <a href="{{ url_for('forum.goto_unread') if has_unread else url_for('komunita.hub', tab='forum') + '#tab-forum' }}"
-            class="msg-icon {{ 'has-unread' if has_unread else '' }}"
-            aria-label="Fórum" title="Fórum">
+             class="msg-icon {{ 'has-unread' if has_unread else '' }}"
+             aria-label="Fórum" title="Fórum">
             <span class="icon">💬</span>
             {% if has_unread %}
               <span class="badge">{{ neprecitane_forum_count|default(0)|int }}</span>
@@ -96,7 +107,6 @@
           <a href="{{ url_for('uzivatel.profil') }}" class="header-btn">Moje konto</a>
           <a href="{{ url_for('uzivatel.logout') }}" class="header-btn logout-btn">Odhlásiť sa</a>
         {% else %}
-          <!-- ⬇️ Fallback link + modal trigger -->
           <a href="{{ url_for('uzivatel.login') }}" class="header-btn" data-modal-open="#modal-login">Prihlásiť sa</a>
           <a href="{{ url_for('uzivatel.registracia') }}" class="header-btn" data-modal-open="#user-form-panel">Registrovať sa</a>
         {% endif %}
@@ -160,21 +170,18 @@
       {% else %}
         <a class="sidebar-btn" href="{{ url_for('komunita.hub', tab='ludia') }}">🔎 Hľadať hudobníkov</a>
         <a class="sidebar-btn" href="{{ url_for('skupina.prehlad_skupin') }}">🎸 Nájsť skupiny</a>
-        <!-- Kľúčové: smer na domov + hash, aj data-modal-open -->
         <a class="sidebar-btn" href="{{ url_for('uzivatel.index') }}#dopyt-form" data-modal-open="#dopyt-form">📢 Zadať dopyt</a>
       {% endif %}
     </aside>
 
-    <!-- STRED (sem renderuje index.html svoj feed) -->
+    <!-- STRED -->
     <main class="home-center">
       {% block home_content %}{% endblock %}
     </main>
 
-    <!-- PRAVÝ PANEL (voliteľné boxy) -->
+    <!-- PRAVÝ PANEL -->
     <aside class="home-right">
-      {% block home_right %}
-        {# sem si môžeš dávať malé karty: “Novinky”, “TOP promo”, videá… #}
-      {% endblock %}
+      {% block home_right %}{% endblock %}
     </aside>
   </div>
 
@@ -210,7 +217,7 @@
       </aside>
     {% endif %}
 
-    {# ⚠️ JEDINÝ výskyt block content v celom base.html #}
+    <!-- ⚠️ JEDINÝ výskyt block content -->
     <main class="{{ 'main-content' if current_user.is_authenticated else 'main-no-sidebar' }}">
       {% block content %}{% endblock %}
     </main>
@@ -240,7 +247,6 @@
 {% include 'modals/prihlasenie.html' %}
 {% include 'modals/registracia.html' %}
 
-
 <!-- Extra modal pre správy (unifikované triedy, BEZ inline štýlov) -->
 <div id="sprava-modal" class="modal-root" hidden aria-hidden="true" role="dialog" aria-labelledby="sprava-title">
   <div class="modal-backdrop" data-modal-close></div>
@@ -260,7 +266,6 @@
     </form>
   </div>
 </div>
-
 
 <section id="kontakt" class="kontakt">
   <h2>Kontaktujte nás</h2>
@@ -291,7 +296,7 @@
   })();
 </script>
 
-<!-- Správca modálov + fallback na URL, ak modal nie je v DOM (bez dopisovania štýlov) -->
+<!-- Správca modálov + fallback na URL (bez dopisovania štýlov) -->
 <script>
   (function () {
     if (window.__PORTAL_MODAL_MGR__) return; window.__PORTAL_MODAL_MGR__ = true;
@@ -315,7 +320,6 @@
         return;
       }
 
-      // ŽIADNE dopisovanie štýlov – len toggly tried a aria
       m.hidden = false;
       m.setAttribute('aria-hidden','false');
       m.classList.add('open');
@@ -368,9 +372,7 @@
   });
 </script>
 
-
 <!-- Projektové skripty -->
 <script src="{{ url_for('static', filename='main.js') }}" defer></script>
-<script src="{{ url_for('static', filename='vyskakovacie_okno.js') }}" defer></script>
 </body>
 </html>

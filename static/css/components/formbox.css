@@ -1,0 +1,15 @@
+/* Biela krabica pre formuláre */
+.formular-box{
+  background:#fff; border:1px solid #ddd; border-radius:1rem; padding:2rem; margin-top:1.5rem; box-shadow:0 2px 5px rgba(0,0,0,.05);
+}
+.formular-box h2{
+  font-size:1.6rem; margin-bottom:1.2rem; display:flex; justify-content:space-between; align-items:center;
+}
+.formular-box .form-row{ margin-bottom:1.2rem; }
+.formular-box label{ display:block; font-weight:700; margin-bottom:.5rem; }
+.formular-box input[type="text"],
+.formular-box input[type="email"],
+.formular-box textarea,
+.formular-box select{
+  width:100%; padding:.6rem 1rem; border:1px solid #ccc; border-radius:.5rem; font-size:1rem;
+}

@@ -1,0 +1,17 @@
+:root{
+  /* farby */
+  --pozadie: #fdfaf5;
+  --akcent:  #c6d8b6;
+  --text:    #3a2f1d;
+  --tlacidlo:#d1b19f;
+  --hover:   #e9ddc9;
+
+  /* typografia (môžeš doplniť) */
+  --font-sans: "Open Sans", system-ui, sans-serif;
+  --font-serif:"Playfair Display", serif;
+
+  /* základné hodnoty – nech sú na jednom mieste */
+  --radius: .6rem;
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.28);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.05);
+}

@@ -1,3 +1,4 @@
+/* Karty so stĺpcami (komunitný box) */
 .komunita-box {
   display: grid;
   grid-template-columns: 140px 80px 120px 120px 80px 160px;
@@ -6,10 +7,9 @@
   padding: 0.8rem 1rem;
   border: 1px solid var(--hover);
   border-radius: 12px;
-  background-color: white;
+  background-color: #fff;
   font-size: 0.9rem;
 }
-
 .komunita-box > div {
   padding: 0.2rem;
   border-right: 1px solid var(--hover);
@@ -18,22 +18,97 @@
   align-items: center;
   justify-content: center;
 }
+.komunita-box > div:last-child { border-right: none; }
 
-.komunita-box > div:last-child {
-  border-right: none;
+.kom-fotka, .kom-galeria {
+  width: 60px; height: 60px; object-fit: cover; border-radius: 50%;
 }
-
-.kom-fotka,
-.kom-galeria {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 50%;
-}
-
 .kom-video {
-  width: 160px;
-  height: 90px;
-  border: none;
-  border-radius: 8px;
+  width: 160px; height: 90px;
+  border: none; border-radius: 8px;
 }
+
+/* Mobilné správanie pre .komunita-box (aby sa to nelámalo škaredo) */
+@media (max-width: 760px){
+  .komunita-box{
+    grid-template-columns: 1fr 1fr;
+  }
+  .komunita-box > div { border-right: none; border-bottom: 1px solid var(--hover); }
+  .komunita-box > div:nth-last-child(-n+2){ border-bottom: none; } /* posledný riadok bez spodnej čiary */
+}
+
+/* Tlačidlo "Pošli správu" */
+.komunita-wrapper a.kom-msg-btn{
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.35rem .7rem;
+  background: var(--tlacidlo); color:#fff; text-decoration:none;
+  border-radius:6px; font-weight:700; line-height:1.2;
+  border:0; cursor:pointer; transition:background .2s ease;
+}
+.komunita-wrapper a.kom-msg-btn:hover{ background: var(--text); }
+
+/* Riadkový štýl + zebra (len v komunite) */
+.komunita-wrapper .komunita-list { border-top: 1px solid #ece8e0; }
+.komunita-wrapper .kom-row{
+  border-bottom: 1px solid #f0ede6;
+  transition: background .15s ease;
+}
+.komunita-wrapper .kom-row:hover{ background:#fffdf9; }
+.komunita-wrapper .kom-row:nth-child(even){ background:#fffefb; }
+.komunita-wrapper .kom-row:nth-child(even):hover{ background:#fffdf9; }
+
+/* Sticky hlavička a grid rozloženie (scopované) */
+.komunita-wrapper .columns-head{
+  position: sticky; top: 0;
+  background: var(--pozadie);
+  z-index: 2;
+  padding: .25rem 0;
+  border-bottom: 1px solid #ece8e0;
+}
+
+/* Riadkový "card" layout (ako bazár), ale scoped na komunitu */
+.komunita-wrapper .list-rows{ display:grid; grid-template-columns:1fr; gap:.3rem; }
+.komunita-wrapper .list-row{
+  background:#fff; border:1px solid var(--hover); border-radius:.75rem;
+  padding:.6rem .75rem; box-shadow:0 2px 8px rgba(0,0,0,.04);
+  transition:box-shadow .15s ease, transform .1s ease;
+}
+.komunita-wrapper .list-row:hover{ box-shadow:0 6px 18px rgba(0,0,0,.06); transform: translateY(-1px); }
+
+/* Grid rozloženie položiek (scopované) */
+.komunita-wrapper .kom-grid-head,
+.komunita-wrapper .kom-grid-row{
+  display:grid;
+  grid-template-columns: 64px 1.2fr .9fr 1.4fr .9fr .9fr;
+  gap:.75rem; align-items:center;
+}
+/* Varianta pre dopyty (scopované) */
+.komunita-wrapper .kom-grid-row.dopyt,
+.komunita-wrapper .kom-grid-head.dopyt{
+  grid-template-columns: minmax(0, 2.8fr) .95fr 1.05fr .40fr max-content;
+}
+/* Dopyty – prvý stĺpec zalamovanie (scopované) */
+.komunita-wrapper .kom-grid-row.dopyt > div:first-child{
+  min-width: 0; max-inline-size: 100%;
+  white-space: normal; overflow-wrap: anywhere; word-break: break-word; overflow: hidden;
+}
+
+/* Pomôcky – scoped, aby sa nerozliali inde */
+.komunita-wrapper .text-clip{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.komunita-wrapper .row-actions{ display:flex; align-items:center; gap:.5rem; }
+.komunita-wrapper .link-plain{ text-decoration:none; color:inherit; font-weight:600; }
+.komunita-wrapper .link-plain:hover{ color:var(--tlacidlo); }
+
+/* <details>/<summary> správanie – scoped */
+.komunita-wrapper .popis-summary{ cursor: pointer; list-style: none; }
+.komunita-wrapper .popis-summary::-webkit-details-marker{ display: none; }
+.komunita-wrapper .summary-open{ display: none; color:#666; font-size:.92em; }
+.komunita-wrapper .popis[open] .summary-collapsed{ display: none; }
+.komunita-wrapper .popis[open] .summary-open{ display: inline; }
+.komunita-wrapper .popis-full{
+  margin-top:.35rem; color:#444; line-height:1.45;
+  white-space: normal; overflow: visible; text-overflow: initial;
+}
+
+/* Šírka sekcie – full */
+.komunita-wrapper{ max-width:none; width:100%; }

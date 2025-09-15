@@ -1,0 +1,8 @@
+html{ scroll-behavior:smooth; }
+body{
+  margin:0;
+  background-color: var(--pozadie);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+a{ color: inherit; }

@@ -57,5 +57,29 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--tlacidlo, #2b7cff) 20%, transparent);
 }
 
+/* FIX pre fieldset/legend vo formulári dopytu */
+#dopyt-form fieldset,
+#dopyt-form legend {
+  position: static !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+#dopyt-form fieldset * { pointer-events: auto !important; }
+/* prvý riadok (Kto) nech je v popredí */
+#dopyt-form .field-kto,
+#dopyt-form .field-kto > label,
+#dopyt-form .field-kto > #kto {
+  position: relative !important;
+  z-index: 10 !important;
+}
+/* poistka – žiadne pseudo prekryvy v karte modalu */
+#dopyt-form .modal-card::before,
+#dopyt-form .modal-card::after { content: none !important; }
+/* krížik má len svoju malú klikaciu zónu */
+#dopyt-form .modal-close {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  pointer-events: auto !important;
+}
 
 

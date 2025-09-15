@@ -1,0 +1,75 @@
+/* ===== Formuláre – základ (forms.css) ===== */
+
+/* riadok formulára */
+.form-row{ margin-bottom:.85rem; }
+.form-row.two{ display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+@media (max-width:720px){ .form-row.two{ grid-template-columns:1fr; } }
+
+/* popisky */
+.form-row label{ display:block; font-size:.95rem; color:#555; margin-bottom:.25rem; }
+
+/* jednotná línia pre input/textarea/select */
+.input-line,
+.input-area,
+.input-file,
+.input-select{
+  width:100%;
+  padding:.6rem .2rem .5rem .2rem;
+  border:none;
+  border-bottom:1px solid #ddd;
+  background:transparent;
+  outline:none;
+  font-size:1rem;
+  line-height:1.35;
+}
+.input-area{ min-height:120px; resize:vertical; }
+.input-line:focus,
+.input-area:focus,
+.input-select:focus{
+  border-bottom-color:#999;
+}
+
+/* ak potrebuješ tlačidlá zarovnať vpravo */
+.form-actions{ display:flex; gap:.5rem; justify-content:flex-end; margin-top:1rem; }
+
+/* ===== Gridové polia pre modaly (.form-fields) ===== */
+.form-fields{ display:grid; gap:.75rem; }
+
+/* 2-stĺpcový rad, ktorý sa na mobile zlomí */
+.form-fields .row-2{ display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+@media (max-width:600px){ .form-fields .row-2{ grid-template-columns:1fr; } }
+
+/* Štítky vo vnútri .form-fields */
+.form-fields label{ font-weight:600; display:block; margin-bottom:.25rem; }
+
+/* Boxové inputy v modaloch – necháme presne to, na čo si zvyknutý */
+.form-fields input[type="text"],
+.form-fields input[type="email"],
+.form-fields input[type="password"],
+.form-fields input[type="date"],
+.form-fields input[type="time"],
+.form-fields input[type="number"],
+.form-fields select,
+.form-fields textarea{
+  width:100%;
+  padding:.6rem .75rem;
+  font-size:1rem; line-height:1.3;
+  border:1px solid #d8d8d8;
+  border-radius:.6rem;
+  color:var(--text);
+  background:#fff;
+  box-sizing:border-box;
+}
+.form-fields textarea{ min-height:120px; resize:vertical; }
+
+/* Focus – rovnaký feeling ako doteraz v modaloch */
+.form-fields input:focus,
+.form-fields select:focus,
+.form-fields textarea:focus{
+  outline:2px solid transparent;
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--tlacidlo,#d1b19f) 45%, transparent);
+  border-color:var(--tlacidlo,#d1b19f);
+}
+
+/* Alias: akcie vpravo dole – zdieľané s modalmi */
+.modal-actions{ display:flex; justify-content:flex-end; gap:.5rem; margin-top:1rem; }

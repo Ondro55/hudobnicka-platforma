@@ -141,3 +141,5 @@
 }
 
 .bio-text { white-space: pre-line; }
+
+.profilovka { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; display: block; }

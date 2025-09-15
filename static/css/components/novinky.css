@@ -1,0 +1,33 @@
+/* ======================
+   📰 NOVINKY
+   ====================== */
+.news{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:2rem;
+  padding:2rem; background:var(--hover); text-align:left;
+}
+.news-box{
+  background:#fff; border:1px solid var(--hover); border-radius:6px;
+  box-shadow:0 2px 8px rgba(0,0,0,.05); padding:1.5rem 1rem; transition:.3s; height:18rem;
+}
+.news-box:hover{ transform:translateY(-5px); }
+.news-box h2{ margin-top:0; font-family:'Playfair Display',serif; font-size:1.3rem; color:var(--text); }
+.news-box p{ font-size:.9rem; color:var(--text); }
+.news-box ul{ list-style:none; padding-left:0; margin-top:1rem; }
+.news-box li{ margin-bottom:.5rem; }
+.news-box a{ text-decoration:none; color:var(--text); font-size:.9rem; transition:.3s; }
+.news-box a:hover{ color:var(--tlacidlo); }
+
+@media (max-width:768px){
+  .news{ grid-template-columns:1fr; padding:1rem; }
+  .news-box{ height:auto; }
+}
+
+/* Klikateľný box Nové dopyty */
+.news-box.linkbox { cursor: pointer !important; }
+.news-box.linkbox * { cursor: pointer !important; }
+
+/* jemný hover */
+.news-box.linkbox:hover {
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+  transform: translateY(-1px);
+}

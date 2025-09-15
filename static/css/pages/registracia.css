@@ -1,0 +1,10 @@
+/* Registrácia hudobníka – stránka */
+.register-musician{ background:var(--pozadie); padding:2rem; text-align:left; }
+.musician-form{ max-width:600px; margin:0 auto; display:flex; flex-direction:column; gap:1rem; }
+.musician-form label{ font-weight:700; color:var(--text); }
+.musician-form input{ padding:.5rem; border-radius:6px; border:1px solid #ccc; font-size:1rem; }
+.btn-submit{
+  padding:.75rem 1.5rem; background:var(--tlacidlo); color:#fff; border:none; border-radius:8px; font-size:1rem;
+  cursor:pointer; transition:.3s;
+}
+.btn-submit:hover{ background:var(--text); }

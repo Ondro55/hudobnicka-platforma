@@ -1,0 +1,72 @@
+/* Telo pri otvorenom modale */
+body.modal-open{ overflow:hidden; }
+
+/* Koreň modalu (overlay) */
+.modal-root, .mu-modal{
+  position:fixed; inset:0;
+  display:none; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.55);
+  z-index:2147483000;
+  padding:2rem; box-sizing:border-box;
+}
+.modal-root.open, .mu-modal.open{ display:flex; }
+.modal-root[hidden], .mu-modal[hidden]{ display:none !important; }
+
+/* Backdrop (ak je ako vnútorný prvok) */
+.modal-root .modal-backdrop,
+.mu-modal .mu-modal__backdrop{
+  position:fixed; inset:0; z-index:1; pointer-events:auto;
+}
+
+/* Karta modalu */
+.modal-card, .mu-modal__card{
+  width:min(720px, 92vw);
+  max-height:calc(100vh - 3rem);
+  overflow:auto;
+  background:#fff;
+  border-radius:12px;
+  box-shadow:var(--shadow-lg);
+  padding:1.25rem 1.5rem;
+  position:relative; z-index:2; isolation:isolate;
+  overscroll-behavior:contain;      /* neťahá stránku za modal */
+  -webkit-overflow-scrolling:touch; /* plynulé scrollovanie na iOS */
+}
+
+/* Zatvárací krížik */
+.modal-close, .mu-modal__close{
+  appearance:none; background:transparent; border:0;
+  font-size:1.6rem; line-height:1; font-weight:700; cursor:pointer; color:#666;
+  position:absolute; top:.5rem; right:.5rem;
+  width:2.25rem; height:2.25rem; display:inline-flex; align-items:center; justify-content:center; z-index:50;
+}
+.modal-close:hover, .mu-modal__close:hover{ color:#000; }
+
+/* Alias pre starý názov akcií (nový je .modal-actions vo forms.css) */
+.mu-actions{ display:flex; justify-content:flex-end; gap:.5rem; margin-top:1rem; }
+
+/* Jemné správanie tlačidiel vnútri karty (voliteľné ponechané) */
+.modal-card .btn:hover{ background: var(--text, #3a2f1d); }
+
+/* Poistky pre dopyt modal */
+#dopyt-form .modal-card::before,
+#dopyt-form .modal-card::after{ content:none; }
+#dopyt-form .field-kto{ position:relative; isolation:isolate; }
+#dopyt-form .field-kto > label,
+#dopyt-form .field-kto > #kto{ position:relative; z-index:10; pointer-events:auto; }
+
+/* Dopyt modal – fieldset/legend fix (aby rám neblokoval kliky) */
+#dopyt-form fieldset,
+#dopyt-form legend{
+  position: static !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+#dopyt-form fieldset *{
+  pointer-events: auto !important;
+}
+/* krížik – jasná klikacia zóna */
+#dopyt-form .modal-close{
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  pointer-events: auto !important;
+}

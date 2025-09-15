@@ -1,0 +1,64 @@
+/* === jednotný filter bar + grid karty === */
+.filterbar{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:.5rem .75rem;
+  background:#fff;
+  border:1px solid var(--hover);
+  border-radius:.75rem;
+  padding:.6rem;
+  margin-bottom:1rem;
+}
+
+/* polia */
+.filterbar .fld{
+  min-width:180px;
+  padding:.45rem .6rem;
+  border:1px solid #ddd;
+  border-radius:.5rem;
+  background:#fff;
+}
+
+/* hlavné vyhľadávanie sa môže natiahnuť */
+.filterbar .grow{
+  flex:1 1 260px;
+  min-width:220px;
+}
+
+/* tlačidlá v tom istom riadku – prisunuté doprava */
+.filter-actions{
+  margin-left:auto;
+  display:flex;
+  gap:.5rem;
+  align-items:stretch;
+}
+.filter-actions .btn{
+  box-sizing: border-box;
+  height: 38px;              /* rovnaká výška ako inputy */
+  width: 128px;              /* pevná šírka = rovnaké tlačidlá */
+  padding: 0 .75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;   /* vycentrovaný text */
+  white-space: nowrap;
+}
+
+/* responsívne správanie – na úzkych šírkach sa tlačidlá zlomia pod polia,
+   ale ostanú zarovnané doprava */
+@media (max-width: 680px){
+  .filter-actions{
+    margin-left:0;
+    width:100%;
+    justify-content:flex-end;
+  }
+}
+@media (max-width:640px){
+  /* alias pre starý markup + náš nový selektor */
+  .filterbar .actions,
+  .filter-actions{
+    margin-left:0;
+    width:100%;
+    justify-content:flex-end;
+  }
+}

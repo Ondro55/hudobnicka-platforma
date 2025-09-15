@@ -1,0 +1,85 @@
+/* Rozloženie domovskej stránky (home) */
+.home-grid{
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 300px;
+  gap: 1rem;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+.home-left, .home-right{
+  position: sticky;
+  top: 84px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.home-left .sidebar-btn{ width:100%; }
+
+.home-center{ min-width: 0; }
+.home-right > .card{ padding: .75rem; }
+.home-main{ max-width:1100px; margin:0 auto; padding:1rem; }
+
+/* pozn.: šírku tlačidiel v sidebare už rieši components/sidebar.css */
+
+/* ==== Feed (presunuté z index.html) ==== */
+#home-feed{ max-width: 720px; margin: 0 auto; }
+.feed-card{
+  border:1px solid #eee; border-radius:12px; overflow:hidden; background:#fff; margin: 12px auto;
+}
+.feed-card .cover{ width:100%; height:320px; object-fit:cover; display:block; }
+.feed-card .copy{ padding:12px 14px; }
+.feed-card .title{ margin:0 0 6px 0; font-size:1.1rem; }
+.feed-card .meta{ color:#666; font-size:.95rem; }
+.feed-card .desc{ margin:.35rem 0 0; white-space:pre-wrap; }
+.feed-card.is-ad{ border-left:4px solid rgba(182,140,98,.45); }
+
+.feed-card .badge{ background:#e6d2b8; padding:.05rem .4rem; border-radius:.4rem; font-size:.8rem; }
+
+.empty{ color:#666; text-align:center; padding:20px 0; }
+
+@media (max-width:640px){
+.feed-card .cover{ height:220px; }
+}
+
+/* ===== Hero (domovská) ===== */
+.hero-grid{
+  display:grid; grid-template-columns:1fr 2fr 1fr; gap:2rem;
+  padding:2rem; background-color:var(--pozadie); align-items:center;
+}
+.hero-volby{ display:flex; flex-direction:column; gap:1rem; }
+.hero-volby h2{ font-family:'Playfair Display',serif; font-size:1.8rem; margin-bottom:.5rem; }
+/* vizuál tlačidiel (layout rieši .btn) */
+.hero-volby .btn{
+  background:var(--tlacidlo);
+  border-radius:6px;
+  transition:.3s;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
+}
+.hero-volby .btn:hover{ background:var(--text); }
+
+.pulzujuci-kruh{
+  width:130px; height:130px; border-radius:50%; background:#fdfaf5; color:#3d2e26;
+  display:flex; align-items:center; justify-content:center; text-align:center; font-size:14px; font-weight:600;
+  font-family:'Open Sans',sans-serif; line-height:1.3; animation:pulzuj 5s ease-in-out infinite;
+  box-shadow:0 0 3px rgba(0,0,0,.1); margin:0 auto; transition:background-color .5s; padding:8px; cursor:pointer; user-select:none;
+}
+@keyframes pulzuj{ 0%,100%{background:#fdfaf5;} 50%{background:#e9ddc9;} }
+.pulzujuci-kruh:hover{ animation:none; background:#e9ddc9; }
+
+.hero-uvod{text-align:center;}
+.hero-uvod h1{ font-size:2.5rem; font-family:'Playfair Display',serif; }
+.hero-uvod p{ font-size:1.2rem; margin:1rem 0; }
+
+.hero-media img{
+  width:100%; max-width:400px; height:auto; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,.1); display:block;
+}
+
+/* Hero – mobilné správanie (presun z global @media) */
+@media (max-width:768px){
+  .hero-grid{ display:flex; flex-direction:column; align-items:center; padding:1rem; gap:1.5rem; }
+  .hero-volby, .hero-uvod, .hero-media{ width:100%; text-align:center; }
+  .hero-media img{ max-width:100%; height:auto; }
+}

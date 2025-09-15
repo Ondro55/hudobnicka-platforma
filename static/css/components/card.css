@@ -1,0 +1,35 @@
+/* Všeobecná karta – zatiaľ sa nikde nepoužíva, safe pre budúce veci */
+.mu-card{
+  background:#fff;
+  border:1px solid #eee;
+  border-radius:12px;
+  box-shadow:var(--shadow-sm);
+  overflow:hidden;
+}
+.mu-card__body{ padding:.75rem 1rem; }
+.mu-card__title{ margin:0 0 .35rem; font-weight:600; }
+.mu-card--tight .mu-card__body{ padding:.5rem .75rem; }
+
+/* Karty s náhľadom a akciami */
+.card{
+  background:#fff;
+  border:1px solid var(--hover);
+  border-radius:.75rem;
+  padding:.75rem;
+  box-shadow:0 2px 8px rgba(0,0,0,.04);
+  display:flex; flex-direction:column; gap:.5rem;
+}
+.card .thumb{
+  width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:.5rem;
+  background:#f5f5f5;
+}
+.card h4{ margin:.25rem 0 0; font-size:1.05rem; }
+.card .meta{ color:#666; font-size:.9rem; }
+.card .row{ display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+
+/* malé ikonové tlačidlo */
+.icon-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:2rem; height:2rem; border-radius:.5rem; border:1px solid var(--hover); text-decoration:none;
+}
+.icon-btn:hover{ background:var(--hover); }

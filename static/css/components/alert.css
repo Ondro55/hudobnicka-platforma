@@ -1,0 +1,16 @@
+/* Flash správy (presun z base.html) */
+.flash-message{
+  margin:.35rem auto;
+  max-width:1100px;
+  padding:.6rem .8rem;
+  border-radius:.5rem;
+  background:#fff3cd;
+  border:1px solid #ffe69c;
+}
+.flash-message.success{ background:#e6ffed; border-color:#b7f0c0; }
+.flash-message.danger{  background:#ffeaea; border-color:#ffb3b3; }
+
+#flash-container{ transition: opacity .4s ease; }
+@media (prefers-reduced-motion: reduce){
+  #flash-container{ transition: none; }
+}

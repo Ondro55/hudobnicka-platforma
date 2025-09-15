@@ -264,4 +264,9 @@
   margin: 0;
 }
 
+/* full šírka sekcie (neobmedzovať max-width) */
+.skupiny-page{
+  width:100%;
+  max-width:none;
+}
 

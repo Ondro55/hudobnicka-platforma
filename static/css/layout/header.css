@@ -1,0 +1,94 @@
+/* ======================
+   🧭 HLAVIČKA GRID
+   ====================== */
+.hlavicka-grid {
+  display: grid;
+  grid-template-areas:
+    "box1 box2"
+    "box1 box3";
+  min-height: 100px;
+  grid-template-columns: 1fr 2fr;
+  grid-template-rows: auto auto;
+  padding: 0.5rem 2rem;
+  background-color: var(--hover);
+  align-items: center;
+  gap: 0.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+.box1 { grid-area: box1; }
+.box2 { grid-area: box2; }
+
+.box2-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-left: 5rem;
+}
+
+/* Ikony sociálnych sietí */
+.social-icons { display: flex; gap: 0.5rem; }
+
+.social-icons a {
+  display: inline-block; margin-right: .5rem;
+  background-color: #fff; padding: .3rem; border-radius: 50%;
+  box-shadow: 0 0 3px rgba(0,0,0,0.2);
+}
+.social-icons img { width: 24px; height: 24px; display: block; }
+
+.header-btn {
+  background: transparent; border: 2px solid var(--tlacidlo);
+  padding: 6px 12px; border-radius: 6px; color: var(--tlacidlo);
+  cursor: pointer; font-weight: 700; transition: .3s ease;
+}
+.header-btn:hover { background-color: var(--tlacidlo); color: #fff; }
+
+.logout-btn {
+  background: red; color: #fff; border: none; padding: 6px 12px;
+  border-radius: 6px; cursor: pointer; font-weight: 700;
+}
+.logout-btn:hover { background: darkred; }
+
+/* Navigácia */
+.box3 {
+  display: flex; align-items: flex-end; justify-content: center;
+  height: 100%; min-height: 50px; padding: .5rem;
+}
+.main-nav { display: flex; justify-content: space-evenly; width: 100%; }
+.main-nav a {
+  text-decoration: none; color: var(--text); transition: color .3s;
+  padding: .5rem 1rem;
+}
+.main-nav a:hover { color: var(--tlacidlo); }
+.disabled-link { opacity: .5; pointer-events: auto; cursor: not-allowed; }
+
+/* Logo */
+.logo { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; }
+
+
+/* Inline login (ak by sa niekde použil) */
+.login-form{ display:flex; gap:.4rem; align-items:center; }
+.login-form input{ padding:4px 6px; font-size:.85rem; border:1px solid #ccc; border-radius:4px; }
+.login-form button{
+  padding:4px 10px; background:var(--tlacidlo); color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:700;
+}
+.user-info{ display:flex; gap:.5rem; align-items:center; font-size:.85rem; }
+.logout{ color:red; font-weight:700; text-decoration:none; }
+
+/* HAMBURGER */
+.hamburger{
+  display:none; font-size:2rem; background:none; border:none; color:var(--text);
+  cursor:pointer; margin:1rem 0 0 1rem;
+}
+@media (max-width:768px){
+  .hamburger{ display:block; }
+  .box3{ display:flex; flex-direction:column; align-items:flex-start; }
+  .main-nav{ display:none; flex-direction:column; width:100%; margin-top:.5rem; }
+  .main-nav.active{ display:flex; }
+}
+@media (min-width:769px){
+  .main-nav{ display:flex !important; flex-direction:row; justify-content:flex-end; gap:1rem; }
+  .hamburger{ display:none; }
+}

@@ -1,0 +1,29 @@
+/* === Globálne tlačidlá (unifikované) === */
+.btn,
+button.btn,
+a.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:.4rem;
+  padding:.45rem .8rem;
+  border-radius:.6rem;
+  border:1px solid transparent;
+  font-weight:700;
+  cursor:pointer;
+  text-decoration:none;
+  color:inherit;
+  width:auto;
+  text-align:center;
+}
+
+.btn.primary{ background:var(--tlacidlo); color:#fff; }
+.btn.primary:hover{ background:var(--text); color:#fff; }
+
+.btn.sm{ padding:.35rem .7rem; font-size:.9rem; line-height:1.2; }
+
+.btn.ghost{ background:transparent; border:1px solid var(--tlacidlo); color:var(--tlacidlo); }
+.btn.ghost:hover{ background:var(--tlacidlo); color:#fff; }
+
+.btn.full{ display:flex; width:100%; justify-content:center; }
+

@@ -1,0 +1,55 @@
+  .evt-grid{
+    display:grid;
+    grid-template-columns: 340px minmax(0,1fr);
+    gap:1.25rem;
+    align-items: stretch; /* NATIAHNE OBA STĹPCE NA ROVNAKÚ VÝŠKU */
+  }
+  
+  .evt-form{
+  flex:0 0 340px;           /* šírku si vieš upraviť (napr. 320–380px) */
+  display:flex;
+  flex-direction:column;
+  margin:0;                 /* žiadne spodné margíny, nech nič „nepreteká“ */
+  }
+  
+  .evt-preview{
+    display:flex;
+    flex-direction:column;
+    padding:0;
+    overflow:hidden;
+    height:100%;                /* vyrovnanie výšky s formulárom */
+  }
+  
+  .input-line:focus, .input-area:focus{ border-bottom-color:#999; }
+  .file-inline{ margin-top:.5rem; display:flex; gap:.5rem; align-items:center; }
+  
+  .preview-copy{ padding:1rem 1rem .6rem 1rem; }
+  .prev-title{ margin:.1rem 0 .35rem 0; }
+  .prev-meta{ color:#666; font-size:.95rem; margin-bottom:.3rem; }
+  .prev-price{ color:#444; font-size:.95rem; margin-bottom:.4rem; }
+  .prev-desc{ margin:.35rem 0 0 0; white-space:pre-wrap; }
+
+  .preview-toolbar{
+    display:flex; gap:1rem; align-items:center;
+    padding:.6rem 1rem .4rem 1rem; border-top:1px solid #eee;
+  }
+  .preview-toolbar .fit-opt{ display:flex; align-items:center; gap:.35rem; font-size:.95rem; }
+
+  .preview-frame{
+    position:relative; aspect-ratio:16/9; background:#fff;
+    border-top:1px solid #eee;
+    flex-grow:1;               /* zaberie zvyšok a dorovná výšku kľudne aj pri malom texte */
+  }
+  .preview-frame img{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit: contain; object-position: center; /* default: bez orezania */
+    display:block;
+  }
+
+  .evt-lists{ display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
+  .evt-row{ display:grid; grid-template-columns:1fr auto auto; gap:.5rem; align-items:center; }
+
+@media (max-width: 980px){
+  .evt-grid{ grid-template-columns: 1fr; }
+  .evt-grid > .card{ height:auto; }
+}

@@ -1,0 +1,12 @@
+/* Odznaky roly v hlavičke (presun z inline v base.html) */
+.role-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:.25rem;
+  padding:.1rem .4rem;
+  border-radius:.4rem;
+  background:#eee;
+  font-size:.8rem;
+}
+.role-badge.admin{ background:#fee2e2; }
+.role-badge.mod{   background:#e0f2fe; }
