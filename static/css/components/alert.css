@@ -14,3 +14,83 @@
 @media (prefers-reduced-motion: reduce){
   #flash-container{ transition: none; }
 }
+
+/* --- Toast pozícia a vzhľad len keď sú vo #flash-container --- */
+#flash-container{
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: min(480px, calc(100% - 24px));
+  z-index: 10000;                 /* nad modálmi */
+  display: grid;
+  gap: .5rem;
+  transition: opacity .4s ease;
+}
+
+#flash-container .flash-message{
+  margin: 0;                      /* prebijeme tvoje margin:auto */
+  max-width: none;                /* prebijeme 1100px */
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  box-shadow: 0 8px 24px rgba(0,0,0,.16);
+}
+
+#flash-container .flash-message .close{
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: .1rem .35rem;
+  color: #555;
+  opacity: .75;
+}
+#flash-container .flash-message .close:hover{ opacity: 1; }
+
+/* doplníme chýbajúce kategórie, nech sú pekné aj info/warning */
+.flash-message.info    { background:#eef6ff; border-color:#bcdcff; }
+.flash-message.warning { background:#fff8e1; border-color:#ffe69c; }
+
+/* === FLASH: center & bigger (override) === */
+#flash-container{
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  right: auto;
+  width: min(720px, calc(100% - 36px));
+  z-index: 10000;
+  display: grid;
+  gap: .75rem;
+  transition: opacity .4s ease;
+}
+
+#flash-container .flash-message{
+  margin: 0;                /* prebiť margin:auto */
+  max-width: none;          /* prebiť 1100px */
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  padding: .9rem 1.1rem;    /* väčší padding */
+  border-radius: .75rem;    /* jemnejšie zaoblenie */
+  font-size: 1.06rem;       /* o chlp väčší text */
+  box-shadow: 0 10px 30px rgba(0,0,0,.18);
+}
+
+#flash-container .flash-message .close{
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font-size: 1.25rem;       /* väčšie X */
+  line-height: 1;
+  cursor: pointer;
+  padding: .1rem .4rem;
+  color: #333;
+  opacity: .75;
+}
+#flash-container .flash-message .close:hover{ opacity: 1; }
+
+/* už máš farby pre success/danger; doplníme len jednotný border */
+#flash-container .flash-message { border-width: 1px; border-style: solid; }

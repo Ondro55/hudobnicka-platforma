@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, abort
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, abort, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
@@ -9,6 +9,9 @@ from models import Pouzivatel, db, GaleriaPouzivatel, VideoPouzivatel, Skupina, 
 from flask import request, redirect, url_for, flash, abort
 from datetime import datetime, timedelta
 from sqlalchemy import or_
+import re, smtplib
+from email.message import EmailMessage
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 uzivatel = Blueprint('uzivatel', __name__)
 profil_blueprint = Blueprint('profil', __name__)
@@ -91,78 +94,258 @@ def login():
 
     return render_template('login.html')
 
+def _pwd_ok(pwd: str) -> bool:
+    # aspoň 8 znakov, min. 1 písmeno a 1 číslo
+    return bool(re.fullmatch(r'(?=.*[A-Za-z])(?=.*\d).{8,}', pwd or ''))
 
+def _make_serializer() -> URLSafeTimedSerializer:
+    # salt nech je fixný, ale jedinečný pre túto funkcionalitu
+    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='regv1')
+
+def _send_verif_email(to_email: str, link: str):
+    cfg = current_app.config
+    user = cfg.get('SMTP_USERNAME')
+    pwd  = cfg.get('SMTP_PASSWORD')
+
+    # DEV fallback: keď nemáš SMTP, ukáž link vo flashi + zaloguj
+    if not user or not pwd:
+        current_app.logger.info(f"[DEV] Overovací odkaz: {link}")
+        try:
+            # zobrazí sa po redirekte na stránke (pozri bod 2 nižšie pre |safe)
+            from flask import flash
+            flash(f"[DEV] Overovací odkaz: <a href='{link}'>klikni sem</a>", "success")
+        except Exception:
+            pass
+        return  # necháme vonkajší try/except považovať to za úspech
+
+    # produkčné odoslanie e-mailu cez SMTP
+    msg = EmailMessage()
+    msg['Subject'] = 'Potvrď registráciu na Muzikuj'
+    msg['From'] = cfg.get('SMTP_SENDER', user or 'noreply@muzikuj.sk')
+    msg['To'] = to_email
+    msg.set_content(
+        f"Ahoj!\n\nKlikni na tento odkaz a dokonči registráciu:\n{link}\n\n"
+        "Odkaz je platný 48 hodín.\nAk si o registráciu nežiadas, správu ignoruj."
+    )
+
+    with smtplib.SMTP(cfg.get('SMTP_SERVER', 'smtp.gmail.com'), int(cfg.get('SMTP_PORT', 587))) as s:
+        s.ehlo()
+        s.starttls()
+        s.ehlo()
+        s.login(user, pwd)
+        s.send_message(msg)
+    
 # 🔹 Registrácia
 @uzivatel.route('/registracia', methods=['GET', 'POST'])
 def registracia():
     if request.method == 'POST':
         typ = (request.form.get('typ_subjektu') or 'fyzicka').strip()
 
-        email = request.form['email'].strip()
-        heslo = generate_password_hash(request.form['heslo'])
+        # --- validácia hesiel
+        heslo_raw = request.form.get('heslo', '')
+        heslo2    = request.form.get('heslo2', '')
+        if heslo_raw != heslo2:
+            flash("Heslá sa nezhodujú.", "warning")
+            return redirect(url_for('uzivatel.registracia'))
+        heslo_h = generate_password_hash(heslo_raw)
+
+        email = (request.form.get('email') or '').strip()
         obec  = (request.form.get('obec') or '').strip()
+
+        # --- FO vs IČO polia + zamerania
+        data = {
+            'typ_subjektu': typ,
+            'email': email,
+            'heslo': heslo_h,
+            'obec':  obec,
+        }
 
         if typ == 'ico':
             organizacia_nazov = (request.form.get('organizacia_nazov') or '').strip()
             ico = (request.form.get('ico') or '').strip()
-
             if not organizacia_nazov or not ico:
                 flash("Vyplň Názov organizácie aj IČO.", "warning")
                 return redirect(url_for('uzivatel.registracia'))
 
-            # Pre konzistenciu používame názov organizácie aj ako prezývku (UI ho často zobrazuje)
-            prezyvka = organizacia_nazov
-            meno = priezvisko = instrument = doplnkovy_nastroj = None
+            # IČO – organizačné údaje
+            data.update({
+                'prezyvka': organizacia_nazov,   # UI používa prezývku – dáme názov
+                'meno': None, 'priezvisko': None,
+                'instrument': None, 'doplnkovy_nastroj': None,
+
+                'ico': ico,
+                'organizacia_nazov': organizacia_nazov,
+                'dic': (request.form.get('dic') or '').strip() or None,
+                'ic_dph': (request.form.get('ic_dph') or '').strip() or None,
+                'sidlo_ulica': (request.form.get('sidlo_ulica') or '').strip() or None,
+                'sidlo_psc': (request.form.get('sidlo_psc') or '').strip() or None,
+                'sidlo_mesto': (request.form.get('sidlo_mesto') or '').strip() or None,
+                'org_zaradenie': (request.form.get('org_zaradenie') or '').strip() or None,
+                'org_zaradenie_ine': (request.form.get('org_zaradenie_ine') or '').strip() or None,
+
+                # FO-only zamerania nech sú None
+                'rola': None, 'hud_oblast': None, 'hud_spec': None,
+                'tanec_spec': None, 'tanec_ine': None,
+                'ucitel_predmety': None, 'ucitel_ine': None,
+            })
+
+            # duplicita: email + (voliteľne názov ako prezývka)
+            exist = Pouzivatel.query.filter(
+                (Pouzivatel.email == email) | (Pouzivatel.prezyvka == organizacia_nazov)
+            ).first()
+            if exist:
+                flash("Používateľ s týmto e-mailom alebo názvom už existuje.", "warning")
+                return redirect(url_for('uzivatel.registracia'))
 
         else:
-            # fyzická osoba
-            prezyvka = (request.form.get('prezyvka') or '').strip()
-            meno = (request.form.get('meno') or '').strip()
-            priezvisko = (request.form.get('priezvisko') or '').strip()
-            instrument = (request.form.get('instrument') or '').strip()
-            doplnkovy_nastroj = (request.form.get('doplnkovy_nastroj') or '').strip() or None
-            organizacia_nazov = None
-            ico = None
-
+            # Fyzická osoba
+            prezyvka   = (request.form.get('prezyvka') or '').strip()
+            meno       = (request.form.get('meno') or '').strip() or None
+            priezvisko = (request.form.get('priezvisko') or '').strip() or None
             if not prezyvka:
                 flash("Prezývka je povinná pre fyzickú osobu.", "warning")
                 return redirect(url_for('uzivatel.registracia'))
 
-        existujuci = Pouzivatel.query.filter(
-            (Pouzivatel.email == email) | (Pouzivatel.prezyvka == prezyvka)
-        ).first()
-        if existujuci:
-            flash("Používateľ s týmto e-mailom alebo prezývkou už existuje.", "warning")
+            # zamerania
+            rola = (request.form.get('rola') or '').strip() or None
+            hud_oblast = (request.form.get('hud_oblast') or '').strip() or None
+            # hud_spec: priorita select->free->checkbox multi
+            hud_spec = (request.form.get('hud_spec') or '').strip()
+            if not hud_spec:
+                hud_spec = (request.form.get('hud_spec_free') or '').strip()
+            if not hud_spec:
+                ms = request.form.getlist('hud_spec_multi')
+                hud_spec = ','.join(ms) if ms else None
+
+            tanec_spec_list = request.form.getlist('tanec_spec_multi')
+            tanec_spec = ','.join(tanec_spec_list) if tanec_spec_list else None
+            tanec_ine = (request.form.get('tanec_ine_text') or '').strip() or None
+
+            ucitel_list = request.form.getlist('ucitel_predmety_multi')
+            ucitel_predmety = ','.join(ucitel_list) if ucitel_list else None
+            ucitel_ine = (request.form.get('ucitel_ine_text') or '').strip() or None
+
+            instrument = (request.form.get('instrument') or '').strip() or None
+            doplnkovy  = (request.form.get('doplnkovy_nastroj') or '').strip() or None
+
+            data.update({
+                'prezyvka': prezyvka,
+                'meno': meno, 'priezvisko': priezvisko,
+                'instrument': instrument, 'doplnkovy_nastroj': doplnkovy,
+                'ico': None, 'organizacia_nazov': None,
+                'dic': None, 'ic_dph': None, 'sidlo_ulica': None, 'sidlo_psc': None, 'sidlo_mesto': None,
+                'org_zaradenie': None, 'org_zaradenie_ine': None,
+                'rola': rola,
+                'hud_oblast': hud_oblast,
+                'hud_spec': hud_spec,
+                'tanec_spec': tanec_spec,
+                'tanec_ine': tanec_ine,
+                'ucitel_predmety': ucitel_predmety,
+                'ucitel_ine': ucitel_ine,
+            })
+
+            exist = Pouzivatel.query.filter(
+                (Pouzivatel.email == email) | (Pouzivatel.prezyvka == prezyvka)
+            ).first()
+            if exist:
+                flash("Používateľ s týmto e-mailom alebo prezývkou už existuje.", "warning")
+                return redirect(url_for('uzivatel.registracia'))
+
+        # --- podpíš dáta a pošli e-mail
+        s = _make_serializer()
+        token = s.dumps(data)  # obsahuje všetky polia; heslo už je hash
+        link = url_for('uzivatel.over_registraciu', t=token, _external=True)
+
+        try:
+            _send_verif_email(email, link)
+        except Exception:
+            current_app.logger.exception("Send verification email failed")
+            flash("Nepodarilo sa odoslať verifikačný e-mail. Skús neskôr.", "danger")
             return redirect(url_for('uzivatel.registracia'))
 
-        novy = Pouzivatel(
-            prezyvka=prezyvka,
-            meno=meno,
-            priezvisko=priezvisko,
-            email=email,
-            heslo=heslo,
-            instrument=instrument,
-            doplnkovy_nastroj=doplnkovy_nastroj,
-            obec=obec,
-            typ_subjektu=typ,
-            ico=ico,
-            organizacia_nazov=organizacia_nazov
-        )
+        # DEV: rovno presmeruj na overenie (bez klikania v e-maile)
+        if current_app.config.get('REG_DEV_AUTOVERIFY'):
+            return redirect(url_for('uzivatel.over_registraciu', t=token))
 
-        db.session.add(novy)
-        db.session.commit()
-        flash('Registrácia prebehla úspešne.', "success")
-        return redirect(url_for('uzivatel.login'))
+        flash("Poslali sme ti e-mail s potvrdením. Dokonči registráciu kliknutím na odkaz (48 hod.).", "success")
+        return redirect(url_for('main.index'))
 
+    # GET
     return render_template('modals/registracia.html')
 
+
+# 🔒 Overenie registrácie – vytvorenie účtu z tokenu
+@uzivatel.route('/registracia/overenie')
+def over_registraciu():
+    from flask import request
+    t = request.args.get('t')
+    if not t:
+        flash('Chýba overovací token.', 'danger')
+        return redirect(url_for('uzivatel.registracia'))
+
+    s = _make_serializer()
+    try:
+        data = s.loads(t, max_age=60 * 60 * 48)  # 48 hodín
+    except SignatureExpired:
+        flash('Overovací odkaz vypršal. Zaregistruj sa prosím znova.', 'warning')
+        return redirect(url_for('uzivatel.registracia'))
+    except BadSignature:
+        flash('Neplatný overovací odkaz.', 'danger')
+        return redirect(url_for('uzivatel.registracia'))
+
+    # už existuje?
+    if Pouzivatel.query.filter_by(email=data['email']).first():
+        flash('Účet už existuje. Skús sa prihlásiť.', 'info')
+        return redirect(url_for('uzivatel.login'))
+
+    passwd_hash = data.get('heslo')
+    if not passwd_hash:
+        flash('Chýba heslo v overovacom odkaze. Skús registráciu znova.', 'danger')
+        return redirect(url_for('uzivatel.registracia'))
+
+    u = Pouzivatel(
+        prezyvka=data.get('prezyvka'),
+        meno=data.get('meno'),
+        priezvisko=data.get('priezvisko'),
+        email=data['email'],
+        heslo=passwd_hash,                      # ⟵ HASH z tokenu
+        instrument=data.get('instrument'),
+        doplnkovy_nastroj=data.get('doplnkovy_nastroj'),
+        obec=data.get('obec'),
+        typ_subjektu=data.get('typ_subjektu', 'fyzicka'),
+        ico=data.get('ico'),
+        organizacia_nazov=data.get('organizacia_nazov'),
+        dic=data.get('dic'),
+        ic_dph=data.get('ic_dph'),
+        sidlo_ulica=data.get('sidlo_ulica'),
+        sidlo_psc=data.get('sidlo_psc'),
+        sidlo_mesto=data.get('sidlo_mesto'),
+        org_zaradenie=data.get('org_zaradenie'),
+        org_zaradenie_ine=data.get('org_zaradenie_ine'),
+        rola=data.get('rola'),
+        hud_oblast=data.get('hud_oblast'),
+        hud_spec=data.get('hud_spec'),
+        tanec_spec=data.get('tanec_spec'),
+        tanec_ine=data.get('tanec_ine'),
+        ucitel_predmety=data.get('ucitel_predmety'),
+        ucitel_ine=data.get('ucitel_ine'),
+    )
+    db.session.add(u)
+    db.session.commit()
+
+    login_user(u)
+    flash(f"Registrácia potvrdená. Vitaj, {u.prezyvka or u.email}!", "success")
+    return redirect(url_for('uzivatel.profil'))
 
 # 🔹 Logout
 @uzivatel.route('/logout')
 @login_required
 def logout():
     logout_user()
+    # flash správa po odhlásení
+    flash("Úspešne ste sa odhlásili.", "info")  # alebo "success"
     return redirect(url_for('uzivatel.index'))
+
 
 # 🔹 Moje konto (edit vlastného profilu)
 #     -> 2 URL: /moje-konto aj /profil (endpoint='profil' = alias pre staré odkazy)
@@ -374,8 +557,6 @@ def verejny_profil(user_id):
     public_view=True   # ⟵ dôležité, tým odlíšime verejné zobrazenie
 )
 
-
-
 @uzivatel.route('/admin/user/<int:user_id>/vip/<string:action>', methods=['POST'])
 @login_required
 def admin_set_vip(user_id, action):
@@ -394,3 +575,30 @@ def admin_set_vip(user_id, action):
     # návrat späť na stránku, odkiaľ si prišiel (alebo na profil)
     next_url = request.form.get('next') or request.referrer or url_for('uzivatel.profil')
     return redirect(next_url)
+
+@uzivatel.get("/api/ico-lookup", endpoint="ico_lookup")
+def ico_lookup():
+    ico = (request.args.get("ico") or "").strip()
+    if not re.fullmatch(r"\d{6,10}", ico):
+        return jsonify({"error": "invalid_ico"}), 400
+
+    data = lookup_ico_provider(ico)
+    if not data:
+        return jsonify({"error": "not_found"}), 404
+    return jsonify(data)
+
+def lookup_ico_provider(ico: str):
+    """
+    Sem neskôr napojíš reálny register (FinStat/RPO/ORSR).
+    Zatiaľ dev MOCK, aby frontend fungoval – nič iné v aplikácii to neovplyvní.
+    """
+    if ico == "12345678":
+        return {
+            "nazov": "Muzikuj s.r.o.",
+            "dic": "2020999999",
+            "ic_dph": "SK2020999999",
+            "ulica": "Hudobná 5",
+            "psc": "82105",
+            "mesto": "Bratislava",
+        }
+    return None

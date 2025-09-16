@@ -225,16 +225,7 @@
 {% endif %}
 
 {% include 'includes/novinky.html' %}
-
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div id="flash-container">
-      {% for category, message in messages %}
-        <div class="flash-message {{ category }}">{{ message }}</div>
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
+{% include 'partials/flash.html' %}
 
 {% if zobraz_uvitanie %}
   <div id="uvitanie-popup" class="uvitanie-box">

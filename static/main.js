@@ -39,3 +39,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const up = document.getElementById("uvitanie-popup");
   if (up) setTimeout(() => { if (up.parentNode) up.remove(); }, 6000);
 });
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-toggle-password]');
+  if (!btn) return;
+  const sel = btn.getAttribute('data-toggle-password');
+  const input = document.querySelector(sel);
+  if (!input) return;
+  input.type = (input.type === 'password') ? 'text' : 'password';
+});

@@ -31,6 +31,8 @@ from routes import bp as main_blueprint
 # Aplikácia
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.config['SECRET_KEY'] = 'tajnykluc123'
+app.config['REG_DEV_AUTOVERIFY'] = True
+
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -163,6 +165,12 @@ def inject_features():
         get_quota=get_quota,
         user_plan=user_plan
     )
+
+@app.route("/_flash_test")
+def _flash_test():
+    from flask import flash, redirect, url_for
+    flash("Flash funguje ✅", "success")
+    return redirect(url_for("uzivatel.index"))
 
 # Blueprinty
 app.register_blueprint(uzivatel)

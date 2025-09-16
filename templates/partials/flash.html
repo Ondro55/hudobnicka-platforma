@@ -1,0 +1,38 @@
+{# templates/partials/flash.html #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div id="flash-container" role="status" aria-live="polite" aria-atomic="true">
+      {% for category, message in messages %}
+        <div class="flash-message {{ category|lower }}">
+          <div class="text">{{ message|safe }}</div>
+          <button type="button" class="close" data-close aria-label="Zavrieť">×</button>
+        </div>
+      {% endfor %}
+    </div>
+    <script>
+      (function(){
+        var box = document.getElementById('flash-container');
+        if(!box) return;
+
+        // Ak by bol flash vložený „hlboko“ v layoute, presuň ho na koniec <body>,
+        // aby ho nič (overflow, z-index) nezakrývalo.
+        try { document.body.appendChild(box); } catch(e) {}
+
+        // manuálne zavretie
+        box.addEventListener('click', function(e){
+          var btn = e.target.closest('[data-close]');
+          if (btn) btn.closest('.flash-message')?.remove();
+        });
+
+        // auto-hide (6s + malý offset pri viacerých)
+        box.querySelectorAll('.flash-message').forEach(function(el, i){
+          setTimeout(function(){
+            el.style.opacity='0';
+            el.style.transform='translateY(-6px)';
+            setTimeout(function(){ el.remove(); }, 300);
+          }, 6000 + i*400);
+        });
+      })();
+    </script>
+  {% endif %}
+{% endwith %}

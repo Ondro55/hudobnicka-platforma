@@ -43,6 +43,24 @@ class Pouzivatel(db.Model, UserMixin):
     is_vip = db.Column(db.Boolean, nullable=False, default=False)          # VIP = PRO výhody bez platby
     billing_exempt = db.Column(db.Boolean, nullable=False, default=False)  # oslobodený od fakturácie
 
+    # --- FO: kategorizácia (filtrovanie na webe) ---
+    rola = db.Column(db.String(40), index=True)           # hudobnik | tanecnik | moderator | fotograf | ...
+    hud_oblast = db.Column(db.String(40), index=True)      # spev | klavesy | gitara | ...
+    hud_spec = db.Column(db.Text)                          # CSV alebo voľný text (napr. "solo,vokal")
+    tanec_spec = db.Column(db.Text)                        # CSV ("moderne,latino")
+    tanec_ine = db.Column(db.String(120))
+    ucitel_predmety = db.Column(db.Text)                   # CSV ("klavir,gitara,teoria")
+    ucitel_ine = db.Column(db.String(120))
+
+    # --- IČO: údaje a zaradenie ---
+    org_zaradenie = db.Column(db.String(40), index=True)   # agentura | prenajom_techniky | prenajom_saly | servis | studio | zus_skola | ine
+    org_zaradenie_ine = db.Column(db.String(120))
+    dic = db.Column(db.String(20))
+    ic_dph = db.Column(db.String(20))
+    sidlo_ulica = db.Column(db.String(120))
+    sidlo_psc = db.Column(db.String(10), index=True)
+    sidlo_mesto = db.Column(db.String(80), index=True)
+
     def over_heslo(self, zadane_heslo):
         return check_password_hash(self.heslo, zadane_heslo)
 

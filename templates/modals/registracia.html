@@ -10,103 +10,265 @@
 
     <h2 id="register-title">Registrácia</h2>
 
-    <div id="flash-box" aria-live="polite">
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          <div class="flash-messages" style="background:#f0fff0;padding:10px;border-left:4px solid green;">
-            {% for message in messages %}
-              <p style="margin:0;font-weight:bold;color:green">{{ message }}</p>
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
-    </div>
-
     {% set typ_val = request.form.get('typ_subjektu', 'fyzicka') %}
+    {% set rola_val = request.form.get('rola', '') %}
+    {% set podrola_val = request.form.get('podrola', '') %}
 
     <form method="POST" action="{{ url_for('uzivatel.registracia') }}">
-      <!-- Typ účtu – guličky -->
+      <!-- Typ účtu -->
       <fieldset style="margin:0 0 .75rem 0;border:0;padding:0;">
-        <legend style="font-weight:700;margin-bottom:.25rem;">Typ účtu</legend>
-        <label style="margin-right:1rem;">
-          <input type="radio" name="typ_subjektu" value="fyzicka"
-                 {% if typ_val != 'ico' %}checked{% endif %}> Fyzická osoba
-        </label>
-        <label>
-          <input type="radio" name="typ_subjektu" value="ico"
-                 {% if typ_val == 'ico' %}checked{% endif %}> Organizácia (IČO)
-        </label>
+        <legend style="font-weight:700;margin-bottom:.5rem;">Typ účtu</legend>
+        <div class="account-type">
+          <input type="radio" id="acc-fyz" name="typ_subjektu" value="fyzicka" {% if typ_val != 'ico' %}checked{% endif %}>
+          <label for="acc-fyz">Fyzická osoba</label>
+
+          <input type="radio" id="acc-ico" name="typ_subjektu" value="ico" {% if typ_val == 'ico' %}checked{% endif %}>
+          <label for="acc-ico">Organizácia (IČO)</label>
+        </div>
       </fieldset>
 
       <!-- ⚪ Fyzická osoba -->
       <div id="blok-fyzicka" style="display: {{ 'none' if typ_val=='ico' else 'block' }};">
-        <label for="prezyvka">Prezývka *</label>
-        <input type="text" id="prezyvka" name="prezyvka"
-               value="{{ request.form.get('prezyvka','') }}">
-
-        <label for="meno">Meno</label>
-        <input type="text" id="meno" name="meno"
-               value="{{ request.form.get('meno','') }}">
-
-        <label for="priezvisko">Priezvisko</label>
-        <input type="text" id="priezvisko" name="priezvisko"
-               value="{{ request.form.get('priezvisko','') }}">
-
-        <label for="instrument">Hudobný nástroj</label>
-        <select id="instrument" name="instrument">
-          <option value="">-- Vyber --</option>
-          {% for val, txt in [('klavesy','Klávesy'), ('gitara','Gitara'), ('bicie','Bicie'), ('dychove','Dychové'), ('slacikove','Sláčikové'), ('ine','Iné')] %}
-            <option value="{{val}}" {% if request.form.get('instrument') == val %}selected{% endif %}>{{txt}}</option>
-          {% endfor %}
-        </select>
-
-        <div id="instrument-ine" style="{% if request.form.get('instrument') == 'ine' %}display:block;{% else %}display:none;{% endif %}">
-          <label for="doplnkovy_nastroj">Doplň hudobný nástroj</label>
-          <input type="text" id="doplnkovy_nastroj" name="doplnkovy_nastroj"
-                 value="{{ request.form.get('doplnkovy_nastroj','') }}">
+        <div class="form-row">
+          <label for="prezyvka">Prezývka *</label>
+          <input type="text" id="prezyvka" name="prezyvka" class="input-line"
+                 value="{{ request.form.get('prezyvka','') }}">
         </div>
-      </div>
+
+        <div class="form-row">
+          <label for="meno">Meno</label>
+          <input type="text" id="meno" name="meno" class="input-line"
+                 value="{{ request.form.get('meno','') }}">
+        </div>
+
+        <div class="form-row">
+          <label for="priezvisko">Priezvisko</label>
+          <input type="text" id="priezvisko" name="priezvisko" class="input-line"
+                 value="{{ request.form.get('priezvisko','') }}">
+        </div>
+
+        <!-- Zameranie -->
+        <div class="form-row">
+          <label for="rola">Zameranie *</label>
+          <select id="rola" name="rola" class="select" required>
+            <option value="">— vyber —</option>
+            <option value="hudobnik"  {{ 'selected' if rola_val=='hudobnik'  else '' }}>Hudobník</option>
+            <option value="tanecnik"  {{ 'selected' if rola_val=='tanecnik'  else '' }}>Tanečník</option>
+            <option value="moderator" {{ 'selected' if rola_val=='moderator' else '' }}>Moderátor akcií</option>
+            <option value="fotograf"  {{ 'selected' if rola_val=='fotograf'  else '' }}>Fotograf</option>
+            <option value="videograf" {{ 'selected' if rola_val=='videograf' else '' }}>Videograf</option>
+            <option value="zvukar"    {{ 'selected' if rola_val=='zvukar'    else '' }}>Zvukár</option>
+            <option value="osvetlovac"{{ 'selected' if rola_val=='osvetlovac' else '' }}>Osvetľovač</option>
+            <option value="technik_podia" {{ 'selected' if rola_val=='technik_podia' else '' }}>Technik pódia / Roadie</option>
+            <option value="producent" {{ 'selected' if rola_val=='producent' else '' }}>Producent / Beatmaker</option>
+            <option value="skladatel" {{ 'selected' if rola_val=='skladatel' else '' }}>Skladateľ / Aranžér</option>
+            <option value="ucitel_hudby" {{ 'selected' if rola_val=='ucitel_hudby' else '' }}>Učiteľ hudby</option>
+            <option value="ine"       {{ 'selected' if rola_val=='ine'       else '' }}>Iné</option>
+          </select>
+          <div class="form-help">Vyber, čomu sa primárne venuješ.</div>
+        </div>
+
+        <!-- Hudobník — oblasť + špecifikácia -->
+        <div id="wrap-sub-hudobnik" style="display:none;">
+          <div class="form-row">
+            <label for="hud_oblast">Hudobník — oblasť *</label>
+            <select id="hud_oblast" name="hud_oblast" class="select">
+              <option value="">— vyber —</option>
+              <option value="spev"      {{ 'selected' if request.form.get('hud_oblast')=='spev'      else '' }}>Spev</option>
+              <option value="klavesy"   {{ 'selected' if request.form.get('hud_oblast')=='klavesy'   else '' }}>Klávesy</option>
+              <option value="gitara"    {{ 'selected' if request.form.get('hud_oblast')=='gitara'    else '' }}>Gitara</option>
+              <option value="bicie"     {{ 'selected' if request.form.get('hud_oblast')=='bicie'     else '' }}>Bicie / Perkusie</option>
+              <option value="slacikove" {{ 'selected' if request.form.get('hud_oblast')=='slacikove' else '' }}>Sláčikové</option>
+              <option value="dychove"   {{ 'selected' if request.form.get('hud_oblast')=='dychove'   else '' }}>Dychové</option>
+              <option value="dj"        {{ 'selected' if request.form.get('hud_oblast')=='dj'        else '' }}>DJ</option>
+              <option value="elektronika" {{ 'selected' if request.form.get('hud_oblast')=='elektronika' else '' }}>Elektronika (live)</option>
+              <option value="folklorne" {{ 'selected' if request.form.get('hud_oblast')=='folklorne' else '' }}>Folklórne</option>
+              <option value="ine"       {{ 'selected' if request.form.get('hud_oblast')=='ine'       else '' }}>Iné</option>
+            </select>
+          </div>
+
+          <div id="hud_spec_container"></div>
+        </div>
+
+        <!-- Tanečník — kategórie -->
+        <div id="wrap-sub-tanecnik" style="display:none;">
+          <div class="form-row">
+            <label>Tanečné zameranie</label>
+            <div style="display:grid;gap:.35rem .75rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+              <label><input type="checkbox" name="tanec_spec_multi" value="moderne" style="margin-right:.5rem;"> Moderné / Contemporary</label>
+              <label><input type="checkbox" name="tanec_spec_multi" value="folklor_subor" style="margin-right:.5rem;"> Folklórny súbor</label>
+              <label><input type="checkbox" name="tanec_spec_multi" value="latino" style="margin-right:.5rem;"> Latino (Salsa/Bachata)</label>
+              <label><input type="checkbox" name="tanec_spec_multi" value="street" style="margin-right:.5rem;"> Street / Hip-hop</label>
+              <label><input type="checkbox" name="tanec_spec_multi" value="ballroom" style="margin-right:.5rem;"> Ballroom (Štandard/Latina)</label>
+              <label><input type="checkbox" name="tanec_spec_multi" value="spolocenske" style="margin-right:.5rem;"> Spoločenské / Club</label>
+              <label><input type="checkbox" name="tanec_spec_multi" value="pedagog" style="margin-right:.5rem;"> Tanečný pedagóg</label>
+              <label><input type="checkbox" name="tanec_spec_multi" value="ine" style="margin-right:.5rem;"> Iné</label>
+            </div>
+          </div>
+          <div class="form-row stack" id="tanec_ine_wrap" style="display:none;">
+            <label for="tanec_ine_text">Upresni „iné“</label>
+            <input type="text" id="tanec_ine_text" name="tanec_ine_text" class="input-line">
+          </div>
+        </div>
+
+        <!-- Moderátor (spresnenie) -->
+        <div id="wrap-sub-moderator" style="display:none;">
+          <div class="form-row">
+            <label for="podrola">Spresnenie</label>
+            <select id="podrola" name="podrola" class="select">
+              <option value="">— vyber —</option>
+              <option value="staresi"                   {{ 'selected' if podrola_val=='staresi' else '' }}>Starejší</option>
+              <option value="moderator"                 {{ 'selected' if podrola_val=='moderator' else '' }}>Moderátor</option>
+              <option value="moderator_hudobnych_akcii" {{ 'selected' if podrola_val=='moderator_hudobnych_akcii' else '' }}>Moderátor hudobných akcií</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Učiteľ hudby — odbory -->
+        <div id="wrap-sub-ucitel" style="display:none;">
+          <div class="form-row">
+            <label>Učím (vyber aspoň jedno)</label>
+            <div style="display:grid;gap:.35rem .75rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="klavir" style="margin-right:.5rem;"> Klavír</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="gitara" style="margin-right:.5rem;"> Gitara</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="husle" style="margin-right:.5rem;"> Husle</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="flauta" style="margin-right:.5rem;"> Flauta</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="saxofon" style="margin-right:.5rem;"> Saxofón</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="klarinet" style="margin-right:.5rem;"> Klarinet</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="trumpeta" style="margin-right:.5rem;"> Trúbka</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="bicie" style="margin-right:.5rem;"> Bicie</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="spev" style="margin-right:.5rem;"> Spev</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="akordeon" style="margin-right:.5rem;"> Akordeón</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="heligonka" style="margin-right:.5rem;"> Heligónka</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="teoria" style="margin-right:.5rem;"> Hudobná teória</label>
+              <label><input type="checkbox" name="ucitel_predmety_multi" value="ine" style="margin-right:.5rem;"> Iné</label>
+            </div>
+          </div>
+          <div class="form-row stack" id="ucitel_ine_wrap" style="display:none;">
+            <label for="ucitel_ine_text">Upresni „iné“</label>
+            <input type="text" id="ucitel_ine_text" name="ucitel_ine_text" class="input-line">
+          </div>
+        </div>
+
+        <!-- „Iné“ zameranie -->
+        <div id="wrap-rola-ine" style="display:none;">
+          <div class="form-row stack">
+            <label for="rola_ina">Zameranie – iné</label>
+            <input type="text" id="rola_ina" name="rola_ina" class="input-line"
+                   placeholder="napr. fotograf-koncerty, dramaturg…" value="{{ request.form.get('rola_ina','') }}">
+            <div class="form-help">Zbierame návrhy na nové kategórie.</div>
+          </div>
+        </div>
+      </div> <!-- /#blok-fyzicka -->
 
       <!-- 🟡 Organizácia (IČO) -->
       <div id="blok-ico" style="display: {{ 'block' if typ_val=='ico' else 'none' }};">
-        <label for="organizacia_nazov">Názov organizácie *</label>
-        <input type="text" id="organizacia_nazov" name="organizacia_nazov"
-               value="{{ request.form.get('organizacia_nazov','') }}">
+        <div class="form-row">
+          <label for="ico">IČO *</label>
+          <div style="display:flex;gap:.5rem;align-items:center;flex:1;">
+            <input type="text" id="ico" name="ico" class="input-line"
+                   inputmode="numeric" pattern="[0-9]{6,10}" title="IČO: 6–10 číslic"
+                   value="{{ request.form.get('ico','') }}" required
+                   aria-describedby="ico-help">
+            <button type="button" id="ico-lookup-btn" class="btn">Načítať údaje</button>
+          </div>
+        </div>
+        <div class="form-row stack">
+          <label class="sr-only" for="ico"></label>
+          <div class="form-help" id="ico-help">Zadaj IČO (6–10 číslic) a klikni „Načítať údaje“. Polia nižšie sa doplnia automaticky.</div>
+        </div>
 
-        <label for="ico">IČO *</label>
-        <input type="text" id="ico" name="ico"
-               inputmode="numeric" pattern="[0-9]{6,10}" title="IČO: 6–10 číslic"
-               value="{{ request.form.get('ico','') }}">
+        <div class="form-row">
+          <label for="organizacia_nazov">Názov *</label>
+          <input type="text" id="organizacia_nazov" name="organizacia_nazov" class="input-line"
+                 value="{{ request.form.get('organizacia_nazov','') }}" required>
+        </div>
+
+        <div class="form-row">
+          <label for="dic">DIČ</label>
+          <input type="text" id="dic" name="dic" class="input-line" value="{{ request.form.get('dic','') }}">
+        </div>
+
+        <div class="form-row">
+          <label for="ic_dph">IČ DPH</label>
+          <input type="text" id="ic_dph" name="ic_dph" class="input-line" value="{{ request.form.get('ic_dph','') }}">
+        </div>
+
+        <div class="form-row">
+          <label for="sidlo_ulica">Sídlo (ulica)</label>
+          <input type="text" id="sidlo_ulica" name="sidlo_ulica" class="input-line" value="{{ request.form.get('sidlo_ulica','') }}">
+        </div>
+
+        <div class="form-row cols-2">
+          <label for="sidlo_psc">PSČ / Mesto</label>
+          <input type="text" id="sidlo_psc" name="sidlo_psc" class="input-line" value="{{ request.form.get('sidlo_psc','') }}">
+          <input type="text" id="sidlo_mesto" name="sidlo_mesto" class="input-line" value="{{ request.form.get('sidlo_mesto','') }}">
+        </div>
+
+        <div class="form-row">
+          <label for="org_zaradenie">Zaradenie *</label>
+          <select id="org_zaradenie" name="org_zaradenie" class="select" required>
+            <option value="">— vyber —</option>
+            <option value="agentura"          {{ 'selected' if request.form.get('org_zaradenie')=='agentura' else '' }}>Organizátor / Agentúra</option>
+            <option value="prenajom_techniky" {{ 'selected' if request.form.get('org_zaradenie')=='prenajom_techniky' else '' }}>Prenájom techniky</option>
+            <option value="prenajom_saly"     {{ 'selected' if request.form.get('org_zaradenie')=='prenajom_saly' else '' }}>Prenájom sály / klubu</option>
+            <option value="studio"            {{ 'selected' if request.form.get('org_zaradenie')=='studio' else '' }}>Produkčné štúdio</option>
+            <option value="servis"            {{ 'selected' if request.form.get('org_zaradenie')=='servis' else '' }}>Servis (opravy / servis techniky)</option>
+            <option value="zus_skola"         {{ 'selected' if request.form.get('org_zaradenie')=='zus_skola' else '' }}>ZUŠ / Škola</option>
+            <option value="ine"               {{ 'selected' if request.form.get('org_zaradenie')=='ine' else '' }}>Iné</option>
+          </select>
+        </div>
+        <div class="form-row stack" id="org_zaradenie_ine_wrap" style="display:none;">
+          <label for="org_zaradenie_ine">Zaradenie – iné</label>
+          <input type="text" id="org_zaradenie_ine" name="org_zaradenie_ine" class="input-line"
+                 value="{{ request.form.get('org_zaradenie_ine','') }}">
+        </div>
       </div>
 
       <!-- Spoločné polia -->
-      <label for="email">Email *</label>
-      <input type="email" id="email" name="email" autocomplete="email"
-             value="{{ request.form.get('email','') }}" required>
+      <div class="form-row">
+        <label for="email">E-mail *</label>
+        <input type="email" id="email" name="email" class="input-line"
+               autocomplete="email" value="{{ request.form.get('email','') }}" required>
+      </div>
 
-      <label for="heslo">Heslo *</label>
-      <input type="password" id="heslo" name="heslo" autocomplete="new-password" minlength="8"
-             title="Heslo musí mať aspoň 8 znakov" required>
-
-      <label for="heslo2">Zopakuj heslo *</label>
-      <input type="password" id="heslo2" name="heslo2" required>
-
-      <label>Obec / pôsobisko</label>
-      <div class="miesto-grid" style="display:grid;grid-template-columns:1fr;gap:.75rem;">
-        <div>
-          <label for="obec" class="label-spacer" style="visibility:hidden;display:block;height:1.2rem;margin:0 0 .25rem;">
-            Miesto (výber z miest)
-          </label>
-          <select id="obec" name="obec">
-            <option value="">— vyber —</option>
-            {% for m in (mesta_all or []) %}
-              <option value="{{ m.nazov }}"
-                      {% if request.form.get('obec') == m.nazov %}selected{% endif %}>
-                {{ m.nazov }}{% if m.okres %}, {{ m.okres }}{% endif %}{% if m.kraj %}, {{ m.kraj }}{% endif %}
-              </option>
-            {% endfor %}
-          </select>
+      <!-- Heslo -->
+      <div class="form-row">
+        <label for="heslo">Heslo *</label>
+        <div class="pw-wrap">
+          <input type="password" id="heslo" name="heslo" class="input-line"
+                 autocomplete="new-password"
+                 minlength="8"
+                 pattern="(?=.*[A-Za-z])(?=.*\d).{8,}"
+                 title="Min. 8 znakov, aspoň 1 písmeno a 1 číslo"
+                 aria-describedby="heslo-hint"
+                 required>
+          <button type="button" class="pw-toggle" data-toggle-password="#heslo" aria-label="Zobraziť/Skryť heslo">👁️</button>
         </div>
+        <div class="form-help" id="heslo-hint">Min. 8 znakov a aspoň 1 písmeno + 1 číslo.</div>
+      </div>
+
+      <!-- Zopakuj heslo -->
+      <div class="form-row">
+        <label for="heslo2">Zopakuj heslo *</label>
+        <div class="pw-wrap">
+          <input type="password" id="heslo2" name="heslo2" class="input-line" aria-describedby="heslo2-hint" required>
+          <button type="button" class="pw-toggle" data-toggle-password="#heslo2" aria-label="Zobraziť/Skryť heslo">👁️</button>
+        </div>
+        <div class="form-help" id="heslo2-hint">Zadaj to isté heslo ešte raz.</div>
+      </div>
+
+      <!-- Obec / pôsobisko -->
+      <div class="form-row">
+        <label for="obec">Obec / pôsobisko</label>
+        <select id="obec" name="obec" class="select">
+          <option value="">— vyber —</option>
+          {% for m in (mesta_all or []) %}
+            <option value="{{ m.nazov }}" {% if request.form.get('obec') == m.nazov %}selected{% endif %}>
+              {{ m.nazov }}{% if m.okres %}, {{ m.okres }}{% endif %}{% if m.kraj %}, {{ m.kraj }}{% endif %}
+            </option>
+          {% endfor %}
+        </select>
       </div>
 
       <button type="submit" class="btn primary" style="margin-top:1rem;">Registrovať</button>
@@ -115,51 +277,258 @@
 </div>
 
 <script>
-  (function(){
-    const root = document.getElementById('user-form-panel');
-    if (!root) return;
+(function(){
+  const root = document.getElementById('user-form-panel');
+  if (!root) return;
 
-    // prepínanie typov účtu (rádiá)
-    const radios = root.querySelectorAll('input[name="typ_subjektu"]');
-    const blokF = root.querySelector('#blok-fyzicka');
-    const blokI = root.querySelector('#blok-ico');
+  // ===== HUDOBNÍK špecifikácie =====
+  const HUD_SPEC = {
+    spev: { type:'checkboxes', label:'Špecifikácia spevu', options:[ ['solo','Sólo'], ['vokal','Vokál'], ['zbor','Zbor'] ] },
+    klavesy: { type:'select', label:'Špecifikácia klávesov', options:[ ['klavir','Klavír'], ['keyboard','Keyboard'], ['synth','Synthesizer'], ['organ','Organ / Hammond'], ['ine','Iné'] ] },
+    gitara: { type:'select', label:'Špecifikácia gitary', options:[ ['elektricka','Elektrická'], ['akusticka','Akustická'], ['klasicka','Klasická'], ['basgitara','Basgitara'], ['ine','Iné'] ] },
+    bicie: { type:'select', label:'Špecifikácia bicích/perkusií', options:[ ['bicie_suprava','Bicie súprava'], ['perkusie','Perkusie'], ['cajon','Cajon'], ['ine','Iné'] ] },
+    slacikove: { type:'select', label:'Špecifikácia sláčikových', options:[ ['husle','Husle'], ['viola','Viola'], ['violoncello','Violončelo'], ['kontrabas','Kontrabas'], ['ine','Iné'] ] },
+    dychove: { type:'select', label:'Špecifikácia dychových', options:[ ['saxofon','Saxofón'], ['klarinet','Klarinet'], ['priecna_flauta','Priečna flauta'], ['trumpeta','Trumpeta'], ['pozoun','Pozoun'], ['lesny_rog','Lesný roh'], ['tuba','Tuba'], ['ine','Iné'] ] },
+    dj: { type:'checkboxes', label:'DJ – štýly', options:[ ['svadobny','Svadobný'], ['oldies','Oldies'], ['80s_90s','80s/90s'], ['komercne','Komerčné'], ['house','House'], ['techno','Techno'] ] },
+    elektronika: { type:'select', label:'Elektronika (live)', options:[ ['sampler','Sampler'], ['drum_machine','Drum machine'], ['live_perf','Live performance'], ['ine','Iné'] ] },
+    folklorne: { type:'select', label:'Folklórne', options:[ ['cimbal','Cimbal'], ['akordeon','Akordeón'], ['heligonka','Heligónka'], ['gajdy','Gajdy'], ['fujara','Fujara'], ['ine','Iné'] ] },
+    ine: { type:'input', label:'Upresni „iné“' }
+  };
 
-    const prezyvka = root.querySelector('#prezyvka');
-    const org      = root.querySelector('#organizacia_nazov');
-    const ico      = root.querySelector('#ico');
+  // ===== cache elementov =====
+  const form     = root.querySelector('form[action="{{ url_for("uzivatel.registracia") }}"]');
+  const blokF    = root.querySelector('#blok-fyzicka');
+  const blokI    = root.querySelector('#blok-ico');
+  const radios   = root.querySelectorAll('input[name="typ_subjektu"]');
+  const prezyvka = root.querySelector('#prezyvka');
+  const orgNazov = root.querySelector('#organizacia_nazov');
+  const ico      = root.querySelector('#ico');
+  const rolaSel  = root.querySelector('#rola');
 
-    function syncType(){
-      const val = root.querySelector('input[name="typ_subjektu"]:checked')?.value || 'fyzicka';
-      const isICO = val === 'ico';
-      blokF.style.display = isICO ? 'none'  : 'block';
-      blokI.style.display = isICO ? 'block' : 'none';
-      if (prezyvka) prezyvka.required = !isICO;
-      if (org)      org.required      =  isICO;
-      if (ico)      ico.required      =  isICO;
+  const wrapHud  = root.querySelector('#wrap-sub-hudobnik');
+  const hudObl   = root.querySelector('#hud_oblast');
+  const hudSpecC = root.querySelector('#hud_spec_container');
+  const wrapMod  = root.querySelector('#wrap-sub-moderator');
+  const wrapIne  = root.querySelector('#wrap-rola-ine');
+  const wrapTan  = root.querySelector('#wrap-sub-tanecnik');
+  const wrapUci  = root.querySelector('#wrap-sub-ucitel');
 
-      // fokus na prvé pole
-      setTimeout(() => (isICO ? org : prezyvka)?.focus({preventScroll:true}), 0);
-    }
-    radios.forEach(r => r.addEventListener('change', syncType));
-    syncType();
-
-    // "Iné" nástroje – len pre fyzickú osobu
-    const selInstr      = root.querySelector('#instrument');
-    const wrapInstrIne  = root.querySelector('#instrument-ine');
-    if (selInstr && wrapInstrIne) {
-      selInstr.addEventListener('change', () => {
-        wrapInstrIne.style.display = selInstr.value === 'ine' ? 'block' : 'none';
-      });
-    }
-
-    // validácia: heslá sa musia zhodovať
-    root.addEventListener('submit', (e) => {
-      const h1 = root.querySelector('#heslo');
-      const h2 = root.querySelector('#heslo2');
-      if (h1 && h2 && h1.value !== h2.value) {
-        e.preventDefault();
-        alert('Heslá sa nezhodujú.');
+  // ===== helpers =====
+  function setDisabled(container, disabled){
+    if (!container) return;
+    container.querySelectorAll('input, select, textarea, button').forEach(el=>{
+      if (disabled) {
+        if (el.required) el.dataset.wasRequired = '1';
+        el.required = false;
+        el.disabled = true;
+      } else {
+        el.disabled = false;
+        if (el.dataset.wasRequired === '1') { el.required = true; delete el.dataset.wasRequired; }
       }
     });
-  })();
+  }
+
+  function syncType(){
+    const val = root.querySelector('input[name="typ_subjektu"]:checked')?.value || 'fyzicka';
+    const isICO = (val === 'ico');
+
+    if (blokF) blokF.style.display = isICO ? 'none'  : 'block';
+    if (blokI) blokI.style.display = isICO ? 'block' : 'none';
+
+    if (prezyvka) prezyvka.required = !isICO;
+    if (orgNazov) orgNazov.required =  isICO;
+    if (ico)      ico.required      =  isICO;
+    if (rolaSel)  rolaSel.required  = !isICO;
+
+    setDisabled(blokF, isICO);
+    setDisabled(blokI, !isICO);
+  }
+
+  function syncRola() {
+    const r = rolaSel?.value || '';
+    wrapHud.style.display = (r === 'hudobnik') ? 'block' : 'none';
+    wrapMod.style.display = (r === 'moderator') ? 'block' : 'none';
+    wrapIne.style.display = (r === 'ine') ? 'block' : 'none';
+    wrapTan.style.display = (r === 'tanecnik') ? 'block' : 'none';
+    wrapUci.style.display = (r === 'ucitel_hudby') ? 'block' : 'none';
+  }
+
+  function renderHudSpec() {
+    hudSpecC.innerHTML = '';
+    const key = hudObl?.value || '';
+    if (!key) return;
+    const cfg = HUD_SPEC[key];
+    if (!cfg) return;
+
+    const row = document.createElement('div');
+    row.className = 'form-row';
+    const lab = document.createElement('label');
+    lab.textContent = cfg.label || 'Špecifikácia';
+    row.appendChild(lab);
+
+    let fieldWrap = document.createElement('div');
+
+    if (cfg.type === 'select') {
+      const sel = document.createElement('select');
+      sel.name = 'hud_spec';
+      sel.id = 'hud_spec';
+      sel.className = 'select';
+      sel.innerHTML = `<option value="">— vyber —</option>` + (cfg.options||[]).map(([v,t])=>`<option value="${v}">${t}</option>`).join('');
+      fieldWrap.appendChild(sel);
+
+      sel.addEventListener('change', () => {
+        let extra = row.querySelector('#hud_spec_ine_wrap');
+        if (sel.value === 'ine') {
+          if (!extra) {
+            extra = document.createElement('div');
+            extra.id = 'hud_spec_ine_wrap';
+            extra.className = 'form-row stack';
+            extra.innerHTML = `
+              <label for="hud_spec_ine">Upresni „iné“</label>
+              <input type="text" id="hud_spec_ine" name="hud_spec_ine" class="input-line">
+            `;
+            hudSpecC.appendChild(extra);
+          }
+        } else if (extra) {
+          extra.remove();
+        }
+      });
+
+    } else if (cfg.type === 'checkboxes') {
+      fieldWrap.style.display = 'grid';
+      fieldWrap.style.gap = '.35rem .75rem';
+      fieldWrap.style.gridTemplateColumns = 'repeat(auto-fit,minmax(160px,1fr))';
+      (cfg.options||[]).forEach(([v,t])=>{
+        const lbl = document.createElement('label');
+        lbl.style.display = 'inline-flex';
+        lbl.style.alignItems = 'center';
+        lbl.innerHTML = `<input type="checkbox" name="hud_spec_multi" value="${v}" style="margin-right:.5rem;"> ${t}`;
+        fieldWrap.appendChild(lbl);
+      });
+
+    } else if (cfg.type === 'input') {
+      fieldWrap.innerHTML = `<input type="text" id="hud_spec_free" name="hud_spec_free" class="input-line" placeholder="Upresni, prosím…">`;
+    }
+
+    row.appendChild(fieldWrap);
+    hudSpecC.appendChild(row);
+  }
+
+  function bindInes() {
+    const tanecChecks = root.querySelectorAll('input[name="tanec_spec_multi"]');
+    const tanecWrap = root.querySelector('#tanec_ine_wrap');
+    const ucitelChecks = root.querySelectorAll('input[name="ucitel_predmety_multi"]');
+    const ucitelWrap = root.querySelector('#ucitel_ine_wrap');
+
+    function toggleWrap(checks, wrap) {
+      if (!wrap) return;
+      const anyIne = [...checks].some(c => c.checked && c.value === 'ine');
+      wrap.style.display = anyIne ? 'block' : 'none';
+    }
+    tanecChecks.forEach(c => c.addEventListener('change', () => toggleWrap(tanecChecks, tanecWrap)));
+    ucitelChecks.forEach(c => c.addEventListener('change', () => toggleWrap(ucitelChecks, ucitelWrap)));
+    toggleWrap(tanecChecks, tanecWrap);
+    toggleWrap(ucitelChecks, ucitelWrap);
+  }
+
+  // ===== IČO lookup =====
+  const orgZar = root.querySelector('#org_zaradenie');
+  const orgZarWrap = root.querySelector('#org_zaradenie_ine_wrap');
+  function syncOrgZar(){ if (orgZar && orgZarWrap) orgZarWrap.style.display = (orgZar.value === 'ine') ? 'block' : 'none'; }
+
+  const icoInput = ico;
+  const icoBtn   = root.querySelector('#ico-lookup-btn');
+
+  const fillICO = (d={})=>{
+    const set = (id, v)=>{ const el=root.querySelector('#'+id); if(el && v!=null) el.value = v; };
+    set('organizacia_nazov', d.nazov);
+    set('dic', d.dic);
+    set('ic_dph', d.ic_dph);
+    set('sidlo_ulica', d.ulica);
+    set('sidlo_psc', d.psc);
+    set('sidlo_mesto', d.mesto);
+  };
+
+  async function doLookup(){
+    const val = (icoInput?.value||'').trim();
+    if(!/^\d{6,10}$/.test(val)){ alert('Zadaj platné IČO (6–10 číslic).'); icoInput?.focus(); return; }
+    try{
+      if (icoBtn) { icoBtn.disabled = true; icoBtn.textContent = 'Načítavam…'; }
+      const r = await fetch(`{{ url_for('uzivatel.ico_lookup') }}?ico=${val}`);
+      if(!r.ok){ throw new Error('Pre zadané IČO sa údaje nenašli.'); }
+      const data = await r.json();
+      fillICO(data);
+      orgZar?.focus({preventScroll:true});
+    }catch(err){
+      alert(err.message || 'Nepodarilo sa načítať údaje.');
+    }finally{
+      if (icoBtn) { icoBtn.disabled = false; icoBtn.textContent = 'Načítať údaje'; }
+    }
+  }
+
+  // ===== submit guard =====
+  function onSubmit(e){
+    // heslá
+    const h1 = root.querySelector('#heslo');
+    const h2 = root.querySelector('#heslo2');
+    if (h1 && h2 && h1.value !== h2.value) {
+      e.preventDefault(); alert('Heslá sa nezhodujú.'); h2.focus(); return;
+    }
+
+    const typ = root.querySelector('input[name="typ_subjektu"]:checked')?.value || 'fyzicka';
+
+    if (typ === 'fyzicka'){
+      const r = rolaSel?.value || '';
+      if (!r){ e.preventDefault(); alert('Vyber zameranie.'); rolaSel?.focus(); return; }
+      if (r === 'hudobnik'){
+        if (!hudObl?.value) { e.preventDefault(); alert('Vyber oblasť (Spev, Klávesy, …)'); hudObl?.focus(); return; }
+        const hudSpecSel = root.querySelector('#hud_spec');
+        const anyCB = [...root.querySelectorAll('input[name="hud_spec_multi"]:checked')].length > 0;
+        const free = root.querySelector('#hud_spec_free');
+        if (hudSpecSel && !hudSpecSel.value) { e.preventDefault(); alert('Vyber špecifikáciu.'); hudSpecSel.focus(); return; }
+        if (free && !free.value.trim()) { e.preventDefault(); alert('Upresni „iné“.'); free.focus(); return; }
+        if (!hudSpecSel && !free && !anyCB) { e.preventDefault(); alert('Zvoľ špecifikáciu.'); return; }
+      }
+      if (r === 'tanecnik'){
+        const any = [...root.querySelectorAll('input[name="tanec_spec_multi"]:checked')].length > 0;
+        if (!any) { e.preventDefault(); alert('Vyber aspoň jednu tanečnú kategóriu.'); return; }
+        const ineOn = [...root.querySelectorAll('input[name="tanec_spec_multi"]:checked')].some(c => c.value === 'ine');
+        const ineText = root.querySelector('#tanec_ine_text');
+        if (ineOn && (!ineText || !ineText.value.trim())) { e.preventDefault(); alert('Upresni „iné“ pri Tanečníkovi.'); ineText?.focus(); return; }
+      }
+      if (r === 'ucitel_hudby'){
+        const any = [...root.querySelectorAll('input[name="ucitel_predmety_multi"]:checked')].length > 0;
+        if (!any) { e.preventDefault(); alert('Vyber aspoň jeden vyučovaný odbor.'); return; }
+        const ineOn = [...root.querySelectorAll('input[name="ucitel_predmety_multi"]:checked')].some(c => c.value === 'ine');
+        const ineText = root.querySelector('#ucitel_ine_text');
+        if (ineOn && (!ineText || !ineText.value.trim())) { e.preventDefault(); alert('Upresni „iné“ pri Učiteľovi hudby.'); ineText?.focus(); return; }
+      }
+    } else {
+      // IČO režim
+      const val = (icoInput?.value||'').trim();
+      const nazov = (orgNazov?.value||'').trim();
+      const zar = (orgZar?.value||'').trim();
+      if (!/^\d{6,10}$/.test(val)) { e.preventDefault(); alert('Zadaj platné IČO (6–10 číslic).'); icoInput?.focus(); return; }
+      if (!nazov) { e.preventDefault(); alert('Chýba Názov organizácie (skús „Načítať údaje“).'); orgNazov?.focus(); return; }
+      if (!zar) { e.preventDefault(); alert('Vyber Zaradenie organizácie.'); orgZar?.focus(); return; }
+    }
+
+    // disable submit
+    const btn = form?.querySelector('button[type="submit"]');
+    if (btn){ btn.disabled = true; btn.textContent = 'Odosielam…'; }
+  }
+
+  // ===== init =====
+  radios.forEach(r => r.addEventListener('change', syncType));
+  rolaSel?.addEventListener('change', syncRola);
+  hudObl?.addEventListener('change', renderHudSpec);
+  orgZar?.addEventListener('change', syncOrgZar);
+  icoBtn?.addEventListener('click', doLookup);
+  icoInput?.addEventListener('blur', ()=> { if(/^\d{6,10}$/.test(icoInput.value)) doLookup(); });
+
+  form?.addEventListener('submit', onSubmit);
+
+  // prvé načítanie
+  syncType(); syncRola(); renderHudSpec(); bindInes(); syncOrgZar();
+})();
 </script>
