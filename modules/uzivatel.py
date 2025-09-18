@@ -138,6 +138,7 @@ def _send_verif_email(to_email: str, link: str):
 # 🔹 Registrácia
 @uzivatel.route('/registracia', methods=['GET', 'POST'])
 def registracia():
+    import json
     if request.method == 'POST':
         typ = (request.form.get('typ_subjektu') or 'fyzicka').strip()
 
@@ -151,6 +152,10 @@ def registracia():
 
         email = (request.form.get('email') or '').strip()
         obec  = (request.form.get('obec') or '').strip()
+
+        # malá pomôcka
+        def dedup_list(lst):
+            return [x for x in dict.fromkeys((x or '').strip() for x in lst if (x or '').strip())]
 
         # --- FO vs IČO polia + zamerania
         data = {
@@ -169,7 +174,7 @@ def registracia():
 
             # IČO – organizačné údaje
             data.update({
-                'prezyvka': organizacia_nazov,   # UI používa prezývku – dáme názov
+                'prezyvka': organizacia_nazov,
                 'meno': None, 'priezvisko': None,
                 'instrument': None, 'doplnkovy_nastroj': None,
 
@@ -187,15 +192,18 @@ def registracia():
                 'rola': None, 'hud_oblast': None, 'hud_spec': None,
                 'tanec_spec': None, 'tanec_ine': None,
                 'ucitel_predmety': None, 'ucitel_ine': None,
+                'moderator_podrola': None,
             })
 
-            # duplicita: email + (voliteľne názov ako prezývka)
             exist = Pouzivatel.query.filter(
                 (Pouzivatel.email == email) | (Pouzivatel.prezyvka == organizacia_nazov)
             ).first()
             if exist:
                 flash("Používateľ s týmto e-mailom alebo názvom už existuje.", "warning")
                 return redirect(url_for('uzivatel.registracia'))
+
+            # role_data prázdne (organizácia)
+            data['role_data'] = json.dumps({}, ensure_ascii=False)
 
         else:
             # Fyzická osoba
@@ -206,24 +214,42 @@ def registracia():
                 flash("Prezývka je povinná pre fyzickú osobu.", "warning")
                 return redirect(url_for('uzivatel.registracia'))
 
-            # zamerania
+            # primárna rola
             rola = (request.form.get('rola') or '').strip() or None
+
+            # HUDOBNÍK
             hud_oblast = (request.form.get('hud_oblast') or '').strip() or None
-            # hud_spec: priorita select->free->checkbox multi
             hud_spec = (request.form.get('hud_spec') or '').strip()
             if not hud_spec:
                 hud_spec = (request.form.get('hud_spec_free') or '').strip()
             if not hud_spec:
-                ms = request.form.getlist('hud_spec_multi')
-                hud_spec = ','.join(ms) if ms else None
+                hud_spec_multi = request.form.getlist('hud_spec_multi')  # ak používaš [] názvy, prispôsob
+                hud_spec_multi = dedup_list(hud_spec_multi)
+                hud_spec = ','.join(hud_spec_multi) if hud_spec_multi else None
 
-            tanec_spec_list = request.form.getlist('tanec_spec_multi')
+            # TANEČNÍK
+            tanec_spec_list = dedup_list(request.form.getlist('tanec_spec_multi'))
             tanec_spec = ','.join(tanec_spec_list) if tanec_spec_list else None
             tanec_ine = (request.form.get('tanec_ine_text') or '').strip() or None
 
-            ucitel_list = request.form.getlist('ucitel_predmety_multi')
+            # MODERÁTOR
+            podrola_multi = dedup_list(request.form.getlist('podrola_multi'))
+            if not podrola_multi:
+                one = (request.form.get('podrola') or '').strip()
+                if one:
+                    podrola_multi = [one]
+            moderator_podrola = ','.join(podrola_multi) if podrola_multi else None
+
+            # UČITEĽ HUDBY
+            ucitel_list = dedup_list(request.form.getlist('ucitel_predmety_multi'))
             ucitel_predmety = ','.join(ucitel_list) if ucitel_list else None
             ucitel_ine = (request.form.get('ucitel_ine_text') or '').strip() or None
+
+            # „Iné“ rola
+            rola_ina = (request.form.get('rola_ina') or '').strip() or None
+
+            # jednoduché roly (fotograf, videograf, …) – ak ich máš v registrácii
+            simple_roles = dedup_list(request.form.getlist('simple_role_multi'))
 
             instrument = (request.form.get('instrument') or '').strip() or None
             doplnkovy  = (request.form.get('doplnkovy_nastroj') or '').strip() or None
@@ -235,6 +261,8 @@ def registracia():
                 'ico': None, 'organizacia_nazov': None,
                 'dic': None, 'ic_dph': None, 'sidlo_ulica': None, 'sidlo_psc': None, 'sidlo_mesto': None,
                 'org_zaradenie': None, 'org_zaradenie_ine': None,
+
+                # legacy stĺpce (aby bolo kompatibilné a profil to vedel čítať aj bez role_data)
                 'rola': rola,
                 'hud_oblast': hud_oblast,
                 'hud_spec': hud_spec,
@@ -242,6 +270,8 @@ def registracia():
                 'tanec_ine': tanec_ine,
                 'ucitel_predmety': ucitel_predmety,
                 'ucitel_ine': ucitel_ine,
+                'moderator_podrola': moderator_podrola,
+                'rola_ina': rola_ina,
             })
 
             exist = Pouzivatel.query.filter(
@@ -251,9 +281,39 @@ def registracia():
                 flash("Používateľ s týmto e-mailom alebo prezývkou už existuje.", "warning")
                 return redirect(url_for('uzivatel.registracia'))
 
+            # ---- role_data JSON (future-proof, rovnaké ako v edite) ----
+            rd = {}
+
+            # HUDOBNÍK
+            hud_spec_list = [s.strip() for s in (hud_spec or '').split(',') if s.strip()]
+            if hud_oblast or hud_spec_list:
+                rd['hudobnik'] = {'hud_oblast': hud_oblast, 'hud_spec': hud_spec_list}
+
+            # TANEČNÍK
+            if tanec_spec_list or (tanec_ine and tanec_ine.strip()):
+                rd['tanecnik'] = {'tanec_spec': tanec_spec_list, 'tanec_ine': tanec_ine or None}
+
+            # MODERÁTOR
+            if podrola_multi:
+                rd['moderator'] = {'podrola': podrola_multi}
+
+            # UČITEĽ HUDBY (len ak má niečo vybraté)
+            if ucitel_list or (ucitel_ine and ucitel_ine.strip()):
+                rd['ucitel_hudby'] = {'ucitel_predmety': ucitel_list, 'ucitel_ine': ucitel_ine or None}
+
+            # „Iné“ rola
+            if rola == 'ine' and rola_ina:
+                rd['ine'] = {'rola_ina': rola_ina}
+
+            # SIMPLE roly
+            if simple_roles:
+                rd['simple_roles'] = simple_roles
+
+            data['role_data'] = json.dumps(rd, ensure_ascii=False)
+
         # --- podpíš dáta a pošli e-mail
         s = _make_serializer()
-        token = s.dumps(data)  # obsahuje všetky polia; heslo už je hash
+        token = s.dumps(data)  # obsahuje všetky polia vrátane role_data; heslo už je hash
         link = url_for('uzivatel.over_registraciu', t=token, _external=True)
 
         try:
@@ -342,44 +402,136 @@ def over_registraciu():
 @login_required
 def logout():
     logout_user()
-    # flash správa po odhlásení
-    flash("Úspešne ste sa odhlásili.", "info")  # alebo "success"
+    flash("Úspešne ste sa odhlásili.", "info")
     return redirect(url_for('uzivatel.index'))
 
 
-# 🔹 Moje konto (edit vlastného profilu)
-#     -> 2 URL: /moje-konto aj /profil (endpoint='profil' = alias pre staré odkazy)
 @uzivatel.route('/moje-konto', methods=['GET', 'POST'])
 @uzivatel.route('/profil', methods=['GET', 'POST'], endpoint='profil')
 @login_required
 def moje_konto():
+    import json
     pouzivatel = current_user
 
     if request.method == 'POST':
-        pouzivatel.prezyvka = request.form.get('prezyvka')
-        pouzivatel.meno = request.form.get('meno')
-        pouzivatel.priezvisko = request.form.get('priezvisko')
-        pouzivatel.email = request.form.get('email')
-        pouzivatel.obec = request.form.get('obec')
-        pouzivatel.instrument = request.form.get('instrument')
-        pouzivatel.doplnkovy_nastroj = request.form.get('doplnkovy_nastroj')
-        pouzivatel.bio = request.form.get('bio')
+        # helpers ...
+        def val(name: str, default=None):
+            v = request.form.get(name, default)
+            if isinstance(v, str):
+                v = v.strip()
+            return v if v not in ("", None) else None
 
-        # 🔹 NOVÉ: typ účtu + IČO polia
-        typ = request.form.get('typ_subjektu') or 'fyzicka'
+        def list_from_any(*names):
+            for nm in names:
+                raw = request.form.getlist(nm)
+                if raw:
+                    seen, out = set(), []
+                    for it in raw:
+                        s = (it or '').strip()
+                        if s and s not in seen:
+                            seen.add(s); out.append(s)
+                    if out:
+                        return out
+            return []
+
+        def csv_join(items):
+            return ",".join(items) if items else None
+
+        # --- 0) RD načítaj RAZ ---
+        try:
+            rd = json.loads(pouzivatel.role_data or "{}")
+            if not isinstance(rd, dict):
+                rd = {}
+        except Exception:
+            rd = {}
+
+        # --- základné polia ---
+        for k in ("prezyvka", "meno", "priezvisko", "email", "obec", "bio"):
+            setattr(pouzivatel, k, val(k, getattr(pouzivatel, k)))
+
+        # --- primárna rola ---
+        primary_role = val("rola")
+        if primary_role:
+            pouzivatel.rola = primary_role
+
+        # --- SIMPLE ROLES -> rd["simple_roles"] ---
+        simple_roles = request.form.getlist("simple_role_multi")
+        simple_roles = [r for r in dict.fromkeys((r or "").strip() for r in simple_roles if (r or "").strip())]
+        rd.pop("extra_roles", None)       # cleanup starého kľúča
+        rd["simple_roles"] = simple_roles
+
+        # --- HUDOBNÍK (legacy stĺpce)
+        if any(n in request.form for n in ("hud_oblast","hud_spec[]","hud_spec_multi","hud_spec_extra")):
+            pouzivatel.hud_oblast = val("hud_oblast")
+            spec_list = list_from_any("hud_spec[]", "hud_spec_multi")
+            spec_extra = val("hud_spec_extra")
+            if spec_extra:
+                spec_list.append(spec_extra)
+            pouzivatel.hud_spec = csv_join(spec_list)
+
+        # --- TANEČNÍK (legacy)
+        if any(n in request.form for n in ("tanec_spec_multi","tanec_spec[]","tanec_ine_text","tanec_ine")):
+            tan_list = list_from_any("tanec_spec_multi", "tanec_spec[]")
+            pouzivatel.tanec_spec = csv_join(tan_list)
+            pouzivatel.tanec_ine  = val("tanec_ine_text") or val("tanec_ine")
+
+        # --- MODERÁTOR (legacy – CSV)
+        if any(n in request.form for n in ("podrola_multi","podrola[]","podrola")):
+            pod_list = list_from_any("podrola_multi", "podrola[]")
+            if not pod_list:
+                v = val("podrola")
+                pod_list = [v] if v else []
+            pouzivatel.moderator_podrola = csv_join(pod_list)
+
+        # --- UČITEĽ HUDBY (legacy + uprac JSON) ---
+        if any(n in request.form for n in ("ucitel_predmety_multi","ucitel_predmety[]","ucitel_ine_text","ucitel_ine")):
+            uc_list = list_from_any("ucitel_predmety_multi", "ucitel_predmety[]")
+            uc_ine  = val("ucitel_ine_text") or val("ucitel_ine")
+
+            pouzivatel.ucitel_predmety = csv_join(uc_list)
+            pouzivatel.ucitel_ine      = uc_ine
+
+            # tu UPRAC rd tak, aby “Učiteľ hudby” nezostal, keď je prázdny
+            if uc_list or (uc_ine and uc_ine.strip()):
+                rd["ucitel_hudby"] = {
+                    "ucitel_predmety": uc_list,
+                    "ucitel_ine": uc_ine or None
+                }
+            else:
+                rd.pop("ucitel_hudby", None)
+
+        # --- „Iné“ rola (legacy)
+        if "rola_ina" in request.form:
+            pouzivatel.rola_ina = val("rola_ina")
+
+        # --- typ účtu + IČO ---
+        typ = val('typ_subjektu', pouzivatel.typ_subjektu or 'fyzicka') or 'fyzicka'
         pouzivatel.typ_subjektu = typ
+        ico_keys = ("organizacia_nazov","ico","org_zaradenie","org_zaradenie_ine","dic","ic_dph","sidlo_ulica","sidlo_psc","sidlo_mesto")
         if typ == 'ico':
-            pouzivatel.ico = (request.form.get('ico') or '').strip() or None
-            pouzivatel.organizacia_nazov = (request.form.get('organizacia_nazov') or '').strip() or None
+            for k in ico_keys:
+                if hasattr(pouzivatel, k):
+                    setattr(pouzivatel, k, val(k))
         else:
-            pouzivatel.ico = None
-            pouzivatel.organizacia_nazov = None
+            for k in ico_keys:
+                if hasattr(pouzivatel, k):
+                    setattr(pouzivatel, k, None)
+
+        # --- 1) ULOŽ upravené rd SPÄŤ do modelu (DÔLEŽITÉ!) ---
+        pouzivatel.role_data = json.dumps(rd, ensure_ascii=False)
 
         db.session.commit()
         flash("Profil bol úspešne upravený", "success")
         return redirect(url_for('uzivatel.profil'))
 
-    skupina = pouzivatel.skupina_clen[0] if pouzivatel.skupina_clen else None
+    # GET – simple_roles na predvyplnenie
+    try:
+        rd = json.loads(pouzivatel.role_data or "{}")
+        simple_roles = set(rd.get("simple_roles", [])) if isinstance(rd, dict) else set()
+    except Exception:
+        simple_roles = set()
+
+    skupina = pouzivatel.skupina_clen[0] if getattr(pouzivatel, 'skupina_clen', None) else None
     galeria = skupina.galeria if skupina else []
     youtube_videa = pouzivatel.videa
 
@@ -387,7 +539,10 @@ def moje_konto():
         pouzivatel=pouzivatel,
         skupina=skupina,
         galeria=galeria,
-        youtube_videa=youtube_videa
+        youtube_videa=youtube_videa,
+        simple_roles=simple_roles,
+        public_view=False,
+        show_edit=(request.args.get('edit') == '1')
     )
 
 

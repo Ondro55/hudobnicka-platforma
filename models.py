@@ -1,33 +1,39 @@
+import json
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask import url_for
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-import secrets
 
 db = SQLAlchemy()
 
+import json
+
 class Pouzivatel(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
+
+    # základ
     prezyvka = db.Column(db.String(50), unique=True, nullable=False)
     meno = db.Column(db.String(100))
     priezvisko = db.Column(db.String(100))
     email = db.Column(db.String(120), unique=True, nullable=False)
     heslo = db.Column(db.String(200), nullable=False)
-    instrument = db.Column(db.String(100))
-    doplnkovy_nastroj = db.Column(db.String(100))
     bio = db.Column(db.Text)
-    obec = db.Column(db.String(100)) 
+    obec = db.Column(db.String(100))
     datum_registracie = db.Column(db.DateTime, default=datetime.utcnow)
     aktivny = db.Column(db.Boolean, default=True)
     profil_fotka = db.Column(db.String(200))
 
-    galeria = db.relationship('GaleriaPouzivatel', back_populates='pouzivatel', lazy=True, cascade='all, delete-orphan')
-    videa = db.relationship('VideoPouzivatel', back_populates='pouzivatel', lazy=True, cascade='all, delete-orphan')
+    # historické pole – nepoužívame na zobrazenie, ale nechávame
+    zamerania = db.Column(db.Text, nullable=True)
 
+    # legacy polia (ak ich ešte niekde posiela registrácia)
+    instrument = db.Column(db.String(100))
+    doplnkovy_nastroj = db.Column(db.String(100))
+
+    # práva / účet
     is_admin = db.Column(db.Boolean, default=False)
     is_moderator = db.Column(db.Boolean, default=False)
-
     strikes_count = db.Column(db.Integer, default=0, nullable=False)
     banned_until = db.Column(db.DateTime, nullable=True)
     banned_reason = db.Column(db.String(255), nullable=True)
@@ -35,25 +41,47 @@ class Pouzivatel(db.Model, UserMixin):
     typ_subjektu = db.Column(db.String(10), default='fyzicka')  # 'fyzicka' | 'ico'
     ico = db.Column(db.String(20), nullable=True)
     organizacia_nazov = db.Column(db.String(150), nullable=True)
+    plan = db.Column(db.String(20), nullable=False, default='free')
+    account_type = db.Column(db.String(20), nullable=False, default='individual')
+    searchable = db.Column(db.Boolean, nullable=False, default=False)
+    is_vip = db.Column(db.Boolean, nullable=False, default=False)
+    billing_exempt = db.Column(db.Boolean, nullable=False, default=False)
 
-    plan = db.Column(db.String(20), nullable=False, default='free')  # 'free' | 'pro' | 'business'
-    account_type = db.Column(db.String(20), nullable=False, default='individual')  # 'individual' | 'organization'
-    searchable = db.Column(db.Boolean, nullable=False, default=False)  # viditeľnosť vo vyhľadávači (PRO/Business)
+    # --- FO: single-stĺpce – kvôli kompatibilite so starou registráciou ---
+    rola = db.Column(db.String(40), index=True)  # primárna rola
 
-    is_vip = db.Column(db.Boolean, nullable=False, default=False)          # VIP = PRO výhody bez platby
-    billing_exempt = db.Column(db.Boolean, nullable=False, default=False)  # oslobodený od fakturácie
+    # HUDOBNÍK
+    hud_oblast = db.Column(db.String(40), index=True)  # spev|klavesy|gitara|...
+    hud_spec = db.Column(db.Text)  # CSV
 
-    # --- FO: kategorizácia (filtrovanie na webe) ---
-    rola = db.Column(db.String(40), index=True)           # hudobnik | tanecnik | moderator | fotograf | ...
-    hud_oblast = db.Column(db.String(40), index=True)      # spev | klavesy | gitara | ...
-    hud_spec = db.Column(db.Text)                          # CSV alebo voľný text (napr. "solo,vokal")
-    tanec_spec = db.Column(db.Text)                        # CSV ("moderne,latino")
+    # TANEČNÍK
+    tanec_spec = db.Column(db.Text)  # CSV
     tanec_ine = db.Column(db.String(120))
-    ucitel_predmety = db.Column(db.Text)                   # CSV ("klavir,gitara,teoria")
+
+    # MODERÁTOR
+    moderator_podrola = db.Column(db.String(40), index=True)  # historicky string/CSV
+
+    # UČITEĽ HUDBY
+    ucitel_predmety = db.Column(db.Text)  # CSV
     ucitel_ine = db.Column(db.String(120))
 
-    # --- IČO: údaje a zaradenie ---
-    org_zaradenie = db.Column(db.String(40), index=True)   # agentura | prenajom_techniky | prenajom_saly | servis | studio | zus_skola | ine
+    # „Iné“
+    rola_ina = db.Column(db.String(200))
+
+    # === NOVÉ: multi-rola v JSON forme ===
+    # Očakávaný tvar:
+    # {
+    #   "hudobnik": {"hud_oblast":"gitara","hud_spec":["elektricka","akusticka"]},
+    #   "tanecnik": {"tanec_spec":["street"],"tanec_ine":null},
+    #   "moderator": {"podrola": ["moderator","moderator_hudobnych_akcií"]},
+    #   "ucitel_hudby": {"ucitel_predmety":["gitara","teoria"],"ucitel_ine":null},
+    #   "simple_roles": ["fotograf","videograf","zvukar","osvetlovac","technik_podia","producent","skladatel"]
+    # }
+    # (Pre spätnú kompatibilitu ak by si mal kedysi kľúče 'fotograf': {} atď., tiež ich zoberieme do úvahy.)
+    role_data = db.Column(db.Text)
+
+    # --- IČO údaje ---
+    org_zaradenie = db.Column(db.String(40), index=True)
     org_zaradenie_ine = db.Column(db.String(120))
     dic = db.Column(db.String(20))
     ic_dph = db.Column(db.String(20))
@@ -61,39 +89,328 @@ class Pouzivatel(db.Model, UserMixin):
     sidlo_psc = db.Column(db.String(10), index=True)
     sidlo_mesto = db.Column(db.String(80), index=True)
 
+    # --- vzťahy ---
+    galeria = db.relationship('GaleriaPouzivatel', back_populates='pouzivatel',
+                              lazy=True, cascade='all, delete-orphan')
+    videa = db.relationship('VideoPouzivatel', back_populates='pouzivatel',
+                            lazy=True, cascade='all, delete-orphan')
+
+    # --- auth helpers ---
     def over_heslo(self, zadane_heslo):
         return check_password_hash(self.heslo, zadane_heslo)
 
     def nastav_heslo(self, heslo):
         self.heslo = generate_password_hash(heslo)
 
+    # --- URL helpers ---
     @property
     def profil_fotka_url(self):
         if self.profil_fotka:
             return url_for('static', filename=f'profilovky/{self.profil_fotka}')
         return url_for('static', filename='profilovky/default.png')
+
     @property
     def profil_url(self):
-        """Bezpečne vygeneruje link na verejný profil používateľa (podľa toho, čo máš v appke)."""
-        candidates = [
-            ('profil.detail',       {'user_id': self.id}),
-            ('profil.view',         {'user_id': self.id}),
+        for endpoint, params in [
+            ('profil.detail', {'user_id': self.id}),
+            ('profil.view', {'user_id': self.id}),
             ('uzivatel.profil_detail', {'id': self.id}),
             ('uzivatel.profil_public', {'id': self.id}),
-        ]
-        for endpoint, params in candidates:
+        ]:
             try:
                 return url_for(endpoint, **params)
             except Exception:
                 continue
-        # fallback – aspoň na vlastný profil alebo nič
         try:
             return url_for('uzivatel.profil')
         except Exception:
             return '#'
+
     @property
     def is_banned(self) -> bool:
         return self.banned_until is not None and datetime.utcnow() < self.banned_until
+
+    # ====== MAPPINGY ======
+    _ROLE_LABELS = {
+        'hudobnik': 'Hudobník',
+        'tanecnik': 'Tanečník',
+        'moderator': 'Moderátor akcií',
+        'fotograf': 'Fotograf',
+        'videograf': 'Videograf',
+        'zvukar': 'Zvukár',
+        'osvetlovac': 'Osvetľovač',
+        'technik_podia': 'Technik pódia / Roadie',
+        'producent': 'Producent / Beatmaker',
+        'skladatel': 'Skladateľ / Aranžér',
+        'ucitel_hudby': 'Učiteľ hudby',
+        'ine': 'Iné',
+    }
+
+    _SIMPLE_ROLE_LABELS = {
+        'fotograf': 'Fotograf',
+        'videograf': 'Videograf',
+        'zvukar': 'Zvukár',
+        'osvetlovac': 'Osvetľovač',
+        'technik_podia': 'Technik pódia / Roadie',
+        'producent': 'Producent / Beatmaker',
+        'skladatel': 'Skladateľ / Aranžér',
+    }
+
+    _HUD_OBLAST_LABELS = {
+        'spev': 'Spev',
+        'klavesy': 'Klávesy',
+        'gitara': 'Gitara',
+        'bicie': 'Bicie / Perkusie',
+        'slacikove': 'Sláčikové',
+        'dychove': 'Dychové',
+        'dj': 'DJ',
+        'elektronika': 'Elektronika (live)',
+        'folklorne': 'Folklórne',
+        'ine': 'Iné',
+    }
+
+    # !!! rozšírené špecifikácie, aby sa pekne zobrazovali všetky checkboxy z UI
+    _HUD_SPEC_LABELS = {
+        # spev
+        'solo': 'Sólo', 'vokal': 'Vokál', 'zbor': 'Zbor',
+        'sprievod': 'Sprievod', 'kapela': 'Kapela',
+
+        # klávesy
+        'klavir': 'Klavír', 'keyboard': 'Keyboard', 'synth': 'Synthesizer', 'organ': 'Organ / Hammond',
+
+        # gitara
+        'elektricka': 'Elektrická', 'akusticka': 'Akustická', 'klasicka': 'Klasická', 'basgitara': 'Basgitara',
+
+        # bicie / perkusie
+        'bicie_suprava': 'Bicie súprava', 'perkusie': 'Perkusie', 'cajon': 'Cajon',
+
+        # sláčikové
+        'husle': 'Husle', 'viola': 'Viola', 'violoncello': 'Violončelo', 'kontrabas': 'Kontrabas',
+
+        # dychové
+        'saxofon': 'Saxofón', 'klarinet': 'Klarinet', 'priecna_flauta': 'Priečna flauta',
+        'trumpeta': 'Trumpeta', 'pozoun': 'Pozoun', 'lesny_rog': 'Lesný roh', 'tuba': 'Tuba',
+
+        # DJ
+        'svadobny': 'Svadobný', 'oldies': 'Oldies', '80s_90s': '80s/90s', 'komercne': 'Komerčné', 'house': 'House', 'techno': 'Techno',
+
+        # elektronika
+        'sampler': 'Sampler', 'drum_machine': 'Drum machine', 'live_perf': 'Live performance',
+
+        # folklórne
+        'cimbal': 'Cimbal', 'akordeon': 'Akordeón', 'heligonka': 'Heligónka', 'gajdy': 'Gajdy', 'fujara': 'Fujara',
+
+        # fallback
+        'ine': 'Iné',
+    }
+
+    _TANEC_LABELS = {
+        'moderne': 'Moderné / Contemporary',
+        'folklor_subor': 'Folklórny súbor',
+        'latino': 'Latino (Salsa/Bachata)',
+        'street': 'Street / Hip-hop',
+        'ballroom': 'Ballroom (Štandard/Latina)',
+        'spolocenske': 'Spoločenské / Club',
+        'pedagog': 'Tanečný pedagóg',
+        'ine': 'Iné',
+    }
+
+    _MODERATOR_PODROLA_LABELS = {
+        'staresi': 'Starejší',
+        'moderator': 'Moderátor',
+        'moderator_hudobnych_akcii': 'Moderátor hudobných akcií',
+    }
+
+    _UCITEL_LABELS = {
+        'klavir': 'Klavír', 'gitara': 'Gitara', 'husle': 'Husle', 'flauta': 'Flauta',
+        'saxofon': 'Saxofón', 'klarinet': 'Klarinet', 'trumpeta': 'Trúbka', 'bicie': 'Bicie',
+        'spev': 'Spev', 'akordeon': 'Akordeón', 'heligonka': 'Heligónka', 'teoria': 'Hudobná teória',
+        'ine': 'Iné',
+    }
+
+    # ====== JSON helpers ======
+    def _get_role_data(self) -> dict:
+        try:
+            return json.loads(self.role_data) if self.role_data else {}
+        except Exception:
+            return {}
+
+    def _set_role_data(self, data: dict):
+        self.role_data = json.dumps(data, ensure_ascii=False)
+
+    @property
+    def role_data_dict(self) -> dict:
+        return self._get_role_data()
+
+    def set_role_block(self, role: str, data: dict | None):
+        obj = self._get_role_data()
+        if data is None:
+            obj.pop(role, None)
+        else:
+            obj[role] = data
+        self._set_role_data(obj)
+
+    @staticmethod
+    def _split_csv(v: str):
+        if not v:
+            return []
+        return [s.strip() for s in v.split(',') if s and s.strip()]
+
+    @staticmethod
+    def _list_to_csv(lst):
+        if not lst:
+            return None
+        out, seen = [], set()
+        for x in lst:
+            s = (x or "").strip()
+            if s and s not in seen:
+                seen.add(s); out.append(s)
+        return ",".join(out) if out else None
+
+    # Na predvyplnenie jednoduchých rolí v edite
+    @property
+    def simple_roles_selected(self):
+        try:
+            data = json.loads(self.role_data or "{}")
+            return [r for r in data.get("simple_roles", []) if r]
+        except Exception:
+            return []
+
+
+    # ====== Zobrazenie „Zamerania“ – preferuj role_data; inak fallback ======
+    def zamerania_list(self):
+        import json
+
+        # mapy
+        RL = self._ROLE_LABELS
+        HO = self._HUD_OBLAST_LABELS
+        HS = self._HUD_SPEC_LABELS
+        TN = self._TANEC_LABELS
+        MD = self._MODERATOR_PODROLA_LABELS
+        UC = self._UCITEL_LABELS
+        SR = self._SIMPLE_ROLE_LABELS
+
+        # pomocníci
+        def dedup_keep_order(lst):
+            out, seen = [], set()
+            for x in lst:
+                if not x:
+                    continue
+                x = x.strip()
+                if x and x not in seen:
+                    seen.add(x); out.append(x)
+            return out
+
+        def add_group(role_key, items, out_list):
+            items = dedup_keep_order(items)
+            if not items:
+                return
+            label = RL.get(role_key, role_key)
+            out_list.append(f"{label} – {', '.join(items)}")
+
+        # načítaj JSON
+        try:
+            data = json.loads(self.role_data or "{}")
+            if not isinstance(data, dict):
+                data = {}
+        except Exception:
+            data = {}
+
+        out = []
+
+        # ===== HUDOBNÍK (leaf = špecifikácie; ak nie sú, aspoň oblasť) =====
+        hud_items = []
+        det = data.get('hudobnik') or {}
+        if isinstance(det, dict):
+            ho = (det.get('hud_oblast') or '').strip()
+            specs = det.get('hud_spec') or []
+            if specs:
+                for sp in specs:
+                    hud_items.append(HS.get(sp, sp))
+            elif ho:
+                hud_items.append(HO.get(ho, ho))
+        # legacy doplnenie
+        legacy_ho = (self.hud_oblast or '').strip()
+        legacy_specs = [s.strip() for s in (self.hud_spec or '').split(',') if s.strip()]
+        if legacy_specs:
+            for sp in legacy_specs:
+                hud_items.append(HS.get(sp, sp))
+        elif legacy_ho:
+            hud_items.append(HO.get(legacy_ho, legacy_ho))
+        add_group('hudobnik', hud_items, out)
+
+        # ===== TANEČNÍK =====
+        tan_items = []
+        det = data.get('tanecnik') or {}
+        if isinstance(det, dict):
+            for sp in (det.get('tanec_spec') or []):
+                tan_items.append(TN.get(sp, sp))
+            ti = (det.get('tanec_ine') or '').strip()
+            if ti: tan_items.append(ti)
+        # legacy
+        for sp in [s.strip() for s in (self.tanec_spec or '').split(',') if s.strip()]:
+            tan_items.append(TN.get(sp, sp))
+        if (self.tanec_ine or '').strip():
+            tan_items.append(self.tanec_ine.strip())
+        add_group('tanecnik', tan_items, out)
+
+        # ===== MODERÁTOR =====
+        mod_items = []
+        det = data.get('moderator') or {}
+        if isinstance(det, dict):
+            pod = det.get('podrola') or []
+            if isinstance(pod, str):
+                pod = [s.strip() for s in pod.split(',') if s.strip()]
+            for sp in pod:
+                mod_items.append(MD.get(sp, sp))
+        # legacy
+        for sp in [s.strip() for s in (self.moderator_podrola or '').split(',') if s.strip()]:
+            mod_items.append(MD.get(sp, sp))
+        add_group('moderator', mod_items, out)
+
+        # ===== UČITEĽ HUDBY =====
+        uc_items = []
+        det = data.get('ucitel_hudby') or {}
+        if isinstance(det, dict):
+            for sp in (det.get('ucitel_predmety') or []):
+                uc_items.append(UC.get(sp, sp))
+            ui = (det.get('ucitel_ine') or '').strip()
+            if ui: uc_items.append(ui)
+        # legacy
+        for sp in [s.strip() for s in (self.ucitel_predmety or '').split(',') if s.strip()]:
+            uc_items.append(UC.get(sp, sp))
+        if (self.ucitel_ine or '').strip():
+            uc_items.append(self.ucitel_ine.strip())
+        add_group('ucitel_hudby', uc_items, out)
+
+        # ===== INÉ =====
+        ine_items = []
+        det = data.get('ine') or {}
+        if isinstance(det, dict):
+            ri = (det.get('rola_ina') or '').strip()
+            if ri: ine_items.append(ri)
+        if (self.rola == 'ine') and (self.rola_ina or '').strip():
+            ine_items.append(self.rola_ina.strip())
+        # ak niečo je, zobrazíme "Iné – text"
+        add_group('ine', ine_items, out)
+
+        # ===== SIMPLE ROLES (Fotograf, Videograf, …) – idú samostatne =====
+        simple = []
+        # nové JSON pole
+        simple.extend(data.get('simple_roles', []) or [])
+        # spätná kompatibilita: ak by boli priamo kľúče 'fotograf': {}
+        for key in SR.keys():
+            if key in data:
+                simple.append(key)
+        simple = dedup_keep_order(simple)
+        for sr in simple:
+            out.append(SR.get(sr, sr))
+
+        # prázdny zoznam -> nech šablóna ukáže „—“
+        return out
+
+
+
 
 class Inzerat(db.Model):
     id = db.Column(db.Integer, primary_key=True)

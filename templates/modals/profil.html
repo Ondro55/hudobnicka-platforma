@@ -1,13 +1,17 @@
 {% extends 'base.html' %}
-{# vlastníctvo a právo editácie #}
 {% set is_owner = current_user.is_authenticated and current_user.id == pouzivatel.id %}
-{% set can_edit = is_owner and (not public_view) %}
+{% set can_edit = is_owner %}
+{% set show_edit = show_edit|default(false) %}
+{% set simple = simple_roles or [] %}
 
 {% block content %}
 <section class="profil-page">
   <div class="profil-grid">
+
     <!-- ĽAVÁ STRANA -->
     <aside class="profil-left" id="profilLeft">
+
+      <!-- Foto -->
       <div class="profil-fotka-wrapper">
         {% set foto_url = url_for('static', filename='profilovky/' ~ (pouzivatel.profil_fotka or 'avatar-user.svg')) %}
         <img class="profilovka avatar"
@@ -16,39 +20,32 @@
              alt="Profilová fotka">
 
         {% if can_edit %}
-          <!-- overlay: zmena fotky (✏️) -->
           <form id="upload-form-user" action="{{ url_for('uzivatel.upload_fotka') }}" method="post" enctype="multipart/form-data" class="profil-upload-fotky">
             <input id="upload-input-user" type="file" name="profil_fotka" accept="image/*" onchange="this.form.submit()" hidden>
             <label for="upload-input-user" class="foto-action edit" title="Zmeniť fotku">✏️</label>
           </form>
 
           {% if pouzivatel.profil_fotka %}
-          <!-- overlay: odstrániť fotku (✖) -->
-          <a href="{{ url_for('uzivatel.odstranit_fotku') }}" class="foto-action delete" title="Odstrániť fotku" onclick="return confirm('Naozaj chceš odstrániť profilovú fotku?');">✖</a>
+            <a href="{{ url_for('uzivatel.odstranit_fotku') }}" class="foto-action delete" title="Odstrániť fotku" onclick="return confirm('Naozaj chceš odstrániť profilovú fotku?');">✖</a>
           {% endif %}
         {% endif %}
       </div>
 
-      <!-- Nick + akcie pod fotkou -->
+      <!-- Nick + akcie -->
       <div class="profil-nickline">
         <h2 class="profil-nick" title="{{ pouzivatel.prezyvka }}">
           {{ pouzivatel.prezyvka or (pouzivatel.meno ~ ' ' ~ pouzivatel.priezvisko)|trim }}
-          {% if pouzivatel.is_vip %}
-            <span class="role-badge" title="VIP">⭐</span>
-          {% endif %}
+          {% if pouzivatel.is_vip %}<span class="role-badge" title="VIP">⭐</span>{% endif %}
         </h2>
 
         {% if can_edit %}
           <button type="button" id="editButton" class="edit-icon" title="Upraviť profil">✏️</button>
         {% elif not is_owner %}
-          <a class="btn primary sm"
-             href="{{ url_for('spravy.napisat', komu_id=pouzivatel.id, kontekst='profil', kontekst_id=pouzivatel.id) }}">
-            ✉️ Pošli správu
-          </a>
+          <a class="btn primary sm" href="{{ url_for('spravy.napisat', komu_id=pouzivatel.id, kontekst='profil', kontekst_id=pouzivatel.id) }}">✉️ Pošli správu</a>
         {% endif %}
       </div>
 
-      {# VIP prepínač – len admin a len na public view #}
+      {# admin prepínač VIP – ak používaš public_view, inak sa nevykreslí #}
       {% if public_view and current_user.is_authenticated and current_user.is_admin %}
         <div class="admin-controls" style="margin:.5rem 0; display:flex; gap:.5rem; align-items:center;">
           <span class="badge" style="padding:.2rem .5rem; border:1px solid #ddd; border-radius:.5rem;">
@@ -56,81 +53,486 @@
           </span>
 
           {% if pouzivatel.is_vip %}
-            <form method="POST"
-                  action="{{ url_for('uzivatel.admin_set_vip', user_id=pouzivatel.id, action='off') }}"
-                  onsubmit="return confirm('Naozaj chceš zrušiť VIP pre {{ pouzivatel.prezyvka or pouzivatel.email }}?');">
+            <form method="POST" action="{{ url_for('uzivatel.admin_set_vip', user_id=pouzivatel.id, action='off') }}" onsubmit="return confirm('Naozaj chceš zrušiť VIP pre {{ pouzivatel.prezyvka or pouzivatel.email }}?');">
               <input type="hidden" name="next" value="{{ request.url }}">
-              <button type="submit" class="btn" style="padding:.4rem .7rem;">Zrušiť VIP</button>
+              <button type="submit" class="btn">Zrušiť VIP</button>
             </form>
           {% else %}
-            <form method="POST"
-                  action="{{ url_for('uzivatel.admin_set_vip', user_id=pouzivatel.id, action='on') }}"
-                  onsubmit="return confirm('Naozaj chceš prepnúť {{ pouzivatel.prezyvka or pouzivatel.email }} na VIP (PRO výhody)?');">
+            <form method="POST" action="{{ url_for('uzivatel.admin_set_vip', user_id=pouzivatel.id, action='on') }}" onsubmit="return confirm('Naozaj chceš prepnúť {{ pouzivatel.prezyvka or pouzivatel.email }} na VIP?');">
               <input type="hidden" name="next" value="{{ request.url }}">
-              <button type="submit" class="btn primary" style="padding:.4rem .7rem;">Urobiť VIP</button>
+              <button type="submit" class="btn primary">Urobiť VIP</button>
             </form>
           {% endif %}
         </div>
       {% endif %}
 
-      <!-- Zobrazenie údajov -->
-      <div id="udaje-zobraz" class="profil-udaje">
+      <!-- ======================== ZOBRAZENIE ÚDAJOV ======================== -->
+      <div id="udaje-zobraz" class="profil-udaje" {% if show_edit %}style="display:none"{% endif %}>
         <p><strong>Typ účtu:</strong> {{ 'Organizácia (IČO)' if pouzivatel.typ_subjektu == 'ico' else 'Fyzická osoba' }}</p>
+
         {% if pouzivatel.typ_subjektu == 'ico' %}
-          <p><strong>IČO:</strong> {{ pouzivatel.ico or '—' }}</p>
           <p><strong>Organizácia:</strong> {{ pouzivatel.organizacia_nazov or '—' }}</p>
+          <p><strong>IČO:</strong> {{ pouzivatel.ico or '—' }}</p>
+          {% if pouzivatel.dic %}<p><strong>DIČ:</strong> {{ pouzivatel.dic }}</p>{% endif %}
+          {% if pouzivatel.ic_dph %}<p><strong>IČ DPH:</strong> {{ pouzivatel.ic_dph }}</p>{% endif %}
+          {% set u = pouzivatel.sidlo_ulica or '' %}
+          {% set p = pouzivatel.sidlo_psc or '' %}
+          {% set m = pouzivatel.sidlo_mesto or '' %}
+          {% if u or p or m %}
+            <p><strong>Sídlo:</strong> {{ [u, (p ~ ' ' ~ m)|trim]|reject('equalto','')|join(', ') }}</p>
+          {% endif %}
         {% endif %}
 
         <p><strong>Meno:</strong> {{ (pouzivatel.meno or '') ~ ' ' ~ (pouzivatel.priezvisko or '') | trim or '—' }}</p>
         <p><strong>Email:</strong> {{ pouzivatel.email or '—' }}</p>
         <p><strong>Mesto / Obec:</strong> {{ pouzivatel.obec or '—' }}</p>
-        <p><strong>Hudobný nástroj:</strong> {{ pouzivatel.instrument or '—' }}</p>
-        <p><strong>Doplnkový nástroj:</strong> {{ pouzivatel.doplnkovy_nastroj or '—' }}</p>
 
-        {% if pouzivatel.bio %}
-          <div class="profil-omne">
-            <h4>O mne</h4>
-            <p class="bio-text">{{ pouzivatel.bio }}</p>
-          </div>
-        {% endif %}
+        {% set zlist = pouzivatel.zamerania_list() %}
+        <p><strong>Zamerania:</strong>
+          {% if zlist and zlist|length > 0 %}
+            {{ zlist|join(', ') }}
+          {% else %}—{% endif %}
+        </p>
+
+
+        <!-- O mne -->
+        {% set bio_raw = pouzivatel.bio or '' %}
+        {% set bio_plain = bio_raw | striptags | trim %}
+        <div class="profil-omne">
+          <h4>O mne:</h4>
+          {% if bio_plain %}
+            <p class="bio-text">{{ bio_raw | e | replace('\n','<br>') | safe }}</p>
+          {% else %}
+            <p class="bio-text" style="color:#666;">—</p>
+          {% endif %}
+        </div>
       </div>
 
-      <!-- Editačný formulár (len vlastník v „Moje konto“) -->
+      <!-- ======================== EDITAČNÝ FORMULÁR ======================== -->
       {% if can_edit %}
-      <form id="editForm" method="POST" action="{{ url_for('uzivatel.profil') }}" class="form-profil">
-        <div class="form-row"><label>Prezývka:</label><input type="text" name="prezyvka" value="{{ pouzivatel.prezyvka }}" required></div>
-        <div class="form-row"><label>Meno:</label><input type="text" name="meno" value="{{ pouzivatel.meno }}"></div>
-        <div class="form-row"><label>Priezvisko:</label><input type="text" name="priezvisko" value="{{ pouzivatel.priezvisko }}"></div>
-        <div class="form-row"><label>Email:</label><input type="email" name="email" value="{{ pouzivatel.email }}" required></div>
-        <div class="form-row"><label>Mesto / Obec:</label><input type="text" name="obec" value="{{ pouzivatel.obec }}"></div>
-        <div class="form-row"><label>Hudobný nástroj:</label><input type="text" name="instrument" value="{{ pouzivatel.instrument }}"></div>
-        <div class="form-row"><label>Doplnkový nástroj:</label><input type="text" name="doplnkovy_nastroj" value="{{ pouzivatel.doplnkovy_nastroj }}"></div>
+      <form id="editForm" method="POST" action="{{ url_for('uzivatel.profil') }}" class="form-profil" {% if not show_edit %}style="display:none"{% endif %}>
+        <div class="form-row">
+          <label for="prezyvka">Prezývka *</label>
+          <input id="prezyvka" type="text" name="prezyvka" value="{{ pouzivatel.prezyvka }}" required>
+        </div>
+        <div><label>Meno</label><input type="text" name="meno" value="{{ pouzivatel.meno or '' }}" class="input-line"></div>
+        <div class="form-row"><label>Priezvisko</label><input type="text" name="priezvisko" value="{{ pouzivatel.priezvisko or '' }}"></div>
+        <div class="form-row"><label>Email</label><input type="email" name="email" value="{{ pouzivatel.email }}" required></div>
+        <div class="form-row"><label>Mesto / Obec</label><input type="text" name="obec" value="{{ pouzivatel.obec or '' }}"></div>
+
+        <!-- Zameranie (hlavná rola) — presne ako registrácia -->
+        <div class="form-row">
+          <label for="rola">Zameranie *</label>
+          {% set r = pouzivatel.rola or '' %}
+          <select id="rola" name="rola" class="select" required>
+            <option value="">— vyber —</option>
+            <option value="hudobnik"      {{ 'selected' if r=='hudobnik'      else '' }}>Hudobník</option>
+            <option value="tanecnik"      {{ 'selected' if r=='tanecnik'      else '' }}>Tanečník</option>
+            <option value="moderator"     {{ 'selected' if r=='moderator'     else '' }}>Moderátor akcií</option>
+            <option value="fotograf"      {{ 'selected' if r=='fotograf'      else '' }}>Fotograf</option>
+            <option value="videograf"     {{ 'selected' if r=='videograf'     else '' }}>Videograf</option>
+            <option value="zvukar"        {{ 'selected' if r=='zvukar'        else '' }}>Zvukár</option>
+            <option value="osvetlovac"    {{ 'selected' if r=='osvetlovac'    else '' }}>Osvetľovač</option>
+            <option value="technik_podia" {{ 'selected' if r=='technik_podia' else '' }}>Technik pódia / Roadie</option>
+            <option value="producent"     {{ 'selected' if r=='producent'     else '' }}>Producent / Beatmaker</option>
+            <option value="skladatel"     {{ 'selected' if r=='skladatel'     else '' }}>Skladateľ / Aranžér</option>
+            <option value="ucitel_hudby"  {{ 'selected' if r=='ucitel_hudby'  else '' }}>Učiteľ hudby</option>
+            <option value="ine"           {{ 'selected' if r=='ine'           else '' }}>Iné</option>
+          </select>
+        </div>
+
+        {# ===== HUDOBNÍK — oblasť + špecifikácia (ako Tanečník: checkboxy) ===== #}
+        {% set hud_val = pouzivatel.hud_oblast or '' %}
+        {% set hud_spec_sel = (pouzivatel.hud_spec or '').split(',') if pouzivatel.hud_spec else [] %}
+
+        <div id="wrap-sub-hudobnik" style="display:none;">
+          <div class="form-row">
+            <label for="hud_oblast">Hudobník — oblasť *</label>
+            <select id="hud_oblast" name="hud_oblast" class="select">
+              <option value="">— vyber —</option>
+              <option value="spev"        {{ 'selected' if hud_val=='spev'        else '' }}>Spev</option>
+              <option value="klavesy"     {{ 'selected' if hud_val=='klavesy'     else '' }}>Klávesy</option>
+              <option value="gitara"      {{ 'selected' if hud_val=='gitara'      else '' }}>Gitara</option>
+              <option value="bicie"       {{ 'selected' if hud_val=='bicie'       else '' }}>Bicie / Perkusie</option>
+              <option value="slacikove"   {{ 'selected' if hud_val=='slacikove'   else '' }}>Sláčikové</option>
+              <option value="dychove"     {{ 'selected' if hud_val=='dychove'     else '' }}>Dychové</option>
+              <option value="dj"          {{ 'selected' if hud_val=='dj'          else '' }}>DJ</option>
+              <option value="elektronika" {{ 'selected' if hud_val=='elektronika' else '' }}>Elektronika (live)</option>
+              <option value="folklorne"   {{ 'selected' if hud_val=='folklorne'   else '' }}>Folklórne</option>
+              <option value="ine"         {{ 'selected' if hud_val=='ine'         else '' }}>Iné</option>
+            </select>
+          </div>
+
+          {# SPEV #}
+          <div class="hud-spec" id="hud-spec-spev">
+            <div class="form-row">
+              <label>Špecifikácia spevu</label>
+              <div class="checkbox-grid">
+                {% for val,lbl in [('solo','Sólo'),('vokal','Vokál'),('zbor','Zbor')] %}
+                <label class="chk">
+                  <input type="checkbox" name="hud_spec[]" value="{{ val }}" {% if val in hud_spec_sel %}checked{% endif %}>
+                  <span>{{ lbl }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# KLÁVESY #}
+          <div class="hud-spec" id="hud-spec-klavesy">
+            <div class="form-row">
+              <label>Špecifikácia klávesov</label>
+              <div class="checkbox-grid">
+                {% for val,lbl in [('klavir','Klavír'),('keyboard','Keyboard'),('synth','Synthesizer'),('organ','Organ / Hammond'),('ine','Iné')] %}
+                <label class="chk">
+                  <input type="checkbox" name="hud_spec[]" value="{{ val }}" {% if val in hud_spec_sel %}checked{% endif %}>
+                  <span>{{ lbl }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# GITARA #}
+          <div class="hud-spec" id="hud-spec-gitara">
+            <div class="form-row">
+              <label>Špecifikácia gitary</label>
+              <div class="checkbox-grid">
+                {% for val,lbl in [('elektricka','Elektrická'),('akusticka','Akustická'),('klasicka','Klasická'),('basgitara','Basgitara'),('ine','Iné')] %}
+                <label class="chk">
+                  <input type="checkbox" name="hud_spec[]" value="{{ val }}" {% if val in hud_spec_sel %}checked{% endif %}>
+                  <span>{{ lbl }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# BICIE #}
+          <div class="hud-spec" id="hud-spec-bicie">
+            <div class="form-row">
+              <label>Špecifikácia bicích/perkusií</label>
+              <div class="checkbox-grid">
+                {% for val,lbl in [('bicie_suprava','Bicie súprava'),('perkusie','Perkusie'),('cajon','Cajon'),('ine','Iné')] %}
+                <label class="chk">
+                  <input type="checkbox" name="hud_spec[]" value="{{ val }}" {% if val in hud_spec_sel %}checked{% endif %}>
+                  <span>{{ lbl }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# SLÁČIKOVÉ #}
+          <div class="hud-spec" id="hud-spec-slacikove">
+            <div class="form-row">
+              <label>Špecifikácia sláčikových</label>
+              <div class="checkbox-grid">
+                {% for val,lbl in [('husle','Husle'),('viola','Viola'),('violoncello','Violončelo'),('kontrabas','Kontrabas'),('ine','Iné')] %}
+                <label class="chk">
+                  <input type="checkbox" name="hud_spec[]" value="{{ val }}" {% if val in hud_spec_sel %}checked{% endif %}>
+                  <span>{{ lbl }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# DYCHOVÉ #}
+          <div class="hud-spec" id="hud-spec-dychove">
+            <div class="form-row">
+              <label>Špecifikácia dychových</label>
+              <div class="checkbox-grid">
+                {% for val,lbl in [('saxofon','Saxofón'),('klarinet','Klarinet'),('priecna_flauta','Priečna flauta'),('trumpeta','Trumpeta'),('pozoun','Pozoun'),('lesny_rog','Lesný roh'),('tuba','Tuba'),('ine','Iné')] %}
+                <label class="chk">
+                  <input type="checkbox" name="hud_spec[]" value="{{ val }}" {% if val in hud_spec_sel %}checked{% endif %}>
+                  <span>{{ lbl }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# DJ #}
+          <div class="hud-spec" id="hud-spec-dj">
+            <div class="form-row">
+              <label>DJ – štýly</label>
+              <div class="checkbox-grid">
+                {% for val,lbl in [('svadobny','Svadobný'),('oldies','Oldies'),('80s_90s','80s/90s'),('komercne','Komerčné'),('house','House'),('techno','Techno')] %}
+                <label class="chk">
+                  <input type="checkbox" name="hud_spec[]" value="{{ val }}" {% if val in hud_spec_sel %}checked{% endif %}>
+                  <span>{{ lbl }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# ELEKTRONIKA #}
+          <div class="hud-spec" id="hud-spec-elektronika">
+            <div class="form-row">
+              <label>Elektronika (live)</label>
+              <div class="checkbox-grid">
+                {% for val,lbl in [('sampler','Sampler'),('drum_machine','Drum machine'),('live_perf','Live performance'),('ine','Iné')] %}
+                <label class="chk">
+                  <input type="checkbox" name="hud_spec[]" value="{{ val }}" {% if val in hud_spec_sel %}checked{% endif %}>
+                  <span>{{ lbl }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# FOLKLÓRNE #}
+          <div class="hud-spec" id="hud-spec-folklorne">
+            <div class="form-row">
+              <label>Folklórne</label>
+              <div class="checkbox-grid">
+                {% for val,lbl in [('cimbal','Cimbal'),('akordeon','Akordeón'),('heligonka','Heligónka'),('gajdy','Gajdy'),('fujara','Fujara'),('ine','Iné')] %}
+                <label class="chk">
+                  <input type="checkbox" name="hud_spec[]" value="{{ val }}" {% if val in hud_spec_sel %}checked{% endif %}>
+                  <span>{{ lbl }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          {# OBLASŤ = INÉ (len voľný text) #}
+          <div class="hud-spec" id="hud-spec-ine">
+            <div class="form-row">
+              <label>Upresni „iné“</label>
+              <input type="text" name="hud_spec_extra" class="input-line"
+                    value="{{ (hud_val=='ine') and (pouzivatel.hud_spec or '') or '' }}">
+            </div>
+          </div>
+        </div>
+
+
+        <script>
+        function syncHudSpec() {
+          const sel = document.getElementById('hud_oblast');
+          const blocks = document.querySelectorAll('#wrap-sub-hudobnik .hud-spec');
+
+          // skry len vizuálne, NEdeaktivuj inputy
+          blocks.forEach(b => {
+            b.style.display = 'none';
+          });
+
+          const v = sel ? sel.value : '';
+          const active = document.getElementById('hud-spec-' + v);
+          if (active) {
+            active.style.display = 'block';
+          }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+          const sel = document.getElementById('hud_oblast');
+          if (sel) {
+            sel.addEventListener('change', syncHudSpec);
+            syncHudSpec();
+          }
+        });
+        </script>
+
+  
+        <!-- TANEČNÍK — checkboxy -->
+        {% set tan_sel = (pouzivatel.tanec_spec or '').split(',') if pouzivatel.tanec_spec else [] %}
+        <div id="wrap-sub-tanecnik" style="display:none;">
+          <div class="form-row">
+            <label>Tanečné zameranie</label>
+            <div class="checkbox-grid">
+              {% for val, lbl in [
+                ('moderne','Moderné / Contemporary'),
+                ('folklor_subor','Folklórny súbor'),
+                ('latino','Latino (Salsa/Bachata)'),
+                ('street','Street / Hip-hop'),
+                ('ballroom','Ballroom (Štandard/Latina)'),
+                ('spolocenske','Spoločenské / Club'),
+                ('pedagog','Tanečný pedagóg'),
+                ('ine','Iné'),
+              ] %}
+              <label class="chk">
+                <input type="checkbox" name="tanec_spec_multi" value="{{ val }}" {% if val in tan_sel %}checked{% endif %}>
+                <span>{{ lbl }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="form-row stack" id="tanec_ine_wrap" style="display:none;">
+            <label for="tanec_ine_text">Upresni „iné“</label>
+            <input type="text" id="tanec_ine_text" name="tanec_ine_text" class="input-line" value="{{ pouzivatel.tanec_ine or '' }}">
+          </div>
+        </div>
+
+        {# MODERÁTOR — viac možností (checkboxy) #}
+        {% set pod_multi = (pouzivatel.moderator_podrola or '').split(',') if pouzivatel.moderator_podrola else [] %}
+        <div id="wrap-sub-moderator" style="display:none;">
+          <div class="form-row">
+            <label>Spresnenie</label>
+            <div class="checkbox-grid">
+              {% for val,lbl in [
+                ('staresi','Starejší'),
+                ('moderator','Moderátor'),
+                ('moderator_hudobnych_akcii','Moderátor hudobných akcií'),
+              ] %}
+              <label class="chk">
+                <input type="checkbox" name="podrola_multi" value="{{ val }}" {% if val in pod_multi %}checked{% endif %}>
+                <span>{{ lbl }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+
+        <!-- UČITEĽ HUDBY — checkboxy -->
+        {% set uc_sel = (pouzivatel.ucitel_predmety or '').split(',') if pouzivatel.ucitel_predmety else [] %}
+        <div id="wrap-sub-ucitel" style="display:none;">
+          <div class="form-row">
+            <label>Učím (vyber aspoň jedno)</label>
+            <div class="checkbox-grid">
+              {% for val,lbl in [
+                ('klavir','Klavír'),('gitara','Gitara'),('husle','Husle'),('flauta','Flauta'),
+                ('saxofon','Saxofón'),('klarinet','Klarinet'),('trumpeta','Trúbka'),('bicie','Bicie'),
+                ('spev','Spev'),('akordeon','Akordeón'),('heligonka','Heligónka'),('teoria','Hudobná teória'),
+                ('ine','Iné')
+              ] %}
+              <label class="chk">
+                <input type="checkbox" name="ucitel_predmety_multi" value="{{ val }}" {% if val in uc_sel %}checked{% endif %}>
+                <span>{{ lbl }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="form-row stack" id="ucitel_ine_wrap" style="display:none;">
+            <label for="ucitel_ine_text">Upresni „iné“</label>
+            <input type="text" id="ucitel_ine_text" name="ucitel_ine_text" class="input-line" value="{{ pouzivatel.ucitel_ine or '' }}">
+          </div>
+        </div>
+
+        {% set simple = pouzivatel.simple_roles_selected or [] %}
+
+        <!-- FOTOGRAF -->
+        <div id="wrap-sub-fotograf" style="display:none;">
+          <div class="form-row">
+            <label>Špecifikácia</label>
+            <div class="checkbox-grid">
+              <label class="chk">
+                <input type="checkbox" name="simple_role_multi" value="fotograf" {{ 'checked' if 'fotograf' in simple else '' }}>
+                <span>Fotograf</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIDEOGRAF -->
+        <div id="wrap-sub-videograf" style="display:none;">
+          <div class="form-row">
+            <label>Špecifikácia</label>
+            <div class="checkbox-grid">
+              <label class="chk">
+                <input type="checkbox" name="simple_role_multi" value="videograf" {{ 'checked' if 'videograf' in simple else '' }}>
+                <span>Videograf</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ZVUKÁR -->
+        <div id="wrap-sub-zvukar" style="display:none;">
+          <div class="form-row">
+            <label>Špecifikácia</label>
+            <div class="checkbox-grid">
+              <label class="chk">
+                <input type="checkbox" name="simple_role_multi" value="zvukar" {{ 'checked' if 'zvukar' in simple else '' }}>
+                <span>Zvukár</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- OSVETĽOVAČ -->
+        <div id="wrap-sub-osvetlovac" style="display:none;">
+          <div class="form-row">
+            <label>Špecifikácia</label>
+            <div class="checkbox-grid">
+              <label class="chk">
+                <input type="checkbox" name="simple_role_multi" value="osvetlovac" {{ 'checked' if 'osvetlovac' in simple else '' }}>
+                <span>Osvetľovač</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- TECHNIK PÓDIA / ROADIE -->
+        <div id="wrap-sub-technik_podia" style="display:none;">
+          <div class="form-row">
+            <label>Špecifikácia</label>
+            <div class="checkbox-grid">
+              <label class="chk">
+                <input type="checkbox" name="simple_role_multi" value="technik_podia" {{ 'checked' if 'technik_podia' in simple else '' }}>
+                <span>Technik pódia / Roadie</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRODUCENT / BEATMAKER -->
+        <div id="wrap-sub-producent" style="display:none;">
+          <div class="form-row">
+            <label>Špecifikácia</label>
+            <div class="checkbox-grid">
+              <label class="chk">
+                <input type="checkbox" name="simple_role_multi" value="producent" {{ 'checked' if 'producent' in simple else '' }}>
+                <span>Producent / Beatmaker</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- SKLADATEĽ / ARANŽÉR -->
+        <div id="wrap-sub-skladatel" style="display:none;">
+          <div class="form-row">
+            <label>Špecifikácia</label>
+            <div class="checkbox-grid">
+              <label class="chk">
+                <input type="checkbox" name="simple_role_multi" value="skladatel" {{ 'checked' if 'skladatel' in simple else '' }}>
+                <span>Skladateľ / Aranžér</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- „Iné“ rola -->
+        <div id="wrap-rola-ine" style="display:none;">
+          <div class="form-row stack">
+            <label for="rola_ina">Zameranie – iné</label>
+            <input type="text" id="rola_ina" name="rola_ina" class="input-line" value="{{ pouzivatel.rola_ina or '' }}" placeholder="napr. fotograf-koncerty, dramaturg…">
+            <div class="form-help">Zbierame návrhy na nové kategórie.</div>
+          </div>
+        </div>
+
         <div class="form-row"><label for="bio">O mne:</label><textarea id="bio" name="bio">{{ pouzivatel.bio or '' }}</textarea></div>
+
         <div class="form-row">
           <label>Typ účtu</label>
           <select name="typ_subjektu" id="typ-subjektu-select">
             <option value="fyzicka" {{ 'selected' if pouzivatel.typ_subjektu != 'ico' else '' }}>Fyzická osoba</option>
-            <option value="ico" {{ 'selected' if pouzivatel.typ_subjektu == 'ico' else '' }}>Organizácia (IČO)</option>
+            <option value="ico"     {{ 'selected' if pouzivatel.typ_subjektu == 'ico' else '' }}>Organizácia (IČO)</option>
           </select>
         </div>
 
-        <div class="form-row" id="profil-ico-blok" {% if pouzivatel.typ_subjektu != 'ico' %}style="display:none"{% endif %}>
-          <label>IČO</label>
-          <input type="text" name="ico" value="{{ pouzivatel.ico or '' }}">
-
-          <label>Názov organizácie</label>
-          <input type="text" name="organizacia_nazov" value="{{ pouzivatel.organizacia_nazov or '' }}">
+        <div id="profil-ico-blok" {% if pouzivatel.typ_subjektu != 'ico' %}style="display:none"{% endif %}>
+          <div class="form-row"><label>IČO *</label><input type="text" name="ico" value="{{ pouzivatel.ico or '' }}" autocomplete="on"></div>
+          <div class="form-row"><label>Názov organizácie *</label><input type="text" name="organizacia_nazov" value="{{ pouzivatel.organizacia_nazov or '' }}"></div>
+          <div class="form-row"><label>DIČ</label><input type="text" name="dic" value="{{ pouzivatel.dic or '' }}"></div>
+          <div class="form-row"><label>IČ DPH</label><input type="text" name="ic_dph" value="{{ pouzivatel.ic_dph or '' }}"></div>
+          <div class="form-row"><label>Sídlo – ulica</label><input type="text" name="sidlo_ulica" value="{{ pouzivatel.sidlo_ulica or '' }}"></div>
+          <div class="form-row"><label>Sídlo – PSČ</label><input type="text" name="sidlo_psc" value="{{ pouzivatel.sidlo_psc or '' }}"></div>
+          <div class="form-row"><label>Sídlo – mesto</label><input type="text" name="sidlo_mesto" value="{{ pouzivatel.sidlo_mesto or '' }}"></div>
         </div>
-
-        <script>
-          (function(){
-            const sel = document.getElementById('typ-subjektu-select');
-            const blk = document.getElementById('profil-ico-blok');
-            if (sel && blk){
-              sel.addEventListener('change', ()=>{ blk.style.display = (sel.value==='ico') ? 'block' : 'none'; });
-            }
-          })();
-        </script>
 
         <div class="form-actions">
           <button type="submit" class="btn primary">💾 Uložiť zmeny</button>
@@ -138,7 +540,9 @@
         </div>
       </form>
       {% endif %}
-    </aside>
+
+
+    </aside>  {# <-- NECHÝBAJÚCE UZATVORENIE ASIDE #}
 
     <!-- PRAVÁ STRANA -->
     <div class="profil-right">
@@ -163,32 +567,14 @@
         <section class="sekcia">
           <div class="sekcia-head">
             <h3>Galéria</h3>
-
             {% if can_edit %}
               {% set max_foto = 10 %}
               {% set pocet = pouzivatel.galeria|length %}
               {% set zostava = (max_foto - pocet) if pocet < max_foto else 0 %}
-
-              <form method="POST"
-                    action="{{ url_for('profil.nahraj_fotku') }}"
-                    enctype="multipart/form-data"
-                    id="upload-form-gal">
-                <input type="file"
-                      id="upload-foto-gal"
-                      name="fotos"
-                      accept="image/*"
-                      multiple
-                      hidden
-                      {% if zostava == 0 %}disabled{% endif %}
-                      onchange="this.form.submit()">
-                <label for="upload-foto-gal"
-                      class="btn primary sm {% if zostava == 0 %}disabled{% endif %}"
-                      {% if zostava == 0 %}title="Limit 10 fotiek je naplnený"{% else %}title="Nahrať fotky (môžeš označiť viac)"{% endif %}>
-                  ➕ Nahrať
-                </label>
-                <small class="gal-limit">
-                  {% if zostava > 0 %} zostáva {{ zostava }} {% else %} limit 10/10 {% endif %}
-                </small>
+              <form method="POST" action="{{ url_for('profil.nahraj_fotku') }}" enctype="multipart/form-data" id="upload-form-gal">
+                <input type="file" id="upload-foto-gal" name="fotos" accept="image/*" multiple hidden {% if zostava == 0 %}disabled{% endif %} onchange="this.form.submit()">
+                <label for="upload-foto-gal" class="btn primary sm {% if zostava == 0 %}disabled{% endif %}" {% if zostava == 0 %}title="Limit 10 fotiek je naplnený"{% else %}title="Nahrať fotky (môžeš označiť viac)"{% endif %}>➕ Nahrať</label>
+                <small class="gal-limit">{% if zostava > 0 %} zostáva {{ zostava }} {% else %} limit 10/10 {% endif %}</small>
               </form>
             {% endif %}
           </div>
@@ -198,16 +584,9 @@
             {% for foto in pouzivatel.galeria %}
               <div class="foto-blok">
                 {% set img_src = url_for('static', filename='galeria_pouzivatel/' ~ foto.nazov_suboru) %}
-                <img src="{{ img_src }}"
-                     alt="Foto {{ loop.index }}"
-                     class="galeria-foto thumb"
-                     data-index="{{ loop.index0 }}">
-
+                <img src="{{ img_src }}" alt="Foto {{ loop.index }}" class="galeria-foto thumb" data-index="{{ loop.index0 }}">
                 {% if can_edit %}
-                <form method="POST"
-                      action="{{ url_for('profil.zmaz_fotku', id=foto.id) }}"
-                      class="delete-form"
-                      onsubmit="return confirm('Naozaj chceš zmazať túto fotku?');">
+                <form method="POST" action="{{ url_for('profil.zmaz_fotku', id=foto.id) }}" class="delete-form" onsubmit="return confirm('Naozaj chceš zmazať túto fotku?');">
                   <button type="submit" class="delete-btn" title="Zmazať">✖</button>
                 </form>
                 {% endif %}
@@ -237,8 +616,7 @@
           <div class="profil-video-grid">
             {% for video in youtube_videa %}
               <div class="profil-youtube-video">
-                <iframe src="https://www.youtube.com/embed/{{ video.youtube_url | youtube_id }}"
-                        title="YouTube video" frameborder="0" allowfullscreen loading="lazy"></iframe>
+                <iframe src="https://www.youtube.com/embed/{{ video.youtube_url | youtube_id }}" title="YouTube video" frameborder="0" allowfullscreen loading="lazy"></iframe>
                 {% if video.popis %}<p class="video-popis">{{ video.popis }}</p>{% endif %}
                 {% if can_edit %}
                 <form action="{{ url_for('profil.zmaz_video', id=video.id) }}" method="POST" class="delete-form">
@@ -252,128 +630,113 @@
             <p class="sekcia-empty">Zatiaľ bez videí.</p>
           {% endif %}
         </section>
-
       </div>
     </div>
+
   </div>
 </section>
 
-<!-- Prepínanie editácie + avatar fallback -->
+<!-- Prepínanie editácie + Avatar fallback + logika podsekcií -->
 <script>
-  (function(){
-    var root = document.getElementById('profilLeft');
-    if (!root) return;
-
-    var btnEdit = document.getElementById('editButton');
+document.addEventListener('DOMContentLoaded', function(){
+  // ---- prepínanie view/form (zostaň pri svojich tlačidlách)
+  var btnEdit = document.getElementById('editButton');
+  var form = document.getElementById('editForm');
+  var view = document.getElementById('udaje-zobraz');
+  if (btnEdit && form && view){
+    btnEdit.addEventListener('click', function(e){
+      e.preventDefault(); form.style.display='block'; view.style.display='none';
+    });
     var btnCancel = document.getElementById('cancelEdit');
-    var form = document.getElementById('editForm');
-    var view = document.getElementById('udaje-zobraz');
-
-    if (form) form.style.display = 'none';
-
-    if (btnEdit) {
-      btnEdit.addEventListener('click', function(e){
-        e.preventDefault();
-        if (form && view) { form.style.display = 'block'; view.style.display = 'none'; }
-      });
-    }
-    if (btnCancel) {
+    if (btnCancel){
       btnCancel.addEventListener('click', function(e){
-        e.preventDefault();
-        if (form && view) { form.style.display = 'none'; view.style.display = 'block'; }
+        e.preventDefault(); form.style.display='none'; view.style.display='block';
       });
     }
-  })();
+  }
 
-  // Avatar fallback
-  document.addEventListener('error', function(e){
-    var img = e.target;
-    if (!(img instanceof HTMLImageElement) || !img.classList.contains('avatar')) return;
-    img.classList.remove('avatar');
-    var fb = img.getAttribute('data-fallback') || '{{ url_for("static", filename="profilovky/default.png") }}';
-    img.src = fb;
-  }, true);
+  // ---- úseky podľa roly (rovnaké id ako v registrácii)
+  const rolaSel = document.getElementById('rola');
+  const blocks = {
+    hudobnik:      document.getElementById('wrap-sub-hudobnik'),
+    tanecnik:      document.getElementById('wrap-sub-tanecnik'),
+    moderator:     document.getElementById('wrap-sub-moderator'),
+    ucitel_hudby:  document.getElementById('wrap-sub-ucitel'),
+    fotograf:      document.getElementById('wrap-sub-fotograf'),
+    videograf:     document.getElementById('wrap-sub-videograf'),
+    zvukar:        document.getElementById('wrap-sub-zvukar'),
+    osvetlovac:    document.getElementById('wrap-sub-osvetlovac'),
+    technik_podia: document.getElementById('wrap-sub-technik_podia'),
+    producent:     document.getElementById('wrap-sub-producent'),
+    skladatel:     document.getElementById('wrap-sub-skladatel'),
+    ine:           document.getElementById('wrap-rola-ine')
+  };
+
+ 
+
+  const tanIneWrap = document.getElementById('tanec_ine_wrap');
+  const ucIneWrap  = document.getElementById('ucitel_ine_wrap');
+
+  function syncRole(){
+    const v = rolaSel ? rolaSel.value : '';
+    Object.values(blocks).forEach(b => { if (b) b.style.display = 'none'; });
+    if (blocks[v]) blocks[v].style.display = 'block';
+
+    if (tanIneWrap) {
+      const anyIne = !!document.querySelector('input[name="tanec_spec_multi"][value="ine"]:checked');
+      tanIneWrap.style.display = anyIne ? 'block' : 'none';
+    }
+    if (ucIneWrap) {
+      const anyIne = !!document.querySelector('input[name="ucitel_predmety_multi"][value="ine"]:checked');
+      ucIneWrap.style.display = anyIne ? 'block' : 'none';
+    }
+  }
+
+  document.addEventListener('change', (e) => {
+    if (e.target && e.target.id === 'rola') syncRole();
+    if (e.target && e.target.name === 'tanec_spec_multi') syncRole();
+    if (e.target && e.target.name === 'ucitel_predmety_multi') syncRole();
+  });
+
+  // ---- IČO blok ----
+  const selTyp = document.getElementById('typ-subjektu-select');
+  const icoBlk = document.getElementById('profil-ico-blok');
+  function syncICO(){
+    const isICO = selTyp && selTyp.value === 'ico';
+    if (icoBlk) icoBlk.style.display = isICO ? 'block' : 'none';
+    if (form){
+      const ico = form.querySelector('input[name="ico"]');
+      const org = form.querySelector('input[name="organizacia_nazov"]');
+      if (ico) ico.required = isICO;
+      if (org) org.required = isICO;
+    }
+  }
+  if (selTyp) selTyp.addEventListener('change', syncICO);
+
+  // init po načítaní
+  syncRole();
+  syncICO();
+});
+
+// Avatar fallback
+document.addEventListener('error', function(e){
+  var img = e.target;
+  if (!(img instanceof HTMLImageElement) || !img.classList.contains('avatar')) return;
+  img.classList.remove('avatar');
+  var fb = img.getAttribute('data-fallback') || '{{ url_for("static", filename="profilovky/default.png") }}';
+  img.src = fb;
+}, true);
 </script>
-
-<!-- LIGHTBOX -->
-<div id="lightbox" class="lb hidden" aria-hidden="true">
-  <button class="lb-close" aria-label="Zavrieť">✖</button>
-  <button class="lb-prev" aria-label="Predošlá">‹</button>
-  <img id="lb-img" alt="Náhľad">
-  <button class="lb-next" aria-label="Ďalšia">›</button>
-</div>
 
 <style>
-  /* Náhľady galérie na profile */
-  .galeria-wrapper{
-    display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
-    gap:.75rem;
-  }
+  .galeria-wrapper{ display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap:.75rem; }
   .foto-blok{ position:relative; }
-  .galeria-foto.thumb{
-    width:100%; height:140px; object-fit:cover; border-radius:.5rem; cursor:pointer; display:block;
-  }
+  .galeria-foto.thumb{ width:100%; height:140px; object-fit:cover; border-radius:.5rem; cursor:pointer; display:block; }
   .delete-form{ position:absolute; top:.35rem; right:.35rem; }
-  .delete-btn{
-    background:rgba(0,0,0,.6); color:#fff; border:0; border-radius:.4rem; padding:.2rem .4rem; cursor:pointer;
-  }
+  .delete-btn{ background:rgba(0,0,0,.6); color:#fff; border:0; border-radius:.4rem; padding:.2rem .4rem; cursor:pointer; }
 
-  /* Lightbox štýly */
-  .lb { position:fixed; inset:0; background:rgba(0,0,0,.8); display:flex; align-items:center; justify-content:center; z-index:1000; }
-  .lb.hidden { display:none; }
-  #lb-img { max-width:90vw; max-height:85vh; border-radius:.5rem; }
-  .lb-close, .lb-prev, .lb-next {
-    position:absolute; background:rgba(255,255,255,.85); border:0; border-radius:.5rem; padding:.4rem .6rem; cursor:pointer; font-size:1.2rem;
-  }
-  .lb-close { top:1rem; right:1rem; }
-  .lb-prev { left:1rem; }
-  .lb-next { right:1rem; }
+  .role-detail{margin:.6rem 0;padding:.6rem;border:1px dashed #ddd;border-radius:.5rem;background:#fafafa}
+  .checkbox-grid{display:grid;gap:.35rem .75rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+  .chk{display:flex;align-items:center;gap:.5rem}
 </style>
-
-<script>
-(function(){
-  // len galéria na profile
-  const root = document.getElementById('profil-galeria');
-  if (!root) return;
-
-  const thumbs = Array.from(root.querySelectorAll('.thumb'));
-  if (!thumbs.length) return;
-
-  const lb = document.getElementById('lightbox');
-  const lbImg = document.getElementById('lb-img');
-  const btnClose = lb.querySelector('.lb-close');
-  const btnPrev = lb.querySelector('.lb-prev');
-  const btnNext = lb.querySelector('.lb-next');
-
-  const sources = thumbs.map(t => t.src);
-  let i = 0;
-
-  function openAt(idx){
-    i = idx;
-    lbImg.src = sources[i];
-    lb.classList.remove('hidden');
-    lb.setAttribute('aria-hidden','false');
-  }
-  function close(){
-    lb.classList.add('hidden');
-    lb.setAttribute('aria-hidden','true');
-    lbImg.src = '';
-  }
-  function prev(){ i = (i - 1 + sources.length) % sources.length; lbImg.src = sources[i]; }
-  function next(){ i = (i + 1) % sources.length; lbImg.src = sources[i]; }
-
-  thumbs.forEach((t, idx) => t.addEventListener('click', () => openAt(idx)));
-  btnClose.addEventListener('click', close);
-  btnPrev.addEventListener('click', prev);
-  btnNext.addEventListener('click', next);
-  lb.addEventListener('click', (e) => { if (e.target === lb) close(); });
-  document.addEventListener('keydown', (e) => {
-    if (lb.classList.contains('hidden')) return;
-    if (e.key === 'Escape') close();
-    if (e.key === 'ArrowLeft') prev();
-    if (e.key === 'ArrowRight') next();
-  });
-})();
-</script>
 {% endblock %}
