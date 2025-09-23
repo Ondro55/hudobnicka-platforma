@@ -49,7 +49,7 @@
 
         <!-- Zameranie -->
         <div class="form-row">
-          <label for="rola">Zameranie *</label>
+         <label for="rola">Zameranie *</label>
           <select id="rola" name="rola" class="select" required>
             <option value="">— vyber —</option>
             <option value="hudobnik"  {{ 'selected' if rola_val=='hudobnik'  else '' }}>Hudobník</option>
@@ -160,7 +160,9 @@
           </div>
         </div>
       </div> <!-- /#blok-fyzicka -->
-
+      <small class="hint">
+            Ďalšie zamerania (hudobník, tanečník, fotograf…) si pridáš po registrácii v <strong>Moje konto → Profil</strong>.
+      </small>
       <!-- 🟡 Organizácia (IČO) -->
       <div id="blok-ico" style="display: {{ 'block' if typ_val=='ico' else 'none' }};">
         <div class="form-row">

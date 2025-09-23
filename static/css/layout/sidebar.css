@@ -1,35 +1,48 @@
 /* ===== LAYOUT: ľavý sidebar + obsah ===== */
 .button-container{
   display:flex;
-  gap:1rem;
+  gap: var(--page-gutter);
   align-items:flex-start;
+  padding-top: var(--page-top-pad);
+  padding-inline: var(--page-gutter);
+  box-sizing:border-box;
 }
 
-/* ľavý panel s tlačidlami (sticky) */
+
+/* ľavý panel s tlačidlami (sticky) – JEDEN zdroj vzhľadu */
 .button-sidebar{
   width:220px;
-  background:#f7f7f7;
   border-radius:1rem;
   padding:1rem;
   display:flex;
   flex-direction:column;
   gap:.5rem;
-  box-shadow:0 2px 6px rgba(0,0,0,.05);
+  
   position:sticky;
   top:84px;
   align-self:flex-start;
 }
 
-/* tlačidlá v sidebare na plnú šírku, ale len v rámci sidebaru */
-.button-sidebar .sidebar-btn{ width:100%; }
 
-/* hlavný stĺpec */
+/* tlačidlá v sidebare – jednotne, bez extra marginov */
+.button-sidebar .sidebar-btn{
+  display:block;
+  width:100%;
+  margin:0;                /* zruš prípadné globálne marginy */
+  padding:.6rem .8rem;
+  border-radius:.6rem;
+  text-align:left;
+  box-shadow:0 2px 6px rgba(0,0,0,.05);
+  box-sizing:border-box;
+}
+
+/* hlavný stĺpec mimo homepage */
 .main-content{
   flex:1 1 auto;
   min-width:0;
 }
 
-/* varianta bez sidebaru (napr. neprihlásený alebo niektoré stránky) */
+/* varianta bez sidebaru (host) */
 .main-no-sidebar{
   max-width:1100px;
   margin:0 auto;
@@ -37,7 +50,7 @@
   box-sizing:border-box;
 }
 
-/* doplnkové (ak používaš “sekcie” vpravo od sidebaru) */
+/* doplnkové (ak používaš sekcie vpravo od sidebaru) */
 .button-content{
   flex:1;
   background:#fff;
@@ -45,6 +58,7 @@
   padding:1rem 2rem;
   box-shadow:0 2px 8px rgba(0,0,0,.05);
 }
+
 .button-section{ display:none; }
 .button-section.active{ display:block; }
 .section-indicator{
@@ -57,7 +71,7 @@
   margin:1rem 0;
 }
 
-/* responzívne správanie – na mobile ide sidebar hore */
+/* mobil – sidebar hore */
 @media (max-width:768px){
   .button-container{ flex-direction:column; }
   .button-sidebar{

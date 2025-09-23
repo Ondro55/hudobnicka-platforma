@@ -5,7 +5,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 from sqlalchemy.orm import joinedload
 from jinja2 import TemplateNotFound
-from models import Pouzivatel, db, GaleriaPouzivatel, VideoPouzivatel, Skupina, Podujatie, Reklama
+from models import Pouzivatel, db, GaleriaPouzivatel, VideoPouzivatel, Skupina, Podujatie, Reklama, Mesto
 from flask import request, redirect, url_for, flash, abort
 from datetime import datetime, timedelta
 from sqlalchemy import or_
@@ -27,6 +27,10 @@ def render_profile_template(**ctx):
 @uzivatel.route('/test')
 def test():
     return "Blueprint uzivatel funguje!"
+
+# 🔹 Mesta
+def get_mesta_all():
+    return Mesto.query.order_by(Mesto.nazov.asc()).all()
 
 # 🔹 Domovská stránka
 @uzivatel.route('/')
@@ -331,7 +335,7 @@ def registracia():
         return redirect(url_for('main.index'))
 
     # GET
-    return render_template('modals/registracia.html')
+    return render_template('modals/registracia.html', mesta_all=get_mesta_all())
 
 
 # 🔒 Overenie registrácie – vytvorenie účtu z tokenu
@@ -542,9 +546,9 @@ def moje_konto():
         youtube_videa=youtube_videa,
         simple_roles=simple_roles,
         public_view=False,
-        show_edit=(request.args.get('edit') == '1')
+        show_edit=(request.args.get('edit') == '1'),
+        mesta_all=get_mesta_all(),
     )
-
 
 # 🔹 Upload profilovej fotky
 @uzivatel.route('/upload_fotka', methods=['POST'])
@@ -705,12 +709,13 @@ def verejny_profil(user_id):
     
     # Verejný profil má vlastnú šablónu
     return render_profile_template(
-    pouzivatel=user,
-    skupina=skupina,
-    galeria=galeria,
-    youtube_videa=user.videa,
-    public_view=True   # ⟵ dôležité, tým odlíšime verejné zobrazenie
-)
+        pouzivatel=user,
+        skupina=skupina,
+        galeria=galeria,
+        youtube_videa=user.videa,
+        public_view=True,
+        mesta_all=get_mesta_all(),
+    )
 
 @uzivatel.route('/admin/user/<int:user_id>/vip/<string:action>', methods=['POST'])
 @login_required

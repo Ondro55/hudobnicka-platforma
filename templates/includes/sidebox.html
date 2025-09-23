@@ -1,0 +1,30 @@
+{# templates/includes/sidebox.html #}
+{% if current_user.is_authenticated %}
+  <a href="/nastavenia" class="sidebar-btn">⚙️ Nastavenia</a>
+  <a class="sidebar-btn" href="{{ url_for('uzivatel.profil') }}">👤 Profil</a>
+
+  {% if current_user.typ_subjektu != 'ico' %}
+    <a class="sidebar-btn" href="{{ url_for('skupina.skupina') }}">🎸 Moja skupina</a>
+    <a class="sidebar-btn" href="{{ url_for('inzerat.moj_bazar') }}">🛍️ Môj bazár</a>
+  {% endif %}
+
+  {% if has_feature(current_user, 'calendar') %}
+    <a class="sidebar-btn" href="{{ url_for('kalendar.kalendar') }}">📅 Kalendár</a>
+  {% endif %}
+
+  <a class="sidebar-btn" href="{{ url_for('spravy.inbox') }}">📨 Správy</a>
+
+  {% set can_events = (current_user.is_authenticated and (current_user.typ_subjektu == 'ico'
+      or current_user.is_admin or current_user.is_vip or (current_user.plan|default('free') == 'pro'))) %}
+  {% if can_events %}
+    <a class="sidebar-btn" href="{{ url_for('podujatie.moje') }}">📣 Moje podujatia</a>
+  {% endif %}
+
+  {% if current_user.typ_subjektu == 'ico' or current_user.is_admin %}
+    <a class="sidebar-btn" href="{{ url_for('reklama.moje') }}">📢 Moje reklamy</a>
+  {% endif %}
+{% else %}
+  <a class="sidebar-btn" href="{{ url_for('komunita.hub', tab='ludia') }}">🔎 Hľadať hudobníkov</a>
+  <a class="sidebar-btn" href="{{ url_for('skupina.prehlad_skupin') }}">🎸 Nájsť skupiny</a>
+  <a class="sidebar-btn" href="{{ url_for('uzivatel.index') }}#dopyt-form" data-modal-open="#dopyt-form">📢 Zadať dopyt</a>
+{% endif %}

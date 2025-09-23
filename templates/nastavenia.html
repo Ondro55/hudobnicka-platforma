@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Nastavenia | Muzikuj{% endblock %}
+
+{% block content %}
+<section class="settings">
+  <h1>⚙️ Nastavenia</h1>
+
+  <!-- mini navigácia v rámci stránky (kotvy) -->
+  <nav class="mini-list settings-nav" aria-label="Sekcie nastavení" style="margin: .5rem 0 1rem;">
+    <a href="#ucet">Účet</a>
+    <a href="#sukromie">Súkromie</a>
+    <a href="#vzhlad">Vzhľad</a>
+    <a href="#sledovanie">Sledovanie</a>
+  </nav>
+
+  <!-- ÚČET: zmena hesla + žiadosť o vymazanie -->
+  <form action="/nastavenia/ucet" method="post" class="formbox" id="form-ucet">
+    <h2 id="ucet">Účet</h2>
+
+    <fieldset>
+      <legend>Zmena hesla</legend>
+      <label>Aktuálne heslo
+        <input type="password" name="old_password" required>
+      </label>
+      <label>Nové heslo
+        <input type="password" name="new_password" required>
+      </label>
+      <label>Potvrdiť nové heslo
+        <input type="password" name="new_password2" required>
+      </label>
+      <button class="btn primary" name="action" value="change_password">Uložiť heslo</button>
+    </fieldset>
+
+    <fieldset style="margin-top:1rem;">
+      <legend>Vymazanie účtu</legend>
+      <p>Vymazanie je trvalé. Verejný obsah zostane anonymizovaný (napr. „Deleted user“).</p>
+      <label>Potvrdiť heslom
+        <input type="password" name="confirm_password">
+      </label>
+      <button class="btn danger" name="action" value="request_delete">Požiadať o vymazanie</button>
+    </fieldset>
+  </form>
+
+  <!-- SÚKROMIE: viditeľnosť profilu, videá, hodnotenia -->
+  <form action="/nastavenia/sukromie" method="post" class="formbox" id="form-sukromie" style="margin-top:1rem;">
+    <h2 id="sukromie">Súkromie</h2>
+
+    <label>
+      <input type="checkbox" name="verejny_ucet">
+      Verejný profil (viditeľný pre neprihlásených)
+    </label>
+
+    <label>
+      <input type="checkbox" name="zverejnovat_videa">
+      Zverejňovať moje videá na profile
+    </label>
+
+    <label>
+      <input type="checkbox" name="povolit_hodnotenie">
+      Povoliť, aby ma ostatní hodnotili
+    </label>
+
+    <button class="btn primary">Uložiť súkromie</button>
+  </form>
+
+  <!-- VZHĽAD: téma / farebné varianty -->
+  <form action="/nastavenia/vzhlad" method="post" class="formbox" id="form-vzhlad" style="margin-top:1rem;">
+    <h2 id="vzhlad">Vzhľad</h2>
+
+    <div role="group" aria-label="Téma vzhľadu">
+      <label><input type="radio" name="theme" value="system" checked> Systém</label>
+      <label><input type="radio" name="theme" value="light"> Svetlá</label>
+      <label><input type="radio" name="theme" value="dark"> Tmavá</label>
+      <label><input type="radio" name="theme" value="blue"> Modrý odtieň</label>
+    </div>
+
+    <button class="btn">Uložiť vzhľad</button>
+  </form>
+
+  <!-- SLEDOVANIE: čo ma zaujíma (žánre / subjekty) -->
+  <form action="/nastavenia/sledovanie" method="post" class="formbox" id="form-sledovanie" style="margin-top:1rem;">
+    <h2 id="sledovanie">Sledovanie</h2>
+
+    <div role="group" aria-label="Režim sledovania" style="margin-bottom:.5rem;">
+      <label><input type="radio" name="follow_mode" value="all" checked> Sledovať všetko</label>
+      <label><input type="radio" name="follow_mode" value="custom"> Vlastný výber</label>
+    </div>
+
+    <div class="follow-categories" style="margin-bottom:.5rem;">
+      <h3 style="margin:.25rem 0;">Žánre</h3>
+      <label><input type="checkbox" name="zanre" value="folklor"> Folklór</label>
+      <label><input type="checkbox" name="zanre" value="rock"> Rock</label>
+      <label><input type="checkbox" name="zanre" value="jazz"> Jazz</label>
+      <label><input type="checkbox" name="zanre" value="pop"> Pop</label>
+      <label><input type="checkbox" name="zanre" value="klasika"> Klasika</label>
+    </div>
+
+    <div class="follow-entities" style="margin-bottom:.5rem;">
+      <h3 style="margin:.25rem 0;">Typy subjektov</h3>
+      <label><input type="checkbox" name="entities" value="kapely"> Kapely</label>
+      <label><input type="checkbox" name="entities" value="hudobnici"> Hudobníci</label>
+      <label><input type="checkbox" name="entities" value="djs"> DJovia</label>
+      <label><input type="checkbox" name="entities" value="organizatori"> Organizátori</label>
+    </div>
+
+    <button class="btn primary">Uložiť sledovanie</button>
+  </form>
+
+</section>
+{% endblock %}

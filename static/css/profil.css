@@ -14,7 +14,7 @@
 /* Grid */
 .profil-grid{
   display:grid;
-  grid-template-columns:340px 1fr;
+  grid-template-columns:380px 1fr;
   gap:2rem;
 }
 
@@ -51,10 +51,14 @@
 
 /* Edit formulár (spoločný pre profil aj skupinu) */
 .form-profil .form-row{
-  margin-bottom:.6rem;
-  display:flex;
-  flex-direction:column;
+  display:grid;
+  grid-template-columns: var(--label-w, 105px) 1fr; /* + fallback */
+  align-items:center;
+  column-gap: var(--col-gap, .5rem);               /* + fallback */
+  row-gap: var(--row-gap, .2rem);                  /* + fallback */
+  margin-bottom:.5rem;
 }
+
 .form-profil .form-actions{ display:flex; gap:.5rem; margin-top:.5rem; }
 
 /* ➜ Tlačidlá Uložiť/Zrušiť vedľa seba */
@@ -143,3 +147,55 @@
 .bio-text { white-space: pre-line; }
 
 .profilovka { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; display: block; }
+
+/* underline ovládacie prvky len v profile */
+.form-profil .ucontrol{
+  border:none;
+  border-bottom:2px solid var(--hover, #d8d8d8);
+  background:transparent;
+  padding: .35rem 0 .3rem 0;
+  outline:0;
+  border-radius:0;
+  -webkit-appearance:none;
+  transition:border-color .15s ease, box-shadow .15s ease;
+  width:100%;
+  font:inherit;
+}
+.form-profil .ucontrol:focus{
+  border-bottom-color:var(--tlacidlo, #000);
+  box-shadow:0 2px 0 0 var(--tlacidlo, #000) inset;
+}
+.form-profil select.ucontrol{ appearance:none; -moz-appearance:none; -webkit-appearance:none; padding-right:1.4rem; }
+
+.form-profil textarea.ucontrol{
+  min-height: 6rem;      /* nech sa pohodlne píše */
+  line-height: 1.4;
+  resize: vertical;      /* možnosť potiahnuť si výšku */
+}
+
+.form-profil .ucontrol::placeholder{
+  color:#888;
+  opacity:.65; /* Safari má vlastnú opacitu, toto ju zjednotí */
+  font-size: 15px;
+}
+
+/* jemný podklad len keď je prázdne */
+.form-profil textarea.ucontrol:placeholder-shown{
+  background: linear-gradient(#fafafa, #fff);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.06) inset;
+}
+
+/* malé poznámky pod inputom zarovnáme do 2. stĺpca */
+.form-profil .form-row .hint{
+  grid-column: 2 / -1;
+  margin-top: .2rem;
+  font-size: .75rem;
+  opacity: .55;
+}
+
+/* mobil: nech idú pod seba */
+@media (max-width: 640px){
+  .form-profil .form-row{ grid-template-columns: 1fr; }
+  .form-profil .form-row .hint{ grid-column: 1 / -1; }
+}
+

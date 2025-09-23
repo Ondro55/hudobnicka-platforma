@@ -2,8 +2,8 @@
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import current_user, login_required
-from sqlalchemy import or_, func
-from models import db, Pouzivatel, ForumTopic, TopicWatch, RychlyDopyt, RychlyDopyt
+from sqlalchemy import or_, func, and_
+from models import db, Pouzivatel, ForumTopic, TopicWatch, RychlyDopyt, Mesto, ForumPost
 from models import ForumPost
 
 komunita_bp = Blueprint("komunita", __name__, template_folder="../templates")
@@ -14,12 +14,15 @@ def hub():
     ctx = dict(active_tab=tab)
 
     if tab == "ludia":
-        q_text = (request.args.get("q") or "").strip()
+        q_text  = (request.args.get("q") or "").strip()
+        mesto   = (request.args.get("mesto") or "").strip()   # FO: obec
+        zaner   = (request.args.get("zaner") or "").strip()   # FO: rola
         vip_only = request.args.get("vip") == "1"
 
-        qry = Pouzivatel.query
+        # ⬇️ LEN FYZICKÉ OSOBY
+        qry = Pouzivatel.query.filter(Pouzivatel.typ_subjektu != 'ico')
 
-        # fulltext-lite: prezývka, meno, priezvisko, email
+        # fulltext-lite len cez FO polia
         if q_text:
             like = f"%{q_text}%"
             qry = qry.filter(or_(
@@ -29,12 +32,63 @@ def hub():
                 Pouzivatel.email.ilike(like),
             ))
 
-        # VIP filter len pre admina (ostatným ignorujeme parameter)
+        # mesto: FO používa 'obec'
+        if mesto:
+            qry = qry.filter(Pouzivatel.obec == mesto)
+
+        # zameranie: FO používa primárnu rolu v stĺpci 'rola'
+        if zaner:
+            qry = qry.filter(Pouzivatel.rola == zaner)
+
+        # VIP filter len pre admina (inak ignoruj)
         if vip_only and getattr(current_user, "is_authenticated", False) and getattr(current_user, "is_admin", False):
             qry = qry.filter(Pouzivatel.is_vip.is_(True))
 
-        users = qry.order_by(Pouzivatel.prezyvka.asc()).all()
-        ctx.update(users=users, q=q_text, vip_only=vip_only)
+        users = qry.order_by(func.lower(Pouzivatel.prezyvka)).all()
+
+        # mestá do selectu vo filtre
+        mesta_all = Mesto.query.order_by(Mesto.nazov.asc()).all()
+
+        ctx.update(
+            users=users,
+            q=q_text,
+            mesto=mesto,
+            zaner=zaner,
+            vip_only=vip_only,
+            mesta_all=mesta_all,
+        )
+
+    elif tab == "organizacie":
+        q_text = (request.args.get("q") or "").strip()
+        mesto   = (request.args.get("mesto") or "").strip()
+        zaner   = (request.args.get("zaner") or "").strip()
+
+        qry = Pouzivatel.query.filter(Pouzivatel.typ_subjektu == 'ico')
+
+        if q_text:
+            like = f"%{q_text}%"
+            qry = qry.filter(or_(
+                Pouzivatel.organizacia_nazov.ilike(like),
+                Pouzivatel.prezyvka.ilike(like),
+                Pouzivatel.email.ilike(like),
+            ))
+
+        if mesto:
+            qry = qry.filter(Pouzivatel.sidlo_mesto == mesto)
+
+        if zaner:
+            qry = qry.filter(Pouzivatel.org_zaradenie == zaner)
+
+        orgs = qry.order_by(
+            (Pouzivatel.organizacia_nazov.is_(None)).asc(),  # nech None ide dole
+            Pouzivatel.organizacia_nazov.asc(),
+            Pouzivatel.prezyvka.asc()
+        ).all()
+
+        mesta_all = Mesto.query.order_by(Mesto.nazov.asc()).all()
+
+        ctx.update(orgs=orgs, mesta_all=mesta_all, q=q_text, mesto=mesto, zaner=zaner)
+
 
     elif tab == "rychly-dopyt":
         q_text = (request.args.get("q") or "").strip()

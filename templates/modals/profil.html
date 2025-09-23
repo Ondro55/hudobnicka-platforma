@@ -33,8 +33,13 @@
 
       <!-- Nick + akcie -->
       <div class="profil-nickline">
-        <h2 class="profil-nick" title="{{ pouzivatel.prezyvka }}">
-          {{ pouzivatel.prezyvka or (pouzivatel.meno ~ ' ' ~ pouzivatel.priezvisko)|trim }}
+        <h2 class="profil-nick"
+            title="{{ pouzivatel.organizacia_nazov if pouzivatel.typ_subjektu == 'ico' else (pouzivatel.prezyvka or (pouzivatel.meno ~ ' ' ~ pouzivatel.priezvisko)|trim) }}">
+          {% if pouzivatel.typ_subjektu == 'ico' %}
+            {{ pouzivatel.organizacia_nazov or '—' }}
+          {% else %}
+            {{ pouzivatel.prezyvka or (pouzivatel.meno ~ ' ' ~ pouzivatel.priezvisko)|trim }}
+          {% endif %}
           {% if pouzivatel.is_vip %}<span class="role-badge" title="VIP">⭐</span>{% endif %}
         </h2>
 
@@ -83,23 +88,45 @@
           {% endif %}
         {% endif %}
 
-        <p><strong>Meno:</strong> {{ (pouzivatel.meno or '') ~ ' ' ~ (pouzivatel.priezvisko or '') | trim or '—' }}</p>
+        {% if pouzivatel.typ_subjektu != 'ico' %}
+          <p><strong>Meno:</strong> {{ (pouzivatel.meno or '') ~ ' ' ~ (pouzivatel.priezvisko or '') | trim or '—' }}</p>
+        {% endif %}
+
         <p><strong>Email:</strong> {{ pouzivatel.email or '—' }}</p>
-        <p><strong>Mesto / Obec:</strong> {{ pouzivatel.obec or '—' }}</p>
+        {% if pouzivatel.typ_subjektu != 'ico' %}
+          <p><strong>Mesto / Obec:</strong> {{ pouzivatel.obec or '—' }}</p>
+        {% endif %}
 
-        {% set zlist = pouzivatel.zamerania_list() %}
-        <p><strong>Zamerania:</strong>
-          {% if zlist and zlist|length > 0 %}
-            {{ zlist|join(', ') }}
-          {% else %}—{% endif %}
-        </p>
+        {% if pouzivatel.typ_subjektu == 'ico' %}
+          {% set ORG_LABELS = {
+            'agentura':'Organizátor / Agentúra',
+            'prenajom_techniky':'Prenájom techniky',
+            'prenajom_saly':'Prenájom sály / klubu',
+            'studio':'Produkčné štúdio',
+            'servis':'Servis (opravy / servis techniky)',
+            'zus_skola':'ZUŠ / Škola',
+            'ine':'Iné'
+          } %}
+          <p><strong>Zaradenie:</strong>
+            {{ ORG_LABELS.get(pouzivatel.org_zaradenie, pouzivatel.org_zaradenie or '—') }}
+            {% if pouzivatel.org_zaradenie == 'ine' and pouzivatel.org_zaradenie_ine %}
+              – {{ pouzivatel.org_zaradenie_ine }}
+            {% endif %}
+          </p>
+        {% else %}
+          {% set zlist = pouzivatel.zamerania_list() %}
+          <p><strong>Zamerania:</strong>
+            {% if zlist and zlist|length > 0 %}
+              {{ zlist|join(', ') }}
+            {% else %}—{% endif %}
+          </p>
+        {% endif %}
 
-
-        <!-- O mne -->
-        {% set bio_raw = pouzivatel.bio or '' %}
-        {% set bio_plain = bio_raw | striptags | trim %}
+        <!-- O mne / O nás -->
         <div class="profil-omne">
-          <h4>O mne:</h4>
+          <h4>{{ 'O nás:' if pouzivatel.typ_subjektu == 'ico' else 'O mne:' }}</h4>
+          {% set bio_raw = pouzivatel.bio or '' %}
+          {% set bio_plain = bio_raw | striptags | trim %}
           {% if bio_plain %}
             <p class="bio-text">{{ bio_raw | e | replace('\n','<br>') | safe }}</p>
           {% else %}
@@ -111,20 +138,35 @@
       <!-- ======================== EDITAČNÝ FORMULÁR ======================== -->
       {% if can_edit %}
       <form id="editForm" method="POST" action="{{ url_for('uzivatel.profil') }}" class="form-profil" {% if not show_edit %}style="display:none"{% endif %}>
-        <div class="form-row">
-          <label for="prezyvka">Prezývka *</label>
-          <input id="prezyvka" type="text" name="prezyvka" value="{{ pouzivatel.prezyvka }}" required>
+        <div id="fo-identita-blok">
+          <div class="form-row">
+            <label for="prezyvka">Prezývka *</label>
+            <input id="prezyvka" type="text" name="prezyvka"
+                  class="ucontrol" value="{{ pouzivatel.prezyvka or '' }}" required autocomplete="nickname">
+          </div>
+          <div class="form-row">
+            <label for="meno">Meno</label>
+            <input id="meno" type="text" name="meno"
+                  class="ucontrol" value="{{ pouzivatel.meno or '' }}" autocomplete="given-name">
+          </div>
+          <div class="form-row">
+            <label for="priezvisko">Priezvisko</label>
+            <input id="priezvisko" type="text" name="priezvisko"
+                  class="ucontrol" value="{{ pouzivatel.priezvisko or '' }}" autocomplete="family-name">
+          </div>
         </div>
-        <div><label>Meno</label><input type="text" name="meno" value="{{ pouzivatel.meno or '' }}" class="input-line"></div>
-        <div class="form-row"><label>Priezvisko</label><input type="text" name="priezvisko" value="{{ pouzivatel.priezvisko or '' }}"></div>
-        <div class="form-row"><label>Email</label><input type="email" name="email" value="{{ pouzivatel.email }}" required></div>
-        <div class="form-row"><label>Mesto / Obec</label><input type="text" name="obec" value="{{ pouzivatel.obec or '' }}"></div>
 
+        <div class="form-row">
+          <label for="email">Email *</label>
+          <input id="email" type="email" name="email"
+                class="ucontrol" value="{{ pouzivatel.email or '' }}" required autocomplete="email">
+        </div>
+        
         <!-- Zameranie (hlavná rola) — presne ako registrácia -->
         <div class="form-row">
           <label for="rola">Zameranie *</label>
           {% set r = pouzivatel.rola or '' %}
-          <select id="rola" name="rola" class="select" required>
+          <select id="rola" name="rola" class="ucontrol select" required>
             <option value="">— vyber —</option>
             <option value="hudobnik"      {{ 'selected' if r=='hudobnik'      else '' }}>Hudobník</option>
             <option value="tanecnik"      {{ 'selected' if r=='tanecnik'      else '' }}>Tanečník</option>
@@ -148,7 +190,7 @@
         <div id="wrap-sub-hudobnik" style="display:none;">
           <div class="form-row">
             <label for="hud_oblast">Hudobník — oblasť *</label>
-            <select id="hud_oblast" name="hud_oblast" class="select">
+            <select id="hud_oblast" name="hud_oblast" class="ucontrol select">
               <option value="">— vyber —</option>
               <option value="spev"        {{ 'selected' if hud_val=='spev'        else '' }}>Spev</option>
               <option value="klavesy"     {{ 'selected' if hud_val=='klavesy'     else '' }}>Klávesy</option>
@@ -361,7 +403,7 @@
           </div>
           <div class="form-row stack" id="tanec_ine_wrap" style="display:none;">
             <label for="tanec_ine_text">Upresni „iné“</label>
-            <input type="text" id="tanec_ine_text" name="tanec_ine_text" class="input-line" value="{{ pouzivatel.tanec_ine or '' }}">
+            <input type="text" id="tanec_ine_text" name="tanec_ine_text" class="ucontrol select" value="{{ pouzivatel.tanec_ine or '' }}">
           </div>
         </div>
 
@@ -407,7 +449,7 @@
           </div>
           <div class="form-row stack" id="ucitel_ine_wrap" style="display:none;">
             <label for="ucitel_ine_text">Upresni „iné“</label>
-            <input type="text" id="ucitel_ine_text" name="ucitel_ine_text" class="input-line" value="{{ pouzivatel.ucitel_ine or '' }}">
+            <input type="text" id="ucitel_ine_text" name="ucitel_ine_text" class="ucontrol select" value="{{ pouzivatel.ucitel_ine or '' }}">
           </div>
         </div>
 
@@ -509,29 +551,98 @@
         <div id="wrap-rola-ine" style="display:none;">
           <div class="form-row stack">
             <label for="rola_ina">Zameranie – iné</label>
-            <input type="text" id="rola_ina" name="rola_ina" class="input-line" value="{{ pouzivatel.rola_ina or '' }}" placeholder="napr. fotograf-koncerty, dramaturg…">
+            <input type="text" id="rola_ina" name="rola_ina" class="ucontrol select" value="{{ pouzivatel.rola_ina or '' }}" placeholder="napr. fotograf-koncerty, dramaturg…">
             <div class="form-help">Zbierame návrhy na nové kategórie.</div>
           </div>
         </div>
+        
 
-        <div class="form-row"><label for="bio">O mne:</label><textarea id="bio" name="bio">{{ pouzivatel.bio or '' }}</textarea></div>
-
+  <!-- Typ účtu (select) -->
         <div class="form-row">
-          <label>Typ účtu</label>
-          <select name="typ_subjektu" id="typ-subjektu-select">
+          <label for="typ-subjektu-select">Typ účtu</label>
+          <select name="typ_subjektu" id="typ-subjektu-select" class="ucontrol select">
             <option value="fyzicka" {{ 'selected' if pouzivatel.typ_subjektu != 'ico' else '' }}>Fyzická osoba</option>
             <option value="ico"     {{ 'selected' if pouzivatel.typ_subjektu == 'ico' else '' }}>Organizácia (IČO)</option>
           </select>
         </div>
 
+
         <div id="profil-ico-blok" {% if pouzivatel.typ_subjektu != 'ico' %}style="display:none"{% endif %}>
-          <div class="form-row"><label>IČO *</label><input type="text" name="ico" value="{{ pouzivatel.ico or '' }}" autocomplete="on"></div>
-          <div class="form-row"><label>Názov organizácie *</label><input type="text" name="organizacia_nazov" value="{{ pouzivatel.organizacia_nazov or '' }}"></div>
-          <div class="form-row"><label>DIČ</label><input type="text" name="dic" value="{{ pouzivatel.dic or '' }}"></div>
-          <div class="form-row"><label>IČ DPH</label><input type="text" name="ic_dph" value="{{ pouzivatel.ic_dph or '' }}"></div>
-          <div class="form-row"><label>Sídlo – ulica</label><input type="text" name="sidlo_ulica" value="{{ pouzivatel.sidlo_ulica or '' }}"></div>
-          <div class="form-row"><label>Sídlo – PSČ</label><input type="text" name="sidlo_psc" value="{{ pouzivatel.sidlo_psc or '' }}"></div>
-          <div class="form-row"><label>Sídlo – mesto</label><input type="text" name="sidlo_mesto" value="{{ pouzivatel.sidlo_mesto or '' }}"></div>
+          <div class="form-row">
+            <label for="ico">IČO *</label>
+            <input id="ico" type="text" name="ico" class="ucontrol"
+                  inputmode="numeric" pattern="\d{6,10}" title="IČO: 6–10 číslic"
+                  value="{{ pouzivatel.ico or '' }}">
+          </div>
+
+          <div class="form-row">
+            <label for="organizacia_nazov">Názov organizácie *</label>
+            <input id="organizacia_nazov" type="text" name="organizacia_nazov" class="ucontrol"
+                  value="{{ pouzivatel.organizacia_nazov or '' }}">
+          </div>
+
+          <div class="form-row">
+            <label for="dic">DIČ</label>
+            <input id="dic" type="text" name="dic" class="ucontrol"
+                  value="{{ pouzivatel.dic or '' }}">
+          </div>
+
+          <div class="form-row">
+            <label for="ic_dph">IČ DPH</label>
+            <input id="ic_dph" type="text" name="ic_dph" class="ucontrol"
+                  value="{{ pouzivatel.ic_dph or '' }}">
+          </div>
+
+          <div class="form-row">
+            <label for="sidlo_ulica">Sídlo – ulica</label>
+            <input id="sidlo_ulica" type="text" name="sidlo_ulica" class="ucontrol"
+                  value="{{ pouzivatel.sidlo_ulica or '' }}">
+          </div>
+
+          <div class="form-row">
+            <label for="sidlo_psc">Sídlo – PSČ</label>
+            <input id="sidlo_psc" type="text" name="sidlo_psc" class="ucontrol"
+                  inputmode="numeric" pattern="\d{3}\s?\d{2}" title="Formát: 000 00"
+                  value="{{ pouzivatel.sidlo_psc or '' }}">
+          </div>
+
+          <div class="form-row">
+            <label for="sidlo_mesto">Sídlo – mesto</label>
+            <select id="sidlo_mesto" name="sidlo_mesto" class="ucontrol select">
+              <option value="">— vyber —</option>
+              {% for m in (mesta_all or []) %}
+                <option value="{{ m.nazov }}"
+                        {{ 'selected' if (pouzivatel.sidlo_mesto or '') == m.nazov else '' }}>
+                  {{ m.nazov }}{% if m.okres %}, {{ m.okres }}{% endif %}{% if m.kraj %}, {{ m.kraj }}{% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="org_zaradenie">Zaradenie *</label>
+            {% set oz = pouzivatel.org_zaradenie or '' %}
+            <select id="org_zaradenie" name="org_zaradenie" class="ucontrol select" required>
+              <option value="">— vyber —</option>
+              <option value="agentura"          {{ 'selected' if oz=='agentura'          else '' }}>Organizátor / Agentúra</option>
+              <option value="prenajom_techniky" {{ 'selected' if oz=='prenajom_techniky' else '' }}>Prenájom techniky</option>
+              <option value="prenajom_saly"     {{ 'selected' if oz=='prenajom_saly'     else '' }}>Prenájom sály / klubu</option>
+              <option value="studio"            {{ 'selected' if oz=='studio'            else '' }}>Produkčné štúdio</option>
+              <option value="servis"            {{ 'selected' if oz=='servis'            else '' }}>Servis (opravy / servis techniky)</option>
+              <option value="zus_skola"         {{ 'selected' if oz=='zus_skola'         else '' }}>ZUŠ / Škola</option>
+              <option value="ine"               {{ 'selected' if oz=='ine'               else '' }}>Iné</option>
+            </select>
+          </div>
+          <div class="form-row stack" id="org_zaradenie_ine_wrap" style="display:none;">
+            <label for="org_zaradenie_ine">Zaradenie – iné</label>
+            <input type="text" id="org_zaradenie_ine" name="org_zaradenie_ine" class="ucontrol"
+                  value="{{ pouzivatel.org_zaradenie_ine or '' }}">
+          </div>
+          <!-- O mne (textarea) -->
+          <div class="form-row">
+            <label for="bio">{{ 'O nás:' if pouzivatel.typ_subjektu == 'ico' else 'O mne:' }}</label>
+            <textarea id="bio" name="bio" class="ucontrol" rows="4"
+                      placeholder="Krátky popis (kto ste, čomu sa venujete)…">{{- pouzivatel.bio or '' -}}</textarea>
+          </div>
         </div>
 
         <div class="form-actions">
@@ -638,24 +749,20 @@
 
 <!-- Prepínanie editácie + Avatar fallback + logika podsekcií -->
 <script>
-document.addEventListener('DOMContentLoaded', function(){
-  // ---- prepínanie view/form (zostaň pri svojich tlačidlách)
-  var btnEdit = document.getElementById('editButton');
-  var form = document.getElementById('editForm');
-  var view = document.getElementById('udaje-zobraz');
-  if (btnEdit && form && view){
-    btnEdit.addEventListener('click', function(e){
-      e.preventDefault(); form.style.display='block'; view.style.display='none';
-    });
-    var btnCancel = document.getElementById('cancelEdit');
-    if (btnCancel){
-      btnCancel.addEventListener('click', function(e){
-        e.preventDefault(); form.style.display='none'; view.style.display='block';
-      });
-    }
-  }
+document.addEventListener('DOMContentLoaded', function () {
+  // ---- prepínanie view/form
+  const btnEdit   = document.getElementById('editButton');
+  const form      = document.getElementById('editForm');
+  const viewBlock = document.getElementById('udaje-zobraz');
+  const btnCancel = document.getElementById('cancelEdit');
 
-  // ---- úseky podľa roly (rovnaké id ako v registrácii)
+  function openEdit(){ if(form&&viewBlock){ form.style.display='block'; viewBlock.style.display='none'; } }
+  function closeEdit(){ if(form&&viewBlock){ form.style.display='none'; viewBlock.style.display='block'; } }
+
+  btnEdit && btnEdit.addEventListener('click', (e)=>{ e.preventDefault(); openEdit(); });
+  btnCancel && btnCancel.addEventListener('click', (e)=>{ e.preventDefault(); closeEdit(); });
+
+  // ---- úseky podľa roly (FO)
   const rolaSel = document.getElementById('rola');
   const blocks = {
     hudobnik:      document.getElementById('wrap-sub-hudobnik'),
@@ -671,9 +778,6 @@ document.addEventListener('DOMContentLoaded', function(){
     skladatel:     document.getElementById('wrap-sub-skladatel'),
     ine:           document.getElementById('wrap-rola-ine')
   };
-
- 
-
   const tanIneWrap = document.getElementById('tanec_ine_wrap');
   const ucIneWrap  = document.getElementById('ucitel_ine_wrap');
 
@@ -691,34 +795,76 @@ document.addEventListener('DOMContentLoaded', function(){
       ucIneWrap.style.display = anyIne ? 'block' : 'none';
     }
   }
-
   document.addEventListener('change', (e) => {
     if (e.target && e.target.id === 'rola') syncRole();
     if (e.target && e.target.name === 'tanec_spec_multi') syncRole();
     if (e.target && e.target.name === 'ucitel_predmety_multi') syncRole();
   });
 
-  // ---- IČO blok ----
-  const selTyp = document.getElementById('typ-subjektu-select');
-  const icoBlk = document.getElementById('profil-ico-blok');
+  // ---- IČO / FO logika
+  const selTyp   = document.getElementById('typ-subjektu-select');
+  const icoBlk   = document.getElementById('profil-ico-blok');
+  const foRolaRow = document.getElementById('rola')?.closest('.form-row') ||
+                    document.querySelector('.form-row > label[for="rola"]')?.parentElement;
+
+  // Zaradenie (IČO) "iné"
+  const orgZar     = document.getElementById('org_zaradenie');
+  const orgZarWrap = document.getElementById('org_zaradenie_ine_wrap');
+  const orgZarRow  = document.getElementById('org_zar_row');
+
+  function syncOrgZar(){ if (orgZar && orgZarWrap) orgZarWrap.style.display = (orgZar.value === 'ine') ? 'block' : 'none'; }
+  orgZar && orgZar.addEventListener('change', syncOrgZar);
+
+  function hideAllFoSubblocks(){
+    ['wrap-sub-hudobnik','wrap-sub-tanecnik','wrap-sub-moderator','wrap-sub-ucitel',
+     'wrap-sub-fotograf','wrap-sub-videograf','wrap-sub-zvukar','wrap-sub-osvetlovac',
+     'wrap-sub-technik_podia','wrap-sub-producent','wrap-sub-skladatel','wrap-rola-ine'
+    ].forEach(id => { const el=document.getElementById(id); if (el) el.style.display='none'; });
+  }
+
   function syncICO(){
-    const isICO = selTyp && selTyp.value === 'ico';
+    const isICO = (selTyp?.value === 'ico');
+
     if (icoBlk) icoBlk.style.display = isICO ? 'block' : 'none';
+    if (foRolaRow) foRolaRow.style.display = isICO ? 'none' : 'grid';
+
+    // FO identita blok
+    const foIdent = document.getElementById('fo-identita-blok');
+    if (foIdent) foIdent.style.display = isICO ? 'none' : 'block';
+
+    // ⬇️ NOVÉ: Zaradenie riadok + required + skryť "iné" pri FO
+    if (orgZarRow) orgZarRow.style.display = isICO ? 'grid' : 'none';
+    if (orgZar)    orgZar.required = isICO;
+    if (!isICO && orgZarWrap) orgZarWrap.style.display = 'none';
+
+    // povinnosti
     if (form){
       const ico = form.querySelector('input[name="ico"]');
       const org = form.querySelector('input[name="organizacia_nazov"]');
+      const prezyvka = document.getElementById('prezyvka');
       if (ico) ico.required = isICO;
       if (org) org.required = isICO;
+      if (prezyvka) prezyvka.required = !isICO;   // prezývka len pre FO
     }
-  }
-  if (selTyp) selTyp.addEventListener('change', syncICO);
+    if (rolaSel) rolaSel.required = !isICO;
 
-  // init po načítaní
+    // „O mne“ → „O nás“ label
+    const bioLabel = document.querySelector('label[for="bio"]');
+    if (bioLabel) bioLabel.textContent = isICO ? 'O nás:' : 'O mne:';
+
+    if (isICO){ hideAllFoSubblocks(); }
+    syncOrgZar(); // nech rieši "iné" len keď je IČO aktívne
+  }
+
+  selTyp && selTyp.addEventListener('change', syncICO);
+
+  // ---- init
   syncRole();
   syncICO();
+  syncOrgZar();
 });
 
-// Avatar fallback
+// Avatar fallback (mimo DOMContentLoaded je OK)
 document.addEventListener('error', function(e){
   var img = e.target;
   if (!(img instanceof HTMLImageElement) || !img.classList.contains('avatar')) return;
@@ -727,6 +873,7 @@ document.addEventListener('error', function(e){
   img.src = fb;
 }, true);
 </script>
+
 
 <style>
   .galeria-wrapper{ display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap:.75rem; }

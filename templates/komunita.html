@@ -20,7 +20,9 @@
 
   {# obsah podľa zvolenej záložky #}
   {% if tab == 'ludia' %}
-    {% include "komunita/_ludia.html" %}
+  {% include "komunita/_ludia.html" %}
+  {% elif tab == 'organizacie' %}
+    {% include "komunita/_organizacie.html" %}
   {% elif tab == 'rychly-dopyt' %}
     {% include "komunita/_rychly_dopyt.html" %}
   {% elif tab == 'forum' %}
@@ -28,6 +30,8 @@
   {% else %}
     {% include "komunita/_ludia.html" %}
   {% endif %}
+
+
 
 </section>
 {% endblock %}

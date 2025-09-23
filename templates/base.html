@@ -52,9 +52,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/spravy.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dopyty.css') }}">
 
-  <!-- 7) Poistka (legacy spoločné štýly – môže zostať prázdny) -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+ </head>
 
 <body data-zobraz="{{ zobraz_formular }}">
 
@@ -142,87 +140,44 @@
   </div>
 </header>
 
-{# =======================
-   HOMEPAGE (FB štýl)
-   ======================= #}
-{% if request.endpoint == 'uzivatel.index' %}
-  <div class="home-grid">
-    <!-- ĽAVÝ PANEL -->
-    <aside class="home-left">
-      {% if current_user.is_authenticated %}
-        <a class="sidebar-btn" href="{{ url_for('uzivatel.profil') }}">👤 Profil</a>
-        {% if current_user.typ_subjektu != 'ico' %}
-          <a class="sidebar-btn" href="{{ url_for('skupina.skupina') }}">🎸 Moja skupina</a>
-          <a class="sidebar-btn" href="{{ url_for('inzerat.moj_bazar') }}">🛍️ Môj bazár</a>
-        {% endif %}
-        {% if has_feature(current_user, 'calendar') %}
-          <a class="sidebar-btn" href="{{ url_for('kalendar.kalendar') }}">📅 Kalendár</a>
-        {% endif %}
-        <a class="sidebar-btn" href="{{ url_for('spravy.inbox') }}">📨 Správy</a>
-        {% set can_events = (current_user.is_authenticated and (current_user.typ_subjektu == 'ico'
-            or current_user.is_admin or current_user.is_vip or (current_user.plan|default('free') == 'pro'))) %}
-        {% if can_events %}
-          <a class="sidebar-btn" href="{{ url_for('podujatie.moje') }}">📣 Moje podujatia</a>
-        {% endif %}
-        {% if current_user.typ_subjektu == 'ico' or current_user.is_admin %}
-          <a class="sidebar-btn" href="{{ url_for('reklama.moje') }}">📢 Moje reklamy</a>
-        {% endif %}
-      {% else %}
-        <a class="sidebar-btn" href="{{ url_for('komunita.hub', tab='ludia') }}">🔎 Hľadať hudobníkov</a>
-        <a class="sidebar-btn" href="{{ url_for('skupina.prehlad_skupin') }}">🎸 Nájsť skupiny</a>
-        <a class="sidebar-btn" href="{{ url_for('uzivatel.index') }}#dopyt-form" data-modal-open="#dopyt-form">📢 Zadať dopyt</a>
-      {% endif %}
-    </aside>
-
-    <!-- STRED -->
-    <main class="home-center">
-      {% block home_content %}{% endblock %}
-    </main>
-
-    <!-- PRAVÝ PANEL -->
-    <aside class="home-right">
-      {% block home_right %}{% endblock %}
-    </aside>
-  </div>
-
-{# =======================
-   OSTATNÉ STRÁNKY
-   ======================= #}
-{% else %}
-  <div class="button-container">
-    {% if current_user.is_authenticated %}
-      <aside class="button-sidebar">
-        <a href="{{ url_for('uzivatel.profil') }}" class="sidebar-btn {% if request.endpoint == 'uzivatel.profil' %}active{% endif %}">👤 Profil</a>
-
-        {% if current_user.typ_subjektu != 'ico' %}
-          <a href="{{ url_for('skupina.skupina') }}" class="sidebar-btn {% if request.endpoint == 'skupina.skupina' %}active{% endif %}">🎸 Moja skupina</a>
-          <a href="{{ url_for('inzerat.moj_bazar') }}" class="sidebar-btn {% if request.endpoint == 'inzerat.moj_bazar' %}active{% endif %}">🛍️ Môj bazár</a>
-        {% endif %}
-
-        {% if has_feature(current_user, 'calendar') %}
-          <a href="{{ url_for('kalendar.kalendar') }}" class="sidebar-btn {% if request.endpoint == 'kalendar.kalendar' %}active{% endif %}">📅 Kalendár</a>
-        {% endif %}
-
-        <a href="{{ url_for('spravy.inbox') }}" class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('spravy') %}active{% endif %}">📨 Správy</a>
-
-        {% set can_events = (current_user.is_authenticated and (current_user.typ_subjektu == 'ico'
-            or current_user.is_admin or current_user.is_vip or (current_user.plan|default('free') == 'pro'))) %}
-        {% if can_events %}
-          <a href="{{ url_for('podujatie.moje') }}" class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('podujatie.') %}active{% endif %}">📣 Moje podujatia</a>
-        {% endif %}
-
-        {% if current_user.typ_subjektu == 'ico' or current_user.is_admin %}
-          <a href="{{ url_for('reklama.moje') }}" class="sidebar-btn {% if request.endpoint and request.endpoint.startswith('reklama.') %}active{% endif %}">📢 Moje reklamy</a>
-        {% endif %}
+  {# =======================
+    HOMEPAGE (FB štýl)
+    ======================= #}
+  {% if request.endpoint == 'uzivatel.index' %}
+    <div class="home-grid">
+      <!-- ĽAVÝ PANEL (jediný sidebar na home) -->
+      <aside class="button-sidebar home-left">
+        {% include 'includes/sidebox.html' %}
       </aside>
-    {% endif %}
 
-    <!-- ⚠️ JEDINÝ výskyt block content -->
-    <main class="{{ 'main-content' if current_user.is_authenticated else 'main-no-sidebar' }}">
-      {% block content %}{% endblock %}
-    </main>
-  </div>
-{% endif %}
+      <!-- STRED -->
+      <main class="home-center">
+        {% block home_content %}{% endblock %}
+      </main>
+
+      <!-- PRAVÝ PANEL -->
+      <aside class="home-right">
+        {% block home_right %}{% endblock %}
+      </aside>
+    </div>
+
+  {# =======================
+    OSTATNÉ STRÁNKY
+    ======================= #}
+  {% else %}
+    <div class="button-container">
+      {% if current_user.is_authenticated %}
+        <aside class="button-sidebar">
+          {% include 'includes/sidebox.html' %}
+        </aside>
+      {% endif %}
+
+      <!-- ⚠️ JEDINÝ výskyt block content -->
+      <main class="{{ 'main-content' if current_user.is_authenticated else 'main-no-sidebar' }}">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  {% endif %}
 
 {% include 'includes/novinky.html' %}
 {% include 'partials/flash.html' %}
@@ -266,6 +221,11 @@
     <div class="kontakt-box"><h3>Sociálne siete</h3><p><a href="#">Facebook</a> | <a href="#">Instagram</a></p></div>
   </div>
 </section>
+
+<div id="imgLightbox" class="img-lightbox" hidden aria-hidden="true" role="dialog">
+  <span class="close" aria-label="Zavrieť">×</span>
+  <img alt="">
+</div>
 
 <footer><p>&copy; 2025 Muzikuj.sk | Všetky práva vyhradené</p></footer>
 
@@ -362,6 +322,82 @@
     }
   });
 </script>
+
+<script>
+(function(){
+  const lb = document.getElementById('imgLightbox');
+  if (!lb) return;
+
+  const imgEl = lb.querySelector('img');
+
+  function open(src, alt){
+    imgEl.src = src;
+    imgEl.alt = alt || '';
+    lb.hidden = false;
+    lb.classList.add('open');
+    lb.setAttribute('aria-hidden','false');
+  }
+  function close(){
+    lb.classList.remove('open');
+    lb.hidden = true;
+    lb.setAttribute('aria-hidden','true');
+    imgEl.src = '';
+  }
+
+  // Delegovaný klik: funguje pre [data-lightbox] aj .feed-card .cover
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('[data-lightbox], .feed-card .cover');
+    if (trigger){
+      e.preventDefault();
+      const src = trigger.getAttribute && trigger.getAttribute('data-full')
+                 ? trigger.getAttribute('data-full')
+                 : (trigger.currentSrc || trigger.src);
+      const alt = (trigger.getAttribute && trigger.getAttribute('alt')) || '';
+      open(src, alt);
+      return;
+    }
+    if (e.target === lb || e.target.closest('.close')) close();
+  });
+
+  // ESC zavrie lightbox
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lb.classList.contains('open')) close();
+  });
+})();
+</script>
+<script>
+(function(){
+  const hdr = document.querySelector('.hlavicka-grid');
+  if(!hdr) return;
+  const set = () => {
+    document.documentElement.style.setProperty('--header-h', hdr.getBoundingClientRect().height + 'px');
+  };
+  set();
+  window.addEventListener('resize', set);
+  new ResizeObserver(set).observe(hdr); // <- toto dorob
+})();
+</script>
+<script>
+  (function() {
+    try {
+      // 1) z cookie Preferencií
+      var m = document.cookie.match(/(?:^|; )mz_prefs=([^;]+)/);
+      var theme = m ? JSON.parse(decodeURIComponent(m[1])).theme : null;
+
+      // 2) fallback – ak nie je v cookie, default "system"
+      if (!theme || theme === 'system') {
+        // ak chceš rešpektovať OS tému:
+        // theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        theme = 'light'; // alebo nechaj "system" a nepíš nič
+      }
+      if (theme && theme !== 'system') {
+        document.documentElement.setAttribute('data-theme', theme);
+      }
+    } catch(_) {}
+  })();
+</script>
+
+
 
 <!-- Projektové skripty -->
 <script src="{{ url_for('static', filename='main.js') }}" defer></script>

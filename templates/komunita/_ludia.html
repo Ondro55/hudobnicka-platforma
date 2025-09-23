@@ -1,25 +1,52 @@
 {# templates/komunita/_ludia.html #}
 
-{# jednotná filter lišta ako na iných stránkach #}
 {% set action_url = url_for('komunita.hub', tab='ludia') %}
 {% set placeholder = 'Hľadať ľudí…' %}
 {% set btn_label = 'Hľadať' %}
 {% set show_mesto = True %}
-{% set show_zaner = False %}
+{% set show_zaner = True %}
 {% set show_kategoria = False %}
 
-{# zachovaj predvyplnené hodnoty z query stringu #}
+{# predvyplnenie #}
 {% set q = request.args.get('q','') %}
 {% set mesto = request.args.get('mesto','') %}
+{% set zaner = request.args.get('zaner','') %}
 
+{# možnosti pre Zameranie/Zaradenie #}
+{% set ZANER_FO = [
+  ('hudobnik','Hudobník'),
+  ('tanecnik','Tanečník'),
+  ('moderator','Moderátor akcií'),
+  ('fotograf','Fotograf'),
+  ('videograf','Videograf'),
+  ('zvukar','Zvukár'),
+  ('osvetlovac','Osvetľovač'),
+  ('technik_podia','Technik pódia / Roadie'),
+  ('producent','Producent / Beatmaker'),
+  ('skladatel','Skladateľ / Aranžér'),
+  ('ucitel_hudby','Učiteľ hudby'),
+  ('ine','Iné'),
+] %}
+
+{% set ORG_ZAR = [
+  ('agentura','Organizátor / Agentúra'),
+  ('prenajom_techniky','Prenájom techniky'),
+  ('prenajom_saly','Prenájom sály / klubu'),
+  ('studio','Produkčné štúdio'),
+  ('servis','Servis (opravy / servis techniky)'),
+  ('zus_skola','ZUŠ / Škola'),
+  ('ine','Iné'),
+] %}
+
+{% set zaner_options = {'fo': ZANER_FO, 'org': ORG_ZAR} %}
 {% include "includes/filterbar.html" %}
 
 {# hlavička stĺpcov #}
 <div class="columns-head" style="font-size:.85rem;color:#666;margin:.5rem 0;">
-  <div class="kom-grid-head" style="grid-template-columns:64px 1.6fr 1fr 1fr .9fr;">
+  <div class="kom-grid-head">
     <div>Foto</div>
     <div>Prezývka</div>
-    <div>Nástroj</div>
+    <div>Zameranie / Zaradenie</div>
     <div>Obec</div>
     <div>Akcie</div>
   </div>
@@ -27,59 +54,73 @@
 
 {% if current_user.is_authenticated and current_user.is_admin %}
   <form method="get" class="inline-filters" style="margin:.5rem 0; display:flex; gap:.5rem; align-items:center;">
-    {# udrž tab = ludia a zachovaj existujúce vyhľadávanie #}
     <input type="hidden" name="tab" value="ludia">
     <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
-
     <label class="chip" style="display:inline-flex;gap:.35rem;align-items:center;">
       <input type="checkbox" name="vip" value="1" {% if request.args.get('vip') == '1' %}checked{% endif %}>
       Iba VIP
     </label>
-
     <button class="btn sm" type="submit">Filtrovať</button>
-
     {% if request.args.get('vip') == '1' %}
-      {# Zruší len VIP filter, ponechá tab a q #}
-      <a class="btn sm"
-        href="{{ url_for('komunita.hub', tab='ludia', q=request.args.get('q','')) }}">
-        Zrušiť VIP filter
-      </a>
+      <a class="btn sm" href="{{ url_for('komunita.hub', tab='ludia', q=request.args.get('q','')) }}">Zrušiť VIP filter</a>
     {% endif %}
   </form>
-  {% endif %}
-
+{% endif %}
 
 {# zoznam používateľov #}
 <div class="list-rows">
   {% for u in users %}
-    <article class="list-row kom-grid-row" style="grid-template-columns:64px 1.6fr 1fr 1fr .9fr;">
+    {% set is_org = (u.typ_subjektu == 'ico') %}
+    {% set display_name = (u.organizacia_nazov if is_org else (u.prezyvka or (u.meno ~ ' ' ~ u.priezvisko)|trim)) %}
+    {% set mesto_disp = (u.sidlo_mesto if is_org else u.obec) %}
+    {% set ORG_LABELS = {
+      'agentura':'Organizátor / Agentúra',
+      'prenajom_techniky':'Prenájom techniky',
+      'prenajom_saly':'Prenájom sály / klubu',
+      'studio':'Produkčné štúdio',
+      'servis':'Servis (opravy / servis techniky)',
+      'zus_skola':'ZUŠ / Škola',
+      'ine':'Iné'
+    } %}
+
+    <article class="list-row kom-grid-row">
       <!-- Foto -->
       <div>
         {% set foto = url_for('static', filename='profilovky/' ~ (u.profil_fotka or 'avatar-user.svg')) %}
         <img class="avatar"
-            src="{{ foto }}"
-            data-fallback="{{ url_for('static', filename='profilovky/avatar-user.svg') }}"
-            alt="Profilová fotka"
-            style="width:48px;height:48px;object-fit:cover;border-radius:50%;display:block;">
+             src="{{ foto }}"
+             data-fallback="{{ url_for('static', filename='profilovky/avatar-user.svg') }}"
+             alt="Profilová fotka"
+             style="width:48px;height:48px;object-fit:cover;border-radius:50%;display:block;">
       </div>
 
-
-      <!-- Prezývka / Meno -->
+      <!-- Názov / Prezývka (ellipsis ok) -->
       <div class="text-clip" style="display:flex; align-items:center; gap:.35rem;">
         <a class="link-plain" href="{{ url_for('uzivatel.verejny_profil', user_id=u.id) }}">
-          <strong>{{ u.prezyvka }}</strong>
+          <strong>{{ display_name or '—' }}</strong>
         </a>
+        {% if is_org %}
+          <span class="badge" style="border:1px solid #ddd;border-radius:.35rem;padding:.05rem .35rem;font-size:.75rem;">IČO</span>
+        {% endif %}
         {% if current_user.is_authenticated and current_user.is_admin and u.is_vip %}
           <span class="role-badge vip" title="VIP">⭐</span>
         {% endif %}
       </div>
 
+      <!-- Zameranie / Zaradenie -->
+      <div class="col-zameranie">
+        {% if is_org %}
+          {{ ORG_LABELS.get(u.org_zaradenie, u.org_zaradenie or '—') }}
+          {% if u.org_zaradenie == 'ine' and u.org_zaradenie_ine %} – {{ u.org_zaradenie_ine }}{% endif %}
+        {% else %}
+          {% set zlist = u.zamerania_list() %}
+          {{ zlist|join(', ') if zlist and zlist|length > 0 else '—' }}
+        {% endif %}
+      </div>
+            
+      <!-- Mesto (tiež bez .text-clip) -->
+      <div>{{ mesto_disp or '—' }}</div>
 
-      <!-- Nástroj -->
-      <div class="text-clip">{{ u.instrument or '—' }}</div>
-
-      <!-- Obec -->
-      <div class="text-clip">{{ u.obec or '—' }}</div>
 
       <!-- Akcie -->
       <div class="row-actions">
@@ -96,7 +137,7 @@
 </div>
 
 <script>
-  // avatar fallback (ak sa obrázok nepodarí načítať)
+  // avatar fallback
   document.addEventListener('error', function (e) {
     const img = e.target;
     if (!(img instanceof HTMLImageElement) || !img.classList.contains('avatar')) return;

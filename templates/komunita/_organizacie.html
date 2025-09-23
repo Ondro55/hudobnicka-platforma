@@ -1,0 +1,104 @@
+{# templates/komunita/_organizacie.html #}
+{% set action_url = url_for('komunita.hub', tab='organizacie') %}
+{% set q = request.args.get('q','') %}
+{% set mesto = request.args.get('mesto','') %}
+{% set zaner = request.args.get('zaner','') %}
+
+{% set ORG_LABELS = {
+  'agentura':'Organizátor / Agentúra',
+  'prenajom_techniky':'Prenájom techniky',
+  'prenajom_saly':'Prenájom sály / klubu',
+  'studio':'Produkčné štúdio',
+  'servis':'Servis (opravy / servis techniky)',
+  'zus_skola':'ZUŠ / Škola',
+  'ine':'Iné'
+} %}
+
+<form method="get" action="{{ action_url }}" class="filterbar">
+  <input type="hidden" name="tab" value="organizacie">
+
+  <input type="text" name="q" value="{{ q }}" placeholder="Hľadať organizácie…" class="select">
+
+  <select name="mesto" class="select">
+    <option value="">— Mesto —</option>
+    {% for m in (mesta_all or []) %}
+      <option value="{{ m.nazov }}" {% if mesto == m.nazov %}selected{% endif %}>
+        {{ m.nazov }}{% if m.okres %}, {{ m.okres }}{% endif %}{% if m.kraj %}, {{ m.kraj }}{% endif %}
+      </option>
+    {% endfor %}
+  </select>
+
+  <select name="zaner" class="select">
+    <option value="">— Zaradenie —</option>
+    {% for k, v in ORG_LABELS.items() %}
+      <option value="{{ k }}" {% if zaner == k %}selected{% endif %}>{{ v }}</option>
+    {% endfor %}
+  </select>
+
+  <button class="btn" type="submit">Hľadať</button>
+</form>
+
+{# Organizácie #}
+<div class="kom-grid kom-grid--org">
+
+  <div class="columns-head" style="font-size:.85rem;color:#666;margin:.5rem 0;">
+    <div class="kom-grid-head">
+      <div>Logo</div>
+      <div>Organizácia</div>
+      <div>Zaradenie</div>
+      <div>Sídlo</div>
+      <div>Akcie</div>
+    </div>
+  </div>
+
+  <div class="list-rows">
+    {% for o in orgs %}
+      <article class="list-row kom-grid-row">
+        <!-- Logo -->
+        <div>
+          {% set foto = url_for('static', filename='profilovky/' ~ (o.profil_fotka or 'avatar-user.svg')) %}
+          <img class="avatar" src="{{ foto }}" alt="Logo">
+        </div>
+
+        <!-- Organizácia (názov) -->
+        <div class="text-clip">
+          <a class="link-plain" href="{{ url_for('uzivatel.verejny_profil', user_id=o.id) }}">
+            <strong>{{ o.organizacia_nazov or o.prezyvka }}</strong>
+          </a>
+        </div>
+
+        <!-- Zaradenie (DOPLNENÉ) -->
+        <div class="text-clip line-2">
+          {{ ORG_LABELS.get(o.org_zaradenie, o.org_zaradenie or '—') }}
+          {% if o.org_zaradenie == 'ine' and o.org_zaradenie_ine %} – {{ o.org_zaradenie_ine }}{% endif %}
+        </div>
+
+        <!-- Sídlo -->
+        <div class="text-clip">
+          {{ [o.sidlo_ulica, (o.sidlo_psc ~ ' ' ~ (o.sidlo_mesto or ''))|trim]|reject('equalto','')|join(', ') or '—' }}
+        </div>
+
+        <!-- Akcie -->
+        <div class="row-actions">
+          {% if current_user.is_authenticated %}
+            <a class="kom-msg-btn" href="{{ url_for('spravy.napisat', komu_id=o.id) }}">✉️ Správa</a>
+          {% else %}
+            <a class="btn primary sm" href="#" data-modal-open="#modal-login">✉️ Správa</a>
+          {% endif %}
+        </div>
+      </article>
+
+    {% else %}
+      <p style="padding:.75rem 0;">😕 Žiadne organizácie podľa filtra.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  document.addEventListener('error', function (e) {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement) || !img.classList.contains('avatar')) return;
+    img.classList.remove('avatar');
+    img.src = "{{ url_for('static', filename='profilovky/default.png') }}";
+  }, true);
+</script>

@@ -5,6 +5,9 @@
   <a class="kom-tab {{ 'active' if tab == 'ludia' else '' }}"
      href="{{ url_for('komunita.hub', tab='ludia') }}">Ľudia</a>
 
+  <a class="kom-tab {{ 'active' if active_tab=='organizacie' else '' }}"
+     href="{{ url_for('komunita.hub', tab='organizacie') }}">Organizácie / IČO</a>
+
   <a class="kom-tab {{ 'active' if tab == 'rychly-dopyt' else '' }}"
      href="{{ url_for('komunita.hub', tab='rychly-dopyt') }}">Rýchly dopyt</a>
 
@@ -16,9 +19,9 @@
   /* Centrovanie a rovnaká šírka — len širší kontajner */
   .kom-tabs{
     display:grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap:.5rem;
-    max-width: 960px;             /* bolo 720px → viac priestoru */
+    max-width: 1000px;             /* bolo 720px → viac priestoru */
     margin:.25rem auto .9rem;
   }
 

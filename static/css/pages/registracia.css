@@ -8,3 +8,12 @@
   cursor:pointer; transition:.3s;
 }
 .btn-submit:hover{ background:var(--text); }
+
+:root{ --form-label-w:180px; }
+.hint{
+  display:block;
+  margin-top:.35rem;
+  margin-left: calc(var(--form-label-w) + 1rem); /* posunie pod stĺpec s inputom */
+  opacity:.6;
+  font-size:.7rem;
+}
