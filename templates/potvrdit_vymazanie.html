@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Potvrdiť vymazanie účtu{% endblock %}
+
+{% block content %}
+  <div class="formbox" style="max-width:640px;margin:auto;">
+    <h2>Je nám ľúto, že odchádzate</h2>
+    <p>Pred potvrdením nám môžete (nepovinne) dať vedieť dôvod odchodu. Pomôže nám to zlepšiť Muzikuj.sk.</p>
+
+    <form method="post" action="{{ url_for('nastavenia.erase_do', token=token) }}">
+      <fieldset>
+        <legend>Dôvody</legend>
+        {% for key, label in reasons %}
+          <label style="display:block;margin:.35rem 0;">
+            <input type="checkbox" name="reasons" value="{{ key }}"> {{ label }}
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      <label style="display:block;margin-top:1rem;">
+        Iné (nepovinné):
+        <textarea name="other_text" rows="3" placeholder="Povedzte nám viac..." style="width:100%;"></textarea>
+      </label>
+
+      <div class="notice" style="margin:1rem 0;">
+        <strong>Upozornenie:</strong> potvrdením bude váš účet nevratne vymazaný.
+      </div>
+
+      <button class="btn danger" type="submit">Potvrdzujem vymazanie účtu</button>
+      <a class="btn" href="{{ url_for('nastavenia.erase_cancel', token=token) }}">Zrušiť</a>
+    </form>
+  </div>
+{% endblock %}

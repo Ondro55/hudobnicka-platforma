@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
-{% set is_owner = current_user.is_authenticated and current_user.id == pouzivatel.id %}
-{% set can_edit = is_owner %}
+
+{# vypočítaj is_owner len raz a bezpečne #}
+{% set is_owner = is_owner if is_owner is defined else (current_user.is_authenticated and current_user.id == pouzivatel.id) %}
+{# ak nechceš riešiť staff, nech can_edit = is_owner #}
+{% set can_edit = can_edit if can_edit is defined else is_owner %}
 {% set show_edit = show_edit|default(false) %}
 {% set simple = simple_roles or [] %}
 
@@ -50,8 +53,8 @@
         {% endif %}
       </div>
 
-      {# admin prepínač VIP – ak používaš public_view, inak sa nevykreslí #}
-      {% if public_view and current_user.is_authenticated and current_user.is_admin %}
+      {# admin prepínač VIP – zahrň default pre public_view #}
+      {% if (public_view|default(true)) and current_user.is_authenticated and current_user.is_admin %}
         <div class="admin-controls" style="margin:.5rem 0; display:flex; gap:.5rem; align-items:center;">
           <span class="badge" style="padding:.2rem .5rem; border:1px solid #ddd; border-radius:.5rem;">
             Stav: {{ 'VIP (PRO výhody)' if pouzivatel.is_vip else 'Bežný' }}
@@ -70,6 +73,15 @@
           {% endif %}
         </div>
       {% endif %}
+
+      {# BANNER: používaj pouzivatel, nie user #}
+      {% if current_user.is_authenticated and is_owner and not pouzivatel.verejny_ucet %}
+        <div class="notice warning" style="margin:.75rem 0">
+          Tvoj účet je momentálne <strong>len komunitný</strong> – viditeľný len pre prihlásených používateľov.
+          <a href="{{ url_for('nastavenia.prehlad') }}#sukromie" class="btn small" style="margin-left:.5rem">Zmeniť</a>
+        </div>
+      {% endif %}
+
 
       <!-- ======================== ZOBRAZENIE ÚDAJOV ======================== -->
       <div id="udaje-zobraz" class="profil-udaje" {% if show_edit %}style="display:none"{% endif %}>

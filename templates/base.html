@@ -4,12 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Muzikuj{% endblock %}</title>
+  <script>
+  (function () {
+    try {
+      var userTheme = {{ (current_user.theme if current_user.is_authenticated else None)|tojson }};
+      var m = document.cookie.match(/(?:^|; )mz_prefs=([^;]+)/);
+      var cookieTheme = null;
+      if (m) { try { cookieTheme = JSON.parse(decodeURIComponent(m[1])).theme; } catch(_) {} }
+
+      var theme = cookieTheme || (userTheme && userTheme !== 'system' ? userTheme : null);
+
+      if (theme && theme !== 'system') {
+        document.documentElement.setAttribute('data-theme', theme);
+      } else {
+        document.documentElement.removeAttribute('data-theme'); // => hnedý default
+      }
+    } catch (_) {}
+  })();
+  </script>
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Open+Sans&display=swap" rel="stylesheet" />
 
   <!-- 1) Tokens & Base -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=3) }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
 
   <!-- 2) Layout -->
@@ -52,7 +70,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/spravy.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dopyty.css') }}">
 
- </head>
+</head>
 
 <body data-zobraz="{{ zobraz_formular }}">
 
@@ -96,6 +114,7 @@
             {% endif %}
           </span>
 
+          
           {% if current_user.is_admin or current_user.is_moderator %}
             <a href="{{ url_for('moderacia.dashboard' if current_user.is_admin else 'moderacia.queue') }}" class="header-btn">
               🛡️ {{ 'Admin' if current_user.is_admin else 'Moderácia' }}
@@ -192,6 +211,9 @@
 <!-- MODÁLY -->
 {% include 'modals/prihlasenie.html' %}
 {% include 'modals/registracia.html' %}
+{% include 'includes/cookie_banner.html' %}
+<script src="{{ url_for('static', filename='js/cookies.js') }}" defer></script>
+
 
 <!-- Extra modal pre správy (unifikované triedy, BEZ inline štýlov) -->
 <div id="sprava-modal" class="modal-root" hidden aria-hidden="true" role="dialog" aria-labelledby="sprava-title">
@@ -227,7 +249,9 @@
   <img alt="">
 </div>
 
-<footer><p>&copy; 2025 Muzikuj.sk | Všetky práva vyhradené</p></footer>
+<footer><p>&copy; 2025 Muzikuj.sk | Všetky práva vyhradené</p>
+  <a href="#" onclick="openCookieSettings();return false;">Nastavenia súkromia</a>
+</footer>
 
 <!-- Burger menu -->
 <script>
@@ -377,25 +401,8 @@
   new ResizeObserver(set).observe(hdr); // <- toto dorob
 })();
 </script>
-<script>
-  (function() {
-    try {
-      // 1) z cookie Preferencií
-      var m = document.cookie.match(/(?:^|; )mz_prefs=([^;]+)/);
-      var theme = m ? JSON.parse(decodeURIComponent(m[1])).theme : null;
 
-      // 2) fallback – ak nie je v cookie, default "system"
-      if (!theme || theme === 'system') {
-        // ak chceš rešpektovať OS tému:
-        // theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        theme = 'light'; // alebo nechaj "system" a nepíš nič
-      }
-      if (theme && theme !== 'system') {
-        document.documentElement.setAttribute('data-theme', theme);
-      }
-    } catch(_) {}
-  })();
-</script>
+<script type="text/plain" data-cat="analytics" src="https://plausible.io/js/plausible.js" data-domain="muzikuj.sk" defer></script>
 
 
 

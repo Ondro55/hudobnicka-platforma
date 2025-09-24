@@ -1,45 +1,52 @@
 :root{
   /* farby */
-  --pozadie: #fdfaf5;
-  --akcent:  #c6d8b6;
-  --text:    #3a2f1d;
+  --pozadie:#fdfaf5;
+  --akcent: #c6d8b6;
+  --text:   #3a2f1d;
   --tlacidlo:#d1b19f;
-  --hover:   #e9ddc9;
+  --hover:  #e9ddc9;
 
-  /* typografia (môžeš doplniť) */
+  /* typografia */
   --font-sans: "Open Sans", system-ui, sans-serif;
   --font-serif:"Playfair Display", serif;
 
-  /* základné hodnoty – nech sú na jednom mieste */
-  --radius: .6rem;
-  --shadow-lg: 0 12px 32px rgba(0,0,0,.28);
-  --shadow-sm: 0 2px 8px rgba(0,0,0,.05);
+  /* základné hodnoty */
+  --radius:.6rem;
+  --shadow-lg:0 12px 32px rgba(0,0,0,.28);
+  --shadow-sm:0 2px 8px rgba(0,0,0,.05);
 }
+
 
 /* === Téma: základ === */
-:root {
-  /* už tvoje existujúce tokeny, ponechaj… */
-  --pozadie: #f8f8fb;
-  --text: #1c1c1e;
-  --tlacidlo: #2f6fed;
-  --tlacidlo-text: #fff;
-  --hover: #e7e9f2;
+/* jemný MODRÝ */
+html[data-theme="blue"]{
+  --pozadie:#f7faff;   /* veľmi svetlé modrasté pozadie */
+  --akcent: #c7d6f3;   /* tlmený akcent (linky, badge) */
+  --text:   #223047;   /* tmavomodro-sivý text pre čitateľnosť */
+  --tlacidlo:#aac2f1;  /* jemná modrá pre tlačidlá */
+  --hover:  #e8f0ff;   /* ľahké hover pozadie */
 }
 
-/* === Tmavá === */
-:root[data-theme="dark"] {
-  --pozadie: #0f1115;
-  --text: #f2f2f2;
-  --tlacidlo: #4d7cff;
-  --tlacidlo-text: #fff;
-  --hover: #1b1f2a;
+/* jemný ZELENÝ */
+html[data-theme="green"]{
+  --pozadie:#f7fcf8;
+  --akcent: #c8e0cf;
+  --text:   #22352a;
+  --tlacidlo:#b7d4bf;
+  --hover:  #e8f4ec;
 }
 
-/* === Modrý odtieň === */
-:root[data-theme="blue"] {
-  --pozadie: #eef3ff;
-  --text: #0e1a33;
-  --tlacidlo: #1f5fff;
-  --tlacidlo-text: #fff;
-  --hover: #dbe5ff;
+/* jemný ČERVENÝ (skôr ružovo-hlinený, nie “alarm”) */
+html[data-theme="red"]{
+  --pozadie:#fff8f8;
+  --akcent: #f1c9c9;
+  --text:   #402126;
+  --tlacidlo:#e0b6b6;
+  --hover:  #faeaea;
 }
+
+html, body, button, input, select, textarea, .card, .btn {
+  transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+}
+
+input[type="radio"], input[type="checkbox"] { accent-color: var(--akcent, #8b5e3c); }

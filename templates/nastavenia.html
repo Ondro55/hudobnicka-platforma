@@ -5,16 +5,8 @@
 <section class="settings">
   <h1>⚙️ Nastavenia</h1>
 
-  <!-- mini navigácia v rámci stránky (kotvy) -->
-  <nav class="mini-list settings-nav" aria-label="Sekcie nastavení" style="margin: .5rem 0 1rem;">
-    <a href="#ucet">Účet</a>
-    <a href="#sukromie">Súkromie</a>
-    <a href="#vzhlad">Vzhľad</a>
-    <a href="#sledovanie">Sledovanie</a>
-  </nav>
-
   <!-- ÚČET: zmena hesla + žiadosť o vymazanie -->
-  <form action="/nastavenia/ucet" method="post" class="formbox" id="form-ucet">
+  <form action="{{ url_for('nastavenia.ucet') }}" method="post" class="formbox" id="form-ucet">
     <h2 id="ucet">Účet</h2>
 
     <fieldset>
@@ -37,44 +29,59 @@
       <label>Potvrdiť heslom
         <input type="password" name="confirm_password">
       </label>
-      <button class="btn danger" name="action" value="request_delete">Požiadať o vymazanie</button>
+      <button class="btn danger" name="action" value="request_delete">
+        Požiadať o vymazanie
+      </button>
     </fieldset>
   </form>
 
   <!-- SÚKROMIE: viditeľnosť profilu, videá, hodnotenia -->
-  <form action="/nastavenia/sukromie" method="post" class="formbox" id="form-sukromie" style="margin-top:1rem;">
+  <form action="{{ url_for('nastavenia.sukromie') }}" method="post" class="formbox" id="form-sukromie">
     <h2 id="sukromie">Súkromie</h2>
 
-    <label>
-      <input type="checkbox" name="verejny_ucet">
-      Verejný profil (viditeľný pre neprihlásených)
-    </label>
+    <fieldset>
+      <legend>Viditeľnosť účtu</legend>
 
-    <label>
-      <input type="checkbox" name="zverejnovat_videa">
-      Zverejňovať moje videá na profile
-    </label>
+      <label>
+        <input type="radio" name="verejny_ucet" value="1"
+              {{ 'checked' if current_user.verejny_ucet else '' }}>
+        Účet verejný (viditeľný aj pre neprihlásených)
+      </label>
 
-    <label>
-      <input type="checkbox" name="povolit_hodnotenie">
-      Povoliť, aby ma ostatní hodnotili
-    </label>
+      <label>
+        <input type="radio" name="verejny_ucet" value="0"
+              {{ 'checked' if not current_user.verejny_ucet else '' }}>
+        Len pre komunitu (iba prihlásení)
+      </label>
+    </fieldset>
 
-    <button class="btn primary">Uložiť súkromie</button>
+    <fieldset style="margin-top:1rem">
+      <legend>Ďalšie</legend>
+      <label>
+        <input type="checkbox" name="povolit_hodnotenie" value="1"
+              {{ 'checked' if current_user.povolit_hodnotenie else '' }}>
+        Povoliť hodnotenie (hviezdičky)
+      </label>
+    </fieldset>
+
+    <div style="margin-top:1rem">
+      <button class="btn primary">Uložiť</button>
+    </div>
   </form>
 
   <!-- VZHĽAD: téma / farebné varianty -->
   <form action="/nastavenia/vzhlad" method="post" class="formbox" id="form-vzhlad" style="margin-top:1rem;">
     <h2 id="vzhlad">Vzhľad</h2>
 
-    <div role="group" aria-label="Téma vzhľadu">
-      <label><input type="radio" name="theme" value="system" checked> Systém</label>
-      <label><input type="radio" name="theme" value="light"> Svetlá</label>
-      <label><input type="radio" name="theme" value="dark"> Tmavá</label>
-      <label><input type="radio" name="theme" value="blue"> Modrý odtieň</label>
-    </div>
+    {% set sel = (current_user.theme or 'system') %}
+    <label><input type="radio" name="theme" value="system" {{ 'checked' if sel=='system' else '' }}> Systém (hnedý)</label>
+    <label><input type="radio" name="theme" value="blue"   {{ 'checked' if sel=='blue'   else '' }}> Jemný modrý</label>
+    <label><input type="radio" name="theme" value="green"  {{ 'checked' if sel=='green'  else '' }}> Jemný zelený</label>
+    <label><input type="radio" name="theme" value="red"    {{ 'checked' if sel=='red'    else '' }}> Jemný červený</label>
 
-    <button class="btn">Uložiť vzhľad</button>
+
+
+    <button class="btn primary">Uložiť vzhľad</button>
   </form>
 
   <!-- SLEDOVANIE: čo ma zaujíma (žánre / subjekty) -->
@@ -107,4 +114,45 @@
   </form>
 
 </section>
+<script>
+(function(){
+  const form = document.getElementById('form-ucet');
+  if(!form) return;
+
+  function setRequired(el, on){ if(el){ el.required = !!on; } }
+  function setDisabled(el, on){ if(el){ el.disabled = !!on; } }
+
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('button[name="action"]');
+    if(!btn || btn.form !== form) return;
+
+    const oldP = form.querySelector('input[name="old_password"]');
+    const newP = form.querySelector('input[name="new_password"]');
+    const newP2 = form.querySelector('input[name="new_password2"]');
+    const conf = form.querySelector('input[name="confirm_password"]');
+
+    if (btn.value === 'request_delete') {
+      // pre delete: vypnúť required na poliach pre zmenu hesla
+      setRequired(oldP, false); setRequired(newP, false); setRequired(newP2, false);
+      // voliteľne ich dočasne disable, nech sa neposielajú:
+      setDisabled(oldP, true); setDisabled(newP, true); setDisabled(newP2, true);
+      // a vyžadovať potvrdenie heslom pre delete
+      setRequired(conf, true);
+
+      if (!confirm('Naozaj chcete vymazať účet? Vymazaním stratíte všetky údaje na muzikuj.sk.')) {
+        // vráť stavy späť, ak zruší
+        setDisabled(oldP, false); setDisabled(newP, false); setDisabled(newP2, false);
+        setRequired(conf, false);
+        e.preventDefault();
+      }
+    } else if (btn.value === 'change_password') {
+      // pre change password: validujeme len polia pre heslo
+      setDisabled(oldP, false); setDisabled(newP, false); setDisabled(newP2, false);
+      setRequired(oldP, true);  setRequired(newP, true);  setRequired(newP2, true);
+      setRequired(conf, false);
+    }
+  });
+})();
+</script>
+
 {% endblock %}

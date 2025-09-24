@@ -1,5 +1,6 @@
 import json
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import CheckConstraint, Index
 from datetime import datetime
 from flask import url_for
 from flask_login import UserMixin
@@ -46,8 +47,43 @@ class Pouzivatel(db.Model, UserMixin):
     searchable = db.Column(db.Boolean, nullable=False, default=False)
     is_vip = db.Column(db.Boolean, nullable=False, default=False)
     billing_exempt = db.Column(db.Boolean, nullable=False, default=False)
+   
+    # vzhľad / preferencie
+    theme = db.Column(db.String(20), default="system", nullable=False)
 
-    # --- FO: single-stĺpce – kvôli kompatibilite so starou registráciou ---
+    # súkromie
+    verejny_ucet = db.Column(db.Boolean, default=False, nullable=False)
+    zverejnovat_videa  = db.Column(db.Boolean, default=True,  nullable=False)
+    povolit_hodnotenie = db.Column(db.Boolean, default=True,  nullable=False)
+
+    # sledovanie
+    follow_mode     = db.Column(db.String(16),  default="all", nullable=False)  # 'all' | 'custom'
+    follow_zanre    = db.Column(db.String(255), default="",     nullable=False) # CSV
+    follow_entities = db.Column(db.String(255), default="",     nullable=False) # CSV
+   
+
+    __table_args__ = (
+        CheckConstraint("theme IN ('system','light','dark','blue','green','red')", name="ck_user_theme"),
+        CheckConstraint("follow_mode IN ('all','custom')",           name="ck_user_follow_mode"),
+        # rýchle filtre v appke
+        Index("ix_user_visible", "aktivny", "is_deleted", "verejny_ucet"),
+    )
+    # vymazanie účtu
+    erase_requested_at = db.Column(db.DateTime)
+    erase_deadline_at  = db.Column(db.DateTime)
+    is_deleted         = db.Column(db.Boolean, default=False, nullable=False)
+    erase_token   = db.Column(db.String(128), index=True)
+    erase_feedback = db.Column(db.Text)       # uložíme JSON/text dôvodov
+    erased_at     = db.Column(db.DateTime)
+
+    @property
+    def erase_pending(self) -> bool:
+        # Čaká na potvrdenie, ak existuje token a nevypršal deadline
+        if not self.erase_token:
+            return False
+        return (self.erase_deadline_at is None) or (datetime.utcnow() < self.erase_deadline_at)
+
+        # --- FO: single-stĺpce – kvôli kompatibilite so starou registráciou ---
     rola = db.Column(db.String(40), index=True)  # primárna rola
 
     # HUDOBNÍK
@@ -256,17 +292,6 @@ class Pouzivatel(db.Model, UserMixin):
             return []
         return [s.strip() for s in v.split(',') if s and s.strip()]
 
-    @staticmethod
-    def _list_to_csv(lst):
-        if not lst:
-            return None
-        out, seen = [], set()
-        for x in lst:
-            s = (x or "").strip()
-            if s and s not in seen:
-                seen.add(s); out.append(s)
-        return ",".join(out) if out else None
-
     # Na predvyplnenie jednoduchých rolí v edite
     @property
     def simple_roles_selected(self):
@@ -275,6 +300,25 @@ class Pouzivatel(db.Model, UserMixin):
             return [r for r in data.get("simple_roles", []) if r]
         except Exception:
             return []
+
+    @staticmethod
+    def _list_to_csv(lst):
+        if not lst:
+            return ""   # dôležité – nie None
+        out, seen = [], set()
+        for x in lst:
+            s = (x or "").strip()
+            if s and s not in seen:
+                seen.add(s); out.append(s)
+        return ",".join(out)
+
+    @property
+    def is_active(self) -> bool:
+        if self.is_deleted:
+            return False
+        if self.is_banned:
+            return False
+        return bool(self.aktivny)
 
 
     # ====== Zobrazenie „Zamerania“ – preferuj role_data; inak fallback ======

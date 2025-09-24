@@ -1,0 +1,101 @@
+<div id="cookie-banner" class="cookie-banner" hidden>
+  <p>Používame súbory cookie na zlepšenie funkčnosti. Môžete ich upraviť.</p>
+  <div class="actions">
+    <button data-cc="reject">Odmietnuť</button>
+    <button data-cc="settings">Upraviť</button>
+    <button data-cc="accept">Prijať všetko</button>
+  </div>
+</div>
+
+<div id="cookie-modal" class="cookie-modal" hidden aria-modal="true" role="dialog">
+  <h3>Nastavenia súhlasu</h3>
+  <label><input type="checkbox" checked disabled> Nevyhnutné</label>
+  <label><input type="checkbox" name="prefs"> Preferencie (napr. téma)</label>
+  <label><input type="checkbox" name="analytics"> Analytika</label>
+  <label><input type="checkbox" name="marketing"> Marketing</label>
+  <div class="actions">
+    <button data-cc="save">Uložiť</button>
+    <button data-cc="close">Zavrieť</button>
+  </div>
+</div>
+<script>
+(function(){
+  const BN = document.getElementById('cookie-banner');
+  const MD = document.getElementById('cookie-modal');
+
+  function setCookie(name, val, days){
+    const exp = new Date(Date.now()+days*864e5).toUTCString();
+    document.cookie = name+'='+encodeURIComponent(val)+'; Path=/; SameSite=Lax; Expires='+exp;
+  }
+  function getCookie(name){
+    const m = document.cookie.match(new RegExp('(?:^|; )'+name.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&')+'=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+  function loadConsent(){
+    try{ return JSON.parse(getCookie('mz_consent')||''); }catch(_){ return null; }
+  }
+  function saveConsent(obj){
+    setCookie('mz_consent', JSON.stringify(obj), 365);
+  }
+  function show(el){ el.hidden = false; }
+  function hide(el){ el.hidden = true; }
+
+  function enableDeferredScripts(consent){
+    document.querySelectorAll('script[type="text/plain"][data-cat]').forEach(s => {
+      const cat = s.getAttribute('data-cat'); // 'analytics' | 'marketing' | 'prefs'
+      if (cat === 'necessary' || (consent && consent[cat])) {
+        const ns = document.createElement('script');
+        ns.type = 'text/javascript';
+        // pre inline aj externé
+        if (s.src) ns.src = s.src;
+        ns.text = s.text || '';
+        // prenes všetky ostatné atribúty
+        [...s.attributes].forEach(a => {
+          if (!['type','data-cat'].includes(a.name)) ns.setAttribute(a.name, a.value);
+        });
+        s.replaceWith(ns);
+      }
+    });
+  }
+
+  // inicializácia
+  const existing = loadConsent();
+  if (!existing) show(BN); else enableDeferredScripts(existing);
+
+  // banner actions
+  BN?.addEventListener('click', (e)=>{
+    const t = e.target.closest('[data-cc]');
+    if (!t) return;
+    const act = t.getAttribute('data-cc');
+    if (act === 'reject'){
+      const c = { necessary:true, prefs:false, analytics:false, marketing:false, ts: Date.now() };
+      saveConsent(c); hide(BN); enableDeferredScripts(c);
+    } else if (act === 'accept'){
+      const c = { necessary:true, prefs:true, analytics:true, marketing:true, ts: Date.now() };
+      saveConsent(c); hide(BN); enableDeferredScripts(c);
+    } else if (act === 'settings'){
+      hide(BN); show(MD);
+    }
+  });
+
+  // modal actions
+  MD?.addEventListener('click', (e)=>{
+    const t = e.target.closest('[data-cc]');
+    if (!t) return;
+    const act = t.getAttribute('data-cc');
+    if (act === 'close'){ hide(MD); }
+    if (act === 'save'){
+      const prefs = MD.querySelector('input[name="prefs"]')?.checked || false;
+      const analytics = MD.querySelector('input[name="analytics"]')?.checked || false;
+      const marketing = MD.querySelector('input[name="marketing"]')?.checked || false;
+      const c = { necessary:true, prefs, analytics, marketing, ts: Date.now() };
+      saveConsent(c); hide(MD); enableDeferredScripts(c);
+    }
+  });
+
+  // verejná funkcia na otvorenie nastavení z pätičky
+  window.openCookieSettings = function(){
+    hide(BN); show(MD);
+  };
+})();
+</script>

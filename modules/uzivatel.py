@@ -717,6 +717,30 @@ def verejny_profil(user_id):
         mesta_all=get_mesta_all(),
     )
 
+
+@profil_blueprint.get("/profil/<int:user_id>")
+def profil_view(user_id):
+    u = Pouzivatel.query.get_or_404(user_id)
+    is_owner = current_user.is_authenticated and current_user.id == u.id
+    is_staff = current_user.is_authenticated and (current_user.is_admin or current_user.is_moderator)
+
+    if not u.verejny_ucet and not (is_owner or is_staff):
+        if not current_user.is_authenticated:
+            flash("Tento profil je dostupný len pre prihlásených.", "info")
+            return redirect(url_for("uzivatel.login", next=request.url))
+        flash("Tento profil je dostupný len pre komunitu.", "info")
+        return redirect(url_for("uzivatel.index"))
+
+    return render_template(
+        "profil.html",
+        pouzivatel=u,
+        is_owner=is_owner,
+        can_edit=is_owner,      # ak takto používaš
+        public_view=True        # ak na to niekde testuješ
+    )
+
+
+
 @uzivatel.route('/admin/user/<int:user_id>/vip/<string:action>', methods=['POST'])
 @login_required
 def admin_set_vip(user_id, action):

@@ -16,3 +16,14 @@
   bottom: 1rem;
   z-index: 2147483647;
 }
+
+.cookie-banner, .cookie-modal{
+  position: fixed; left: 1rem; right: 1rem;
+  background: var(--pozadie); color: var(--text);
+  border: 1px solid var(--hover); border-radius: .75rem; padding: .75rem;
+  box-shadow: 0 8px 28px rgba(0,0,0,.15);
+}
+.cookie-banner{ bottom: 1rem; z-index: 1000; }
+.cookie-modal{ top: 10vh; z-index: 1001; max-width: 520px; margin: 0 auto; }
+.cookie-banner[hidden], .cookie-modal[hidden]{ display: none !important; }
+.cookie-banner .actions, .cookie-modal .actions{ display:flex; gap:.5rem; justify-content:flex-end; margin-top:.5rem; }
