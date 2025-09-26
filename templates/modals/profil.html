@@ -15,23 +15,32 @@
     <aside class="profil-left" id="profilLeft">
 
       <!-- Foto -->
-      <div class="profil-fotka-wrapper">
-        {% set foto_url = url_for('static', filename='profilovky/' ~ (pouzivatel.profil_fotka or 'avatar-user.svg')) %}
-        <img class="profilovka avatar"
-             src="{{ foto_url }}"
-             data-fallback="{{ url_for('static', filename='profilovky/default.png') }}"
-             alt="Profilová fotka">
+      <div class="profil-foto-row">
+        <div class="profil-fotka-wrapper">
+          {% set foto_url = url_for('static', filename='profilovky/' ~ (pouzivatel.profil_fotka or 'avatar-user.svg')) %}
+          <img class="profilovka avatar"
+              src="{{ foto_url }}"
+              data-fallback="{{ url_for('static', filename='profilovky/default.png') }}"
+              alt="Profilová fotka">
 
-        {% if can_edit %}
-          <form id="upload-form-user" action="{{ url_for('uzivatel.upload_fotka') }}" method="post" enctype="multipart/form-data" class="profil-upload-fotky">
-            <input id="upload-input-user" type="file" name="profil_fotka" accept="image/*" onchange="this.form.submit()" hidden>
-            <label for="upload-input-user" class="foto-action edit" title="Zmeniť fotku">✏️</label>
-          </form>
-
-          {% if pouzivatel.profil_fotka %}
-            <a href="{{ url_for('uzivatel.odstranit_fotku') }}" class="foto-action delete" title="Odstrániť fotku" onclick="return confirm('Naozaj chceš odstrániť profilovú fotku?');">✖</a>
+          {% if can_edit %}
+            <form id="upload-form-user" action="{{ url_for('uzivatel.upload_fotka') }}" method="post" enctype="multipart/form-data" class="profil-upload-fotky">
+              <input id="upload-input-user" type="file" name="profil_fotka" accept="image/*" onchange="this.form.submit()" hidden>
+              <label for="upload-input-user" class="foto-action edit" title="Zmeniť fotku">✏️</label>
+            </form>
+            {% if pouzivatel.profil_fotka %}
+              <a href="{{ url_for('uzivatel.odstranit_fotku') }}" class="foto-action delete" title="Odstrániť fotku" onclick="return confirm('Naozaj chceš odstrániť profilovú fotku?');">✖</a>
+            {% endif %}
           {% endif %}
-        {% endif %}
+        </div>
+
+        <div class="profil-side">
+          {# odznak viditeľnosti – už ho máš #}
+          {% include "includes/profile_visibility_badge.html" %}
+
+          {# ⭐ hodnotenie používateľa – vždy viditeľné, klikateľné keď je dovolené #}
+          {% include "includes/profile_rating.html" %}
+        </div>
       </div>
 
       <!-- Nick + akcie -->
@@ -75,14 +84,7 @@
       {% endif %}
 
       {# BANNER: používaj pouzivatel, nie user #}
-      {% if current_user.is_authenticated and is_owner and not pouzivatel.verejny_ucet %}
-        <div class="notice warning" style="margin:.75rem 0">
-          Tvoj účet je momentálne <strong>len komunitný</strong> – viditeľný len pre prihlásených používateľov.
-          <a href="{{ url_for('nastavenia.prehlad') }}#sukromie" class="btn small" style="margin-left:.5rem">Zmeniť</a>
-        </div>
-      {% endif %}
-
-
+      
       <!-- ======================== ZOBRAZENIE ÚDAJOV ======================== -->
       <div id="udaje-zobraz" class="profil-udaje" {% if show_edit %}style="display:none"{% endif %}>
         <p><strong>Typ účtu:</strong> {{ 'Organizácia (IČO)' if pouzivatel.typ_subjektu == 'ico' else 'Fyzická osoba' }}</p>
@@ -103,7 +105,7 @@
         {% if pouzivatel.typ_subjektu != 'ico' %}
           <p><strong>Meno:</strong> {{ (pouzivatel.meno or '') ~ ' ' ~ (pouzivatel.priezvisko or '') | trim or '—' }}</p>
         {% endif %}
-
+        
         <p><strong>Email:</strong> {{ pouzivatel.email or '—' }}</p>
         {% if pouzivatel.typ_subjektu != 'ico' %}
           <p><strong>Mesto / Obec:</strong> {{ pouzivatel.obec or '—' }}</p>

@@ -24,7 +24,7 @@
     <a class="sidebar-btn" href="{{ url_for('reklama.moje') }}">📢 Moje reklamy</a>
   {% endif %}
 {% else %}
-  <a class="sidebar-btn" href="{{ url_for('komunita.hub', tab='ludia') }}">🔎 Hľadať hudobníkov</a>
+  <a class="sidebar-btn" href="{{ url_for('uzivatel.prehlad_uzivatelov') }}">👤 Nájsť ľudí & organizácie</a>
   <a class="sidebar-btn" href="{{ url_for('skupina.prehlad_skupin') }}">🎸 Nájsť skupiny</a>
   <a class="sidebar-btn" href="{{ url_for('uzivatel.index') }}#dopyt-form" data-modal-open="#dopyt-form">📢 Zadať dopyt</a>
 {% endif %}

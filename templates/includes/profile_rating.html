@@ -1,0 +1,152 @@
+{# Zobraz len ak je hodnotenie povolené #}
+{% if pouzivatel.povolit_hodnotenie %}
+  {# Očakáva sa, že do šablóny príde rating_avg (0..5) a rating_count (#) – ak nie, nič nezobrazíme #}
+  {% set r_avg = rating_avg|default(None) %}
+  {% set r_cnt = rating_count|default(0) %}
+
+    {% if pouzivatel.povolit_hodnotenie %}
+    {% set r_avg = (rating_avg if rating_avg is defined and rating_avg is not none else 0) %}
+    {% set r_pct = (r_avg|float / 5 * 100) %}
+    <div class="rating-block" data-rating-root data-user-id="{{ pouzivatel.id }}">
+        <div class="stars" data-value="{{ r_avg }}">
+        <div class="stars-bg">★★★★★</div>
+        <div class="stars-fill" style="width: {{ r_pct|round(0, 'floor') }}%;">★★★★★</div>
+        </div>
+    </div>
+    {% endif %}
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // root rating prvok
+  const root =
+    document.querySelector('[data-rating-root]') ||
+    document.querySelector('.rating-block[data-user-id]');
+  if (!root) { console.warn('[rating] root nenájdený'); return; }
+
+  const uid = Number(root.getAttribute('data-user-id') || 0);
+  if (!uid) { console.warn('[rating] chýba data-user-id'); return; }
+
+  // prvky v UI
+  const clickArea = root.querySelector('.stars') || root;
+  const fill = root.querySelector('.stars-fill');
+  const num  = root.querySelector('.rating-num');
+  const cnt  = root.querySelector('.rating-count');
+
+  // pomocné
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+  function setAvg(avg, count){
+    if (fill) fill.style.width = `${clamp(avg || 0, 0, 5) * 20}%`;
+    if (num)  num.textContent  = (avg || 0).toFixed(1);
+    if (cnt)  cnt.textContent  = `(${count || 0})`;
+  }
+  function starFromEvent(e, el){
+    const r = el.getBoundingClientRect();
+    const rel = clamp((e.clientX - r.left), 0, r.width);
+    return clamp(Math.ceil((rel / r.width) * 5), 1, 5);
+  }
+
+  async function fetchSummary(){
+    const res = await fetch(`/api/ratings/summary?user_id=${uid}`, { credentials: 'same-origin' });
+    if (!res.ok) throw new Error(`summary HTTP ${res.status}`);
+    return res.json();
+  }
+
+  async function postRating(stars, reason){
+    const payload = { ratee_id: uid, stars: Number(stars) };
+    if (Number(stars) <= 2 && reason) payload.reason = reason.trim();
+
+    const res = await fetch('/api/ratings/rate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify(payload)
+    });
+
+    // môžeme skúsiť JSON aj pri erroroch
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      // špeciál: backend si vyžiadal dôvod
+      if (data && data.error === 'note_required') {
+        const minLen = Number(data.min_len || 10);
+        let note = (prompt(`Stručne uveď dôvod (min. ${minLen} znakov):`) || '').trim();
+        if (note.length < minLen) {
+          alert(`Prosím, napíš aspoň ${minLen} znakov.`);
+          throw new Error('note too short');
+        }
+        // retry s dôvodom
+        return postRating(stars, note);
+      }
+
+      const msg = (data && (data.reason || data.error)) || 'Hodnotenie sa nepodarilo.';
+      throw new Error(msg);
+    }
+
+    return data;
+  }
+
+  async function init(){
+    try {
+      const s = await fetchSummary();
+      setAvg(s.avg, s.count);
+
+      if (!s.allow_rating) {
+        root.classList.add('disabled');
+        if (s.deny_reason) root.title = s.deny_reason;
+        return;
+      }
+
+      // interaktivita
+      let baseWidth = clamp(s.avg || 0, 0, 5) * 20;
+
+      if (clickArea) {
+        clickArea.style.cursor = 'pointer';
+
+        clickArea.addEventListener('mousemove', e => {
+          if (!fill) return;
+          const stars = starFromEvent(e, clickArea);
+          fill.style.width = (stars * 20) + '%';
+        });
+
+        clickArea.addEventListener('mouseleave', () => {
+          if (!fill) return;
+          fill.style.width = baseWidth + '%';
+        });
+
+        clickArea.addEventListener('click', async (e) => {
+          const stars = starFromEvent(e, clickArea);
+
+          // prompt na dôvod pre 1–2 hviezdy už na fronte
+          let reason = '';
+          if (stars <= 2) {
+            reason = (prompt('Stručne uveď dôvod (min. 10 znakov):') || '').trim();
+            if (reason.length < 10) {
+              alert('Prosím, napíš aspoň 10 znakov.');
+              return;
+            }
+          }
+
+          try{
+            const resp = await postRating(stars, reason);
+            const sum = resp.summary || {};
+            setAvg(sum.avg, sum.count);
+            baseWidth = clamp(sum.avg || 0, 0, 5) * 20;
+            // drobný feedback
+            root.title = 'Ďakujeme za hodnotenie!';
+          }catch(err){
+            console.warn('[rating] rate fail:', err);
+            alert(err.message || 'Hodnotenie sa nepodarilo.');
+          }
+        });
+      }
+    } catch (err) {
+      console.error('[rating] init error:', err);
+    }
+  }
+
+  init();
+});
+</script>
+
+

@@ -408,5 +408,12 @@
 
 <!-- Projektové skripty -->
 <script src="{{ url_for('static', filename='main.js') }}" defer></script>
+{% if show_tpl_badge and current_user.is_authenticated and (current_user.is_admin or current_user.is_moderator) %}
+<div style="position:fixed;left:8px;bottom:8px;z-index:9999;background:#111;color:#0f0;font:12px/1.2 monospace;padding:4px 6px;border-radius:4px;opacity:.85;">
+  TPL: {{ g._last_template or 'neznáme' }} • EP: {{ request.endpoint or '—' }}
+</div>
+{% endif %}
+
+
 </body>
 </html>

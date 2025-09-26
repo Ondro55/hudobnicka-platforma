@@ -2,11 +2,11 @@ import os
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-
+from flask import template_rendered, current_app, request, g
 from flask import Flask, flash, redirect, url_for
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
-
+from flask.signals import before_render_template
 # DB a modely
 from models import db, Pouzivatel, Mesto  # db je tu inicializované až nižšie
 
@@ -18,6 +18,12 @@ from features import has_feature, get_quota, user_plan
 # APLIKÁCIA & KONFIGURÁCIA
 # -----------------------------
 app = Flask(__name__, static_folder="static", static_url_path="/static")
+
+@before_render_template.connect_via(app)
+def _remember_tpl(sender, template, context, **extra):
+    # beží tesne PRED renderom => uvidíš to priamo v base.html
+    g._last_template = getattr(template, "name", None) or "?"
+
 app.config["SECRET_KEY"] = "tajnykluc123"
 app.config["REG_DEV_AUTOVERIFY"] = True
 
@@ -148,6 +154,9 @@ def inject_header_badges():
         pass
     return data
 
+@app.context_processor
+def inject_dev_flags():
+    return {"show_tpl_badge": app.debug or current_app.config.get("SHOW_TPL_BADGE", False)}
 
 # -----------------------------
 # BEFORE REQUEST HOOKY
@@ -213,7 +222,6 @@ def block_banned_users():
             )
             return redirect(url_for("uzivatel.profil"))
 
-
 # -----------------------------
 # DIAGNOSTIKA
 # -----------------------------
@@ -241,6 +249,7 @@ from modules.forum import forum_bp
 from modules.podujatie import podujatie_bp
 from modules.reklama import reklama_bp
 from modules.nastavenia import nastavenia_bp
+from modules.ratings import ratings_bp
 from modules.erase_job import run_erase_due
 from routes import bp as main_blueprint
 
@@ -261,6 +270,7 @@ app.register_blueprint(forum_bp, url_prefix="/komunita/forum")
 app.register_blueprint(podujatie_bp)
 app.register_blueprint(reklama_bp)
 app.register_blueprint(nastavenia_bp)
+app.register_blueprint(ratings_bp)
 
 
 # -----------------------------
@@ -269,3 +279,4 @@ app.register_blueprint(nastavenia_bp)
 if __name__ == "__main__":
     # po baseline DB používaj migrácie (db.create_all() netreba)
     app.run(debug=True)
+

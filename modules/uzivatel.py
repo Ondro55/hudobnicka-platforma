@@ -786,3 +786,48 @@ def lookup_ico_provider(ico: str):
             "mesto": "Bratislava",
         }
     return None
+
+@uzivatel.route('/uzivatelia')
+def prehlad_uzivatelov():
+    q_text  = (request.args.get('q') or '').strip()
+    mesto   = (request.args.get('mesto') or '').strip()
+    zaner   = (request.args.get('zaner') or '').strip()   # FO: rola, ICO: org_zaradenie
+    typ     = request.args.get('typ', 'vsetci')  # vsetci|ludia|organizacie
+
+    base = (Pouzivatel.query
+            .filter(
+                Pouzivatel.aktivny.is_(True),
+                Pouzivatel.is_deleted.is_(False),
+                Pouzivatel.verejny_ucet.is_(True)   # ← kľúčové: iba verejné profily
+            ))
+
+    fo_q  = base.filter(Pouzivatel.typ_subjektu != 'ico')
+    ico_q = base.filter(Pouzivatel.typ_subjektu == 'ico')
+
+    if q_text:
+        like = f"%{q_text}%"
+        fo_q  = fo_q.filter(or_(Pouzivatel.prezyvka.ilike(like),
+                                 Pouzivatel.meno.ilike(like),
+                                 Pouzivatel.priezvisko.ilike(like),
+                                 Pouzivatel.email.ilike(like)))
+        ico_q = ico_q.filter(or_(Pouzivatel.organizacia_nazov.ilike(like),
+                                 Pouzivatel.prezyvka.ilike(like),
+                                 Pouzivatel.email.ilike(like)))
+
+    if mesto:
+        fo_q  = fo_q.filter(Pouzivatel.obec == mesto)
+        ico_q = ico_q.filter(Pouzivatel.sidlo_mesto == mesto)
+
+    if zaner:
+        fo_q  = fo_q.filter(Pouzivatel.rola == zaner)
+        ico_q = ico_q.filter(Pouzivatel.org_zaradenie == zaner)
+
+    users = fo_q.order_by(Pouzivatel.prezyvka.asc()).limit(200).all() \
+            if typ in ('vsetci','ludia') else []
+    orgs  = ico_q.order_by(Pouzivatel.organizacia_nazov.asc(),
+                           Pouzivatel.prezyvka.asc()).limit(200).all() \
+            if typ in ('vsetci','organizacie') else []
+
+    return render_template('uzivatelia.html',
+                           users=users, orgs=orgs,
+                           q=q_text, mesto=mesto, zaner=zaner, typ=typ)

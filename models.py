@@ -1,6 +1,6 @@
 import json
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import CheckConstraint, Index
+from sqlalchemy import CheckConstraint, Index, UniqueConstraint, func
 from datetime import datetime
 from flask import url_for
 from flask_login import UserMixin
@@ -68,6 +68,12 @@ class Pouzivatel(db.Model, UserMixin):
         # rýchle filtre v appke
         Index("ix_user_visible", "aktivny", "is_deleted", "verejny_ucet"),
     )
+    # ratings user
+    rating_count = db.Column(db.Integer, default=0, nullable=False)
+    rating_sum   = db.Column(db.Integer, default=0, nullable=False)
+    rating_avg   = db.Column(db.Float,   default=0.0, nullable=False)
+    rating_bayes = db.Column(db.Float,   default=0.0, nullable=False)
+
     # vymazanie účtu
     erase_requested_at = db.Column(db.DateTime)
     erase_deadline_at  = db.Column(db.DateTime)
@@ -855,3 +861,35 @@ class ReklamaReport(db.Model):
     
     reporter = db.relationship('Pouzivatel', foreign_keys=[reporter_id])
     handler  = db.relationship('Pouzivatel', foreign_keys=[handled_by])
+
+
+class UserRating(db.Model):
+    __tablename__ = "user_rating"
+
+    id         = db.Column(db.Integer, primary_key=True)
+    ratee_id   = db.Column(db.Integer, db.ForeignKey("pouzivatel.id"), nullable=False, index=True)  # koho hodnotím
+    rater_id   = db.Column(db.Integer, db.ForeignKey("pouzivatel.id"), nullable=False, index=True)  # kto hodnotí
+
+    # palec hore/dole (doplnkové odporúčanie)
+    recommend  = db.Column(db.Boolean, nullable=False, default=False)
+
+    # 1–5 hviezdičiek, voliteľné (môže byť None, ak dá len recommend)
+    stars      = db.Column(db.Integer)
+    note = db.Column(db.String(500))
+    # (voliteľné) kategória/skill – napr. 'klavir', 'spev' atď.
+    category_key = db.Column(db.String(40))
+
+    status     = db.Column(db.String(12), nullable=False, default="active")  # active/removed
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('ratee_id', 'rater_id', name='uq_rating_pair'),
+        db.Index('ix_user_rating_ratee_id', 'ratee_id'),
+        db.Index('ix_user_rating_rater_id', 'rater_id'),
+    )
+
+    def is_active(self) -> bool:
+        return self.status == "active"
+
+

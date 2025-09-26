@@ -1,0 +1,17 @@
+{% set is_public = pouzivatel.verejny_ucet %}
+{% set can_edit = current_user.is_authenticated and current_user.id == pouzivatel.id %}
+{% set state = 'public' if is_public else 'community' %}
+{% set text  = 'Verejný profil' if is_public else 'Profil len pre komunitu' %}
+
+{% if is_owner %}
+<span class="vis-badge" data-state="{{ 'public' if pouzivatel.verejny_ucet else 'community' }}">
+  <a class="vis-link" href="{{ url_for('nastavenia.prehlad') }}#sukromie" title="Zmeniť viditeľnosť">
+    <span class="vis-dot"></span>
+    <span class="vis-text">
+      {{ 'Verejný profil' if pouzivatel.verejny_ucet else 'Viditeľné len pre komunitu' }}
+    </span>
+  </a>
+</span>
+{% endif %}
+
+

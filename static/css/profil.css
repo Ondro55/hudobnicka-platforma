@@ -14,7 +14,7 @@
 /* Grid */
 .profil-grid{
   display:grid;
-  grid-template-columns:380px 1fr;
+  grid-template-columns:450px 1fr;
   gap:2rem;
 }
 
@@ -198,4 +198,53 @@
   .form-profil .form-row{ grid-template-columns: 1fr; }
   .form-profil .form-row .hint{ grid-column: 1 / -1; }
 }
+
+/* === Profil: badge + rating pod fotkou, zarovnané doprava === */
+
+/* rad vedľa seba, zarovnané hore */
+.profil-foto-row{
+  display:flex; align-items:flex-start; gap:.75rem; flex-wrap:wrap; margin-bottom:.6rem;
+}
+.profil-side{
+  display:flex; flex-direction:column; gap:.5rem; min-width:160px; align-items: flex-end;
+}
+
+/* badge (pill) – farbu určujú data-state pravidlá nižšie */
+.vis-badge{
+  display:inline-flex; align-items:center; gap:.35rem;
+  padding:.18rem .32rem; border-radius:999px; user-select:none;
+  border:1px solid currentColor;
+  background: color-mix(in oklab, currentColor 12%, transparent);
+  white-space:nowrap;
+}
+.vis-badge .vis-link{ font-size: 12px; padding: .05rem .22rem; display:inline-flex; align-items:center; gap:.35rem; color:inherit; text-decoration:none; }
+.vis-badge .vis-link:hover{ text-decoration:underline; }
+.vis-dot{
+  display:inline-block; width:.9rem; height:.9rem; border-radius:50%;
+  border:2px solid currentColor;
+  background: color-mix(in oklab, currentColor 18%, transparent);
+}
+/* farby odznaku */
+.vis-badge[data-state="public"]{ color:#22c55e !important; }     /* zelená */
+.vis-badge[data-state="community"]{ color:#f59e0b !important; }  /* oranžová */
+
+/* hviezdičky */
+.rating-block{ display:flex; align-items:center; gap:.4rem; }
+.stars{ position:relative; display:inline-block; font-size:20px; line-height:1; }
+.stars-bg{ color:#ddd; }
+.stars-fill{
+  position:absolute; top:0; left:0; white-space:nowrap; overflow:hidden;
+  color:#f59e0b; pointer-events:none;
+}
+
+/* rating – ak sa nedá hodnotiť */
+.rating-block.disabled .stars { opacity:.75; pointer-events:none; }
+
+/* nech sa pravý stĺpec drží doprava, keď ho chceš mať úzko a zarovnaný */
+.profil-side { min-width:190px; display:flex; flex-direction:column; align-items:flex-end; gap:.5rem; }
+.rating-block { align-self:flex-end; }
+
+
+
+
 
