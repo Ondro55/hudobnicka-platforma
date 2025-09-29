@@ -253,7 +253,7 @@ def pridaj_dopyt():
     cas_do = datetime.strptime(cas_do_s, '%H:%M').time() if cas_do_s else None
 
     # 4) miesto – FK alebo voľný text
-    mesto_id_raw = (g('mesto_id') or '').strip()
+    mesto_id_raw = (g('mesto_id') or '').strip()          # ide z hidden inputu (datalist sync)
     mesto_id = int(mesto_id_raw) if mesto_id_raw.isdigit() else None
     miesto_txt = (g('miesto') or '').strip() or None
 
@@ -268,10 +268,18 @@ def pridaj_dopyt():
     else:
         rozpocet = None
 
-    # 6) Ostatné
+    # 6) Ostatné (kontakt len e-mail + meno/organizácia)
     popis = (g('popis') or '').strip() or None
-    meno  = (g('meno') or '').strip() or None
-    email = (g('email') or '').strip() or None
+    meno  = (g('meno') or '').strip()
+    email = (g('email') or '').strip()
+
+    # --- jednoduchá validácia povinných polí (bez regexu, aby netrebalo importy)
+    if len(meno) < 2:
+        flash("Zadaj Meno / Organizáciu (aspoň 2 znaky).", "warning")
+        return redirect(url_for('main.index') + "#dopyt-form")
+    if ("@" not in email) or ("." not in email.split("@")[-1]):
+        flash("Zadaj platný e-mail.", "warning")
+        return redirect(url_for('main.index') + "#dopyt-form")
 
     # --- vytvor záznam a získaj id
     novy = Dopyt(
@@ -305,25 +313,34 @@ def pridaj_dopyt():
     # uložiť stav (aktivny / neaktivny)
     db.session.commit()
 
-    # --- manažovací link (pošleme majiteľovi, ak je email)
+    # --- manažovací link + CTA na Správy (posielame zadávateľovi)
     manage_url = None
+    inbox_url  = None
     sent = False
     if novy.email:
         token = generate_dopyt_token(novy.id, novy.email)
-        try:
-            manage_url = url_for("dopyty.spravovat", token=token, _external=True)
-        except Exception:
-            manage_url = f"{request.url_root.rstrip('/')}{url_for('dopyty.spravovat', token=token)}"
 
-        subject = "Váš dopyt bol pridaný – Muzikuj"
-        status_line = ("(Čaká na schválenie moderátorom)\n\n" if not novy.aktivny else "")
+        def _abs_url(endpoint, **kwargs):
+            try:
+                return url_for(endpoint, _external=True, **kwargs)
+            except Exception:
+                # fallback, ak _external spadne (napr. v testoch)
+                return (request.url_root.rstrip('/') + url_for(endpoint, **kwargs))
+
+        manage_url = _abs_url("dopyty.spravovat", token=token)
+        inbox_url  = _abs_url("spravy.inbox")
+
+        subject = "Váš dopyt bol pridaný – muzikuj"
+        status_line = "(Čaká na schválenie moderátorom)\n\n" if not novy.aktivny else ""
+
         body = (
-            "Dobrý deň,\n\n"
-            "váš dopyt bol uložený na Muzikuj.\n"
+            f"Ahoj {meno},\n\n"
+            f"tvoj dopyt bol uložený na muzikuj.\n"
             f"{status_line}"
-            f"Spravovať / zmazať ho môžete tu:\n{manage_url}\n\n"
-            "Po termíne udalosti sa dopyt automaticky deaktivuje.\n\n"
-            "Pekný deň,\nMuzikuj"
+            f"Spravovať / upraviť alebo zmazať ho môžeš tu:\n{manage_url}\n\n"
+            f"Keď ti niekto odpovie, príde ti e-mail a správu nájdeš tu:\n{inbox_url}\n\n"
+            f"Po termíne udalosti sa dopyt automaticky deaktivuje.\n\n"
+            f"Pekný deň,\nmuzikuj\n"
         )
         sent = _send_email(novy.email, subject, body)
 
@@ -341,6 +358,7 @@ def pridaj_dopyt():
         return render_template("dopyt_pridany.html", manage_url=manage_url)
 
     return redirect(url_for('main.index'))
+
 
 # =========================
 # Správa dopytu cez token (GET) + zmazanie (POST)
@@ -415,3 +433,121 @@ def inject_novinky_dopyty():
     except Exception:
         novinky = []
     return dict(novinky_dopyty=novinky)
+
+@dopyty.post("/kontaktovat/<int:dopyt_id>")
+@login_required
+def kontaktovat(dopyt_id):
+    d = Dopyt.query.get_or_404(dopyt_id)
+
+    if not d.aktivny or datetime.utcnow() > _dopyt_end_dt(d):
+        flash("Tento dopyt už nie je aktívny.", "warning")
+        return redirect(url_for('dopyty.zobraz_dopyty'))
+
+    text = (request.form.get('text') or '').strip()
+    if len(text) < 10:
+        flash("Napíš prosím správu aspoň v 10 znakoch.", "warning")
+        return redirect(url_for('dopyty.zobraz_dopyty'))
+
+    ok, reason = auto_moderate_text(text, entity_type="dopyt_reply", entity_id=d.id, recipient_id=None)
+    if not ok:
+        flash(reason or "Správa obsahuje nevhodný obsah.", "warning")
+        return redirect(url_for('dopyty.zobraz_dopyty'))
+
+    # CTA odkazy
+    token = generate_dopyt_token(d.id, d.email)
+    try:
+        agree_url  = url_for('dopyty.cta_agree',  token=token, _external=True)
+        nodeal_url = url_for('dopyty.cta_no_deal', token=token, _external=True)
+    except Exception:
+        base = request.url_root.rstrip('/')
+        agree_url  = base + url_for('dopyty.cta_agree',  token=token)
+        nodeal_url = base + url_for('dopyty.cta_no_deal', token=token)
+
+    kapela_nazov = getattr(current_user, "prezyvka", None) or getattr(current_user, "nazov", None) or "Hudobník"
+
+    subject = "Nová odpoveď na váš dopyt – Muzikuj"
+    body = (
+        f"Ahoj {d.meno or ''},\n\n"
+        f"{kapela_nazov} vám píše k vášmu dopytu:\n\n"
+        f"{text}\n\n"
+        f"Ak ste sa DOHODLI, kliknite sem (dopyt skryjeme):\n{agree_url}\n\n"
+        f"Ak ste sa NEDOHODLI a chcete nechať dopyt aktívny, kliknite sem:\n{nodeal_url}\n\n"
+        f"Pekný deň,\nMuzikuj\n"
+    )
+    _send_email(d.email, subject, body)
+
+    # ✨ označ, že CTA už bolo poslané
+    if not d.cta_sent_at:
+        d.cta_sent_at = datetime.utcnow()
+    db.session.commit()
+
+    flash("Správa bola odoslaná zadávateľovi. 👍", "success")
+    return redirect(url_for('dopyty.zobraz_dopyty'))
+
+def send_dopyt_cta_if_needed(dopyt_id: int) -> None:
+    d = Dopyt.query.get(dopyt_id)
+    if not d or not d.email:
+        return
+    if d.cta_sent_at:  # už sme poslali
+        return
+    # aktívny a nie po termíne
+    if not d.aktivny or datetime.utcnow() > _dopyt_end_dt(d):
+        return
+
+    token = generate_dopyt_token(d.id, d.email)
+    try:
+        agree_url  = url_for('dopyty.cta_agree',  token=token, _external=True)
+        nodeal_url = url_for('dopyty.cta_no_deal', token=token, _external=True)
+    except Exception:
+        agree_url  = request.url_root.rstrip('/') + url_for('dopyty.cta_agree',  token=token)
+        nodeal_url = request.url_root.rstrip('/') + url_for('dopyty.cta_no_deal', token=token)
+
+    subject = "Odpoveď na váš dopyt – potvrďte stav"
+    body = (
+        f"Ahoj {d.meno or ''},\n\n"
+        f"Na váš dopyt niekto odpovedal.\n\n"
+        f"Ak ste sa DOHODLI, kliknite sem (dopyt skryjeme):\n{agree_url}\n\n"
+        f"Ak ste sa NEDOHODLI a chcete ho nechať aktívny, kliknite sem:\n{nodeal_url}\n\n"
+        f"Pekný deň,\nMuzikuj\n"
+    )
+    _send_email(d.email, subject, body)
+    d.cta_sent_at = datetime.utcnow()
+    db.session.commit()
+
+
+@dopyty.get("/cta/agree", endpoint="cta_agree")
+def cta_agree():
+    token = request.args.get("token","")
+    data = load_dopyt_token_noage(token)
+    if not data:
+        flash("Neplatný odkaz.", "warning")
+        return redirect(url_for("dopyty.zobraz_dopyty"))
+
+    d = Dopyt.query.get(int(data["id"]))
+    if not d or (d.email or "").lower() != (data.get("email","").lower()):
+        flash("Dopyt sa nenašiel.", "warning")
+        return redirect(url_for("dopyty.zobraz_dopyty"))
+
+    d.aktivny = False
+    d.zmazany_at = datetime.utcnow()
+    db.session.commit()
+    flash("Super! Dopyt sme označili ako vybavený.", "success")
+    return redirect(url_for("dopyty.zobraz_dopyty"))
+
+
+@dopyty.get("/cta/no-deal", endpoint="cta_no_deal")
+def cta_no_deal():
+    token = request.args.get("token","")
+    data = load_dopyt_token_noage(token)
+    if not data:
+        flash("Neplatný odkaz.", "warning")
+        return redirect(url_for("dopyty.zobraz_dopyty"))
+
+    d = Dopyt.query.get(int(data["id"]))
+    if not d or (d.email or "").lower() != (data.get("email","").lower()):
+        flash("Dopyt sa nenašiel.", "warning")
+        return redirect(url_for("dopyty.zobraz_dopyty"))
+
+    flash("Rozumieme. Dopyt ostáva aktívny.", "info")
+    return redirect(url_for("dopyty.zobraz_dopyty"))
+

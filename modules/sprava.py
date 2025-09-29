@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
-from models import db, Pouzivatel, Sprava, Report
+from models import db, Pouzivatel, Sprava, Report, Dopyt
+from modules.dopyty import generate_dopyt_token, _dopyt_end_dt
 from datetime import datetime
 import smtplib
 from email.message import EmailMessage
@@ -71,21 +72,31 @@ def napisat():
     kontekst    = request.args.get("kontekst") or "direct"
     kontekst_id = request.args.get("kontekst_id")
     komu_id     = request.args.get("komu_id")
-    komu_email  = request.args.get("komu_email")  # môže ísť mimo-užívateľa
+    komu_email  = request.args.get("komu_email")
 
     prijemca_nazov = None
-    if komu_id and str(komu_id).isdigit():
+    predmet = ""  # ⬅️ default
+
+    if kontekst == "dopyt" and kontekst_id and str(kontekst_id).isdigit():
+        d = Dopyt.query.get(int(kontekst_id))
+        if d:
+            prijemca_nazov = d.meno or "Zadávateľ dopytu"
+            predmet = f"Re: dopyt – {d.typ_akcie or 'akcia'}"   # ⬅️ jednoduchý subject bez ID
+        komu_email = None  # e-mail nezobrazujeme
+
+    elif komu_id and str(komu_id).isdigit():
         u = Pouzivatel.query.get(int(komu_id))
         if u:
-            prijemca_nazov = u.prezyvka or u.email
+            prijemca_nazov = u.prezyvka or "Používateľ"
+        predmet = "Správa z Muzikuj"
 
     return render_template(
         "spravy_napisat.html",
         kontekst=kontekst, kontekst_id=kontekst_id,
-        komu_id=komu_id, komu_email=komu_email,
-        prijemca_nazov=prijemca_nazov
+        komu_id=komu_id, komu_email=None,
+        prijemca_nazov=prijemca_nazov,
+        predmet=predmet,                 # ⬅️ pošli do templatu
     )
-
 
 def _send_email(to_email: str, subject: str, body: str) -> bool:
     cfg = current_app.config
@@ -115,17 +126,19 @@ def _send_email(to_email: str, subject: str, body: str) -> bool:
 @spravy_bp.route("/odoslat", methods=["POST"], endpoint="odoslat")
 @login_required
 def odoslat():
-    text = (request.form.get("obsah") or "").strip()
+    text    = (request.form.get("obsah") or "").strip()
+    predmet = (request.form.get("predmet") or "").strip()   # ⬅️ NOVÉ
+
     if not text:
         flash("Správa nemôže byť prázdna.", "error")
         return redirect(request.referrer or url_for("spravy.inbox"))
 
     komu_id     = request.form.get("komu_id")
-    komu_email  = request.form.get("komu_email")
+    komu_email  = request.form.get("komu_email")  # pri dopyte ignorujeme, pošleme na dopyt.email
     kontekst    = request.form.get("kontekst")
     kontekst_id = request.form.get("kontekst_id")
 
-    # 1) Ulož správu
+    # 1) Ulož správu do DB
     s = Sprava(
         obsah=text,
         od_id=current_user.id,
@@ -137,17 +150,15 @@ def odoslat():
     db.session.add(s)
     db.session.commit()
 
-    # 2) Jemné auto-flagovanie (manuálna moderácia, žiadne blokovanie)
+    # 2) Jemné auto-flagovanie (manuálna moderácia)
     if auto_moderate_text:
         try:
             res = auto_moderate_text(text)
         except TypeError:
-            # keby existovala iná signatúra, fallback
             res = {"flag": False}
-
         if res and res.get("flag"):
             r = Report(
-                reporter_id = current_user.id,  # systémovo by to mohlo byť aj None
+                reporter_id = current_user.id,
                 entity_type = "sprava",
                 entity_id   = s.id,
                 reason      = res.get("reason", "nevhodny_obsah"),
@@ -156,12 +167,60 @@ def odoslat():
             )
             db.session.add(r)
             db.session.commit()
-            # len info – správa ide normálne ďalej
             flash("Správa bola označená na manuálnu kontrolu.", "info")
 
-    # 3) E-mail (ak máme adresu)
+    # 3) Poslanie e-mailu
+    if kontekst == "dopyt" and (kontekst_id or "").isdigit():
+        # špeciál: dopyt – posielame na e-mail z dopytu + CTA
+        d = Dopyt.query.get(int(kontekst_id))
+        if not d or not d.email:
+            flash("Dopyt sa nenašiel alebo nemá e-mail.", "warning")
+            return redirect(url_for("dopyty.zobraz_dopyty"))
+        if not d.aktivny or datetime.utcnow() > _dopyt_end_dt(d):
+            flash("Tento dopyt už nie je aktívny.", "warning")
+            return redirect(url_for("dopyty.zobraz_dopyty"))
+
+        # predmet – použij ten z formulára, inak jednoduchý fallback
+        subj = predmet or f"Re: dopyt – {d.typ_akcie or 'akcia'}"
+
+        # CTA odkazy
+        token = generate_dopyt_token(d.id, d.email)
+        try:
+            agree_url  = url_for("dopyty.cta_agree",  token=token, _external=True)
+            nodeal_url = url_for("dopyty.cta_no_deal", token=token, _external=True)
+        except Exception:
+            base = request.url_root.rstrip("/")
+            agree_url  = base + url_for("dopyty.cta_agree",  token=token)
+            nodeal_url = base + url_for("dopyty.cta_no_deal", token=token)
+
+        kapela = getattr(current_user, "prezyvka", None) or getattr(current_user, "nazov", None) or "Hudobník"
+        body = (
+            f"Ahoj {d.meno or ''},\n\n"
+            f"{kapela} vám píše k vášmu dopytu:\n\n"
+            f"{text}\n\n"
+            f"Ak ste sa DOHODLI, kliknite sem (dopyt skryjeme):\n{agree_url}\n\n"
+            f"Ak ste sa NEDOHODLI a chcete nechať dopyt aktívny, kliknite sem:\n{nodeal_url}\n\n"
+            f"Pekný deň,\nMuzikuj\n"
+        )
+
+        try:
+            ok = _send_email(d.email, subj, body)
+            if ok:
+                if not d.cta_sent_at:
+                    d.cta_sent_at = datetime.utcnow()
+                    db.session.commit()
+                flash("Správa odoslaná zadávateľovi e-mailom. 👍", "success")
+            else:
+                flash("Správa uložená, ale e-mail sa nepodarilo odoslať (SMTP).", "warning")
+        except Exception:
+            current_app.logger.exception("Email send failed")
+            flash("Správa uložená, ale e-mail sa nepodarilo odoslať.", "warning")
+
+        return redirect(url_for("dopyty.zobraz_dopyty"))
+
+    # Ostatné kontexty / direct – pošli na odoslaný komu_email, ak existuje
     if komu_email:
-        subj = f"Reakcia na dopyt #{kontekst_id}" if kontekst == "dopyt" else "Správa z Muzikuj.sk"
+        subj = predmet or "Správa z Muzikuj.sk"
         try:
             ok = _send_email(komu_email, subj, text)
             if ok:

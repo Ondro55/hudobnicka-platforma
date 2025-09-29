@@ -355,7 +355,7 @@
 body.modal-open { overflow: hidden; }
 #sprava-modal[hidden] { display: none !important; }
 
+
 .bazar-page{
-  width:100%;
-  max-width:none;
+  padding: 2rem; /* ak chceš malé okraje */
 }

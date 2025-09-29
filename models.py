@@ -515,9 +515,12 @@ class Dopyt(db.Model):
     pouzivatel_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=True)
     pouzivatel = db.relationship('Pouzivatel', backref='dopyty')
 
-    # nové časové stopy
+    # časové stopy
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # kedy (ak vôbec) sme poslali CTA mail zadávateľovi
+    cta_sent_at = db.Column(db.DateTime, nullable=True)
 
 
 class Skupina(db.Model):

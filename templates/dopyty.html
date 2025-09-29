@@ -47,7 +47,11 @@
 
           {# Typ / Popis – názov + rozbaliteľný popis bez zdvojenia riadku #}
             <div>
-              <strong>{{ d.typ_akcie|title if d.typ_akcie else 'Dopyt' }}</strong>
+              <h4 class="dpy-title">
+                <span class="who">{{ d.meno or 'Meno / organizácia' }}</span>
+                <span class="sep">•</span>
+                <span class="what">{{ d.typ_akcie or 'Dopyt' }}</span>
+              </h4>
 
               {% if d.popis %}
                 <details class="popis" style="margin-top:.2rem;">
@@ -97,26 +101,17 @@
             {% if current_user.is_authenticated %}
               {% if d.email %}
                 <a class="kom-msg-btn"
-                   href="{{ url_for('spravy.napisat', kontekst='dopyt', kontekst_id=d.id, komu_email=d.email) }}">
+                  href="{{ url_for('spravy.napisat',
+                                    kontekst='dopyt',
+                                    kontekst_id=d.id,
+                                    komu_email=d.email) }}">
                   ✉️ Správa
                 </a>
               {% endif %}
             {% else %}
               <a class="btn primary sm" href="#" data-modal-open="#modal-login">✉️ Správa</a>
             {% endif %}
-
-            {#<a class="icon-btn" href="{{ url_for('dopyty.detail', dopyt_id=d.id) }}" title="Detail">👁️</a>#}
-
-            {% if current_user.is_authenticated and d.pouzivatel_id == current_user.id %}
-              <form method="post"
-                    action="{{ url_for('dopyty.delete_mine', dopyt_id=d.id) }}"
-                    onsubmit="return confirm('Naozaj zmazať tento dopyt?');"
-                    style="margin-left:.5rem;">
-                <button type="submit" class="btn ghost">Zmazať</button>
-              </form>
-            {% endif %}
           </div>
-
         </article>
       {% endfor %}
     {% else %}

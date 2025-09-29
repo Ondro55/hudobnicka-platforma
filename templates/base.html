@@ -75,7 +75,7 @@
 <body data-zobraz="{{ zobraz_formular }}">
 
 <header class="hlavicka-grid">
-  <div class="box1"><div class="logo">Muzikuj.sk</div></div>
+  <div class="box1"><div class="logo">muziku♪.sk</div></div>
 
   <div class="box2">
     <div class="box2-wrapper">
@@ -212,6 +212,7 @@
 {% include 'modals/prihlasenie.html' %}
 {% include 'modals/registracia.html' %}
 {% include 'includes/cookie_banner.html' %}
+{% include "modals/dopyt_form.html" %}
 <script src="{{ url_for('static', filename='js/cookies.js') }}" defer></script>
 
 
@@ -413,7 +414,6 @@
   TPL: {{ g._last_template or 'neznáme' }} • EP: {{ request.endpoint or '—' }}
 </div>
 {% endif %}
-
 
 </body>
 </html>

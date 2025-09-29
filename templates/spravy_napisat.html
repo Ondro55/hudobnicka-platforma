@@ -22,14 +22,19 @@
         <div><strong>Komu</strong></div>
         <div>
           {% if prijemca_nazov %}{{ prijemca_nazov }}
-          {% elif komu_email %}{{ komu_email }}
           {% elif komu_id %}používateľ #{{ komu_id }}
-          {% else %}<em>nezadané</em>{% endif %}
+          {% else %}<em>zadávateľ dopytu</em>{% endif %}
         </div>
 
         {% if kontekst == 'dopyt' and kontekst_id %}
           <div><strong>Kontext</strong></div><div>Dopyt #{{ kontekst_id }}</div>
         {% endif %}
+
+        {# ⬇️ NOVÉ: Predmet #}
+        <div><strong>Predmet</strong></div>
+        <div>
+          <input type="text" name="predmet" value="{{ predmet or '' }}" class="input-line" required>
+        </div>
       </div>
 
       <hr style="margin:1rem 0; border:none; border-top:1px solid var(--hover);">

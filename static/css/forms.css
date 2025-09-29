@@ -1,14 +1,27 @@
 /* ===== Formuláre – základ (forms.css) ===== */
 
-/* riadok formulára */
-.form-row{ margin-bottom:.85rem; }
+/* riadok formulára (2 stĺpce) */
+.form-row{
+  display:grid;
+  grid-template-columns: 180px 1fr;  /* ľavý stĺpec label, pravý stĺpec pole */
+  align-items:center;
+  gap:.5rem 1rem;
+  margin:.75rem 0;
+}
+
+/* variácie riadkov */
 .form-row.two{ display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
 @media (max-width:720px){ .form-row.two{ grid-template-columns:1fr; } }
+
+.form-row.stack{ grid-template-columns: 1fr; }
+.form-row.stack > label{ margin-bottom:.25rem; }
+
+.form-row.cols-2{ grid-template-columns: 180px 1fr 1fr; }
 
 /* popisky */
 .form-row label{ display:block; font-size:.95rem; color:#555; margin-bottom:.25rem; }
 
-/* jednotná línia pre input/textarea/select */
+/* inputy: underline štýl */
 .input-line,
 .input-area,
 .input-file,
@@ -25,24 +38,29 @@
 .input-area{ min-height:120px; resize:vertical; }
 .input-line:focus,
 .input-area:focus,
-.input-select:focus{
-  border-bottom-color:#999;
+.input-select:focus{ border-bottom-color:#999; }
+
+/* nech sa každý input natiahne na plnú šírku vpravo */
+.form-row input:not([type="checkbox"]):not([type="radio"]),
+.form-row select,
+.form-row textarea{ width:100%; }
+
+/* responsívne */
+@media (max-width: 640px){
+  .form-row{ grid-template-columns: 1fr; }
+  .form-row.cols-2{ grid-template-columns: 1fr; }
 }
 
-/* ak potrebuješ tlačidlá zarovnať vpravo */
+/* akcie vpravo */
 .form-actions{ display:flex; gap:.5rem; justify-content:flex-end; margin-top:1rem; }
 
 /* ===== Gridové polia pre modaly (.form-fields) ===== */
 .form-fields{ display:grid; gap:.75rem; }
-
-/* 2-stĺpcový rad, ktorý sa na mobile zlomí */
 .form-fields .row-2{ display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
 @media (max-width:600px){ .form-fields .row-2{ grid-template-columns:1fr; } }
 
-/* Štítky vo vnútri .form-fields */
+/* štítky a box inputy v modaloch */
 .form-fields label{ font-weight:600; display:block; margin-bottom:.25rem; }
-
-/* Boxové inputy v modaloch – necháme presne to, na čo si zvyknutý */
 .form-fields input[type="text"],
 .form-fields input[type="email"],
 .form-fields input[type="password"],
@@ -61,8 +79,6 @@
   box-sizing:border-box;
 }
 .form-fields textarea{ min-height:120px; resize:vertical; }
-
-/* Focus – rovnaký feeling ako doteraz v modaloch */
 .form-fields input:focus,
 .form-fields select:focus,
 .form-fields textarea:focus{
@@ -71,57 +87,15 @@
   border-color:var(--tlacidlo,#d1b19f);
 }
 
-/* Alias: akcie vpravo dole – zdieľané s modalmi */
+/* akcie v modale */
 .modal-actions{ display:flex; justify-content:flex-end; gap:.5rem; margin-top:1rem; }
 
-/* === Chyby a validácia (funguje pre underline aj box inputs) === */
+/* chyby a validácia */
 .form-error{ font-size:.85rem; color:#b00020; margin-top:.25rem; }
 .is-invalid{ border-color:#b00020 !important; }
 .input-line.is-invalid{ border-bottom-color:#b00020 !important; }
 
-/* === Show/Hide heslo === */
-.pw-wrap{ position:relative; }
-.pw-toggle{
-  position:absolute; right:.5rem; top:50%; transform:translateY(-50%);
-  background:transparent; border:0; cursor:pointer; line-height:1;
-  opacity:.75;
-}
-.pw-toggle:hover{ opacity:1; }
-
-/* Jednotný rad pre label + pole */
-.form-row{
-  display:grid;
-  grid-template-columns: 180px 1fr;  /* ľavý stĺpec label, pravý stĺpec pole */
-  align-items:center;
-  gap:.5rem 1rem;
-  margin:.75rem 0;
-}
-
-/* Textarea alebo dlhé polia: label hore, pole pod ním */
-.form-row.stack{
-  grid-template-columns: 1fr;
-}
-.form-row.stack > label{ margin-bottom:.25rem; }
-
-/* Dvojstĺpcové polia (napr. Meno + Priezvisko v jednom riadku) */
-.form-row.cols-2{
-  grid-template-columns: 180px 1fr 1fr;
-}
-
-/* Nech sa každý input natiahne na plnú šírku vpravo */
-.form-row input:not([type="checkbox"]):not([type="radio"]),
-.form-row select,
-.form-row textarea{
-  width:100%;
-}
-
-/* Responsívne: na úzkych displejoch všetko pod seba */
-@media (max-width: 640px){
-  .form-row{ grid-template-columns: 1fr; }
-  .form-row.cols-2{ grid-template-columns: 1fr; }
-}
-
-/* Už pridané pre heslo: nechaj – funguje na všetkých rowoch s "okom" */
+/* show/hide heslo */
 .pw-wrap{ position:relative; }
 .pw-toggle{
   position:absolute; right:.5rem; top:50%; transform:translateY(-50%);
@@ -129,12 +103,7 @@
 }
 .pw-toggle:hover{ opacity:1; }
 
-/* Chyby (rovnaké pre všetky polia) */
-.form-error{ font-size:.85rem; color:#b00020; margin-top:.25rem; }
-.is-invalid{ border-color:#b00020 !important; }
-.input-line.is-invalid{ border-bottom-color:#b00020 !important; }
-
-/* Pekný jednotný select s vlastnou šípkou */
+/* pekný jednotný select s vlastnou šípkou */
 .select, select.select{
   appearance:none; -webkit-appearance:none; -moz-appearance:none;
   width:100%;
@@ -147,58 +116,46 @@
   background-size:12px 12px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23444' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-
 .select:focus{
   outline:2px solid rgba(0,0,0,.15);
   box-shadow:0 0 0 4px rgba(0,0,0,.06);
 }
-
-/* odstráni starý trojuholník v niektorých prehliadačoch */
 select.select::-ms-expand{ display:none; }
-
 @media (max-width:640px){
   .select, select.select{ border-radius:12px; }
 }
 
-/* ——— Segment prepínač pre typ účtu (ľahká verzia) ——— */
-.account-type {
-  display: inline-grid;
-  grid-auto-flow: column;
-  gap: .5rem;
+/* segment prepínač (typ účtu) */
+.account-type { display:inline-grid; grid-auto-flow:column; gap:.5rem; }
+.account-type input[type="radio"]{
+  position:absolute; inline-size:1px; block-size:1px;
+  margin:-1px; padding:0; border:0; overflow:hidden;
+  clip:rect(0 0 0 0); clip-path:inset(50%);
 }
-.account-type input[type="radio"] {
-  position: absolute;
-  inline-size: 1px; block-size: 1px;
-  margin: -1px; padding: 0; border: 0; overflow: hidden; /* visually hidden, a11y OK */
-  clip: rect(0 0 0 0); clip-path: inset(50%);
+.account-type label{
+  padding:.5rem .9rem;
+  border:1px solid var(--hover, #ddd);
+  border-radius:9999px;
+  background:var(--pozadie, #fff);
+  color:var(--text, #222);
+  cursor:pointer; user-select:none;
+  transition:background .15s ease, color .15s ease, border-color .15s ease;
 }
-.account-type label {
-  padding: .5rem .9rem;
-  border: 1px solid var(--hover, #ddd);
-  border-radius: 9999px;
-  background: var(--pozadie, #fff);
-  color: var(--text, #222);
-  cursor: pointer; user-select: none;
-  transition: background .15s ease, color .15s ease, border-color .15s ease;
+.account-type input:focus-visible + label{
+  outline:2px solid rgba(0,0,0,.15);
+  box-shadow:0 0 0 4px rgba(0,0,0,.06);
 }
-.account-type input:focus-visible + label {
-  outline: 2px solid rgba(0,0,0,.15);
-  box-shadow: 0 0 0 4px rgba(0,0,0,.06);
+.account-type input:checked + label{
+  background:var(--tlacidlo, #0a84ff);
+  border-color:var(--tlacidlo, #0a84ff);
+  color:#fff;
 }
-.account-type input:checked + label {
-  background: var(--tlacidlo, #0a84ff);
-  border-color: var(--tlacidlo, #0a84ff);
-  color: #fff;
-}
-
 .account-type label:hover{
-  border-color: var(--tlacidlo, #0a84ff);
+  border-color:var(--tlacidlo, #0a84ff);
   background: color-mix(in srgb, var(--tlacidlo, #0a84ff) 10%, transparent);
 }
-.account-type input:checked + label:hover{
-  filter: brightness(1.05);
-}
-/* nápoveda pod poľom (zobrazí sa na focus) */
-.form-row .form-help{display:none;color:var(--muted,#666);font-size:.55rem;margin-top:.25rem;}
-.form-row:focus-within .form-help{display:block;}
+.account-type input:checked + label:hover{ filter:brightness(1.05); }
 
+/* nápoveda pod poľom (zobrazí sa na focus) */
+.form-row .form-help{ display:none; color:var(--muted,#666); font-size:.55rem; margin-top:.25rem; }
+.form-row:focus-within .form-help{ display:block; }

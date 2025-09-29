@@ -82,4 +82,35 @@
   pointer-events: auto !important;
 }
 
+/* Hviezdička za názvom poľa */
+#dopyt-form .form-fields label.req::after {
+  content: " *";
+  color: #c00;
+  font-weight: 700;
+}
+
+/* Konzistentný label (text + hviezdička, input ide POD label) */
+#dopyt-form .form-fields label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: .25rem;
+}
+
+/* Ak sa v modale náhodou objavia .form-row z globálu, zruš im grid */
+#dopyt-form .form-row{
+  display: block !important;
+  grid-template-columns: 1fr !important;
+  gap: .25rem !important;
+}
+
+/* Voliteľné pomocné stavy (ak ich používaš) */
+#dopyt-form .help        { font-size:.85rem; color:#555; margin:.2rem 0 0; }
+#dopyt-form .field-error { color:#c00; font-size:.85rem; display:none; margin-top:.25rem; }
+#dopyt-form .field-error.show { display:block; }
+
+.dpy-title { display:flex; flex-wrap:wrap; gap:.4rem .5rem; align-items:baseline; margin:0 0 .25rem; }
+.dpy-title .who { font-weight:600; }
+.dpy-title .sep { opacity:.6; }
+
+
 

@@ -2,7 +2,7 @@
 {% block title %}Bazár | Muzikuj{% endblock %}
 
 {% block content %}
-<section class="komunita-wrapper bazar-page" style="padding: 2rem;">
+<section class="bazar-page">
 
   {% if detail_inz %}
     <h2>🛒 Detail inzerátu</h2>
@@ -12,7 +12,7 @@
       <h1>{{ detail_inz.typ }} – {{ detail_inz.kategoria }}</h1>
       <div class="meta">
         <span>💶 {{ '%.2f'|format(detail_inz.cena or 0) }} €</span>
-        <span>📍 {{ detail_inz.mesto_objekt.nazov if detail_inz.mesto_objekt else detail_inz.mesto }}</span>
+        <span>📍 {{ detail_inz.mesto_objekt.nazov if detail_inz.mesto_objekt else detail_inz.mesto }}</span> 
         <span>🚚 {{ detail_inz.doprava or '—' }}</span>
         <span>🕒 {{ detail_inz.datum.strftime('%d.%m.%Y') }}</span>
       </div>
@@ -66,7 +66,7 @@
     </div>
 
   {% else %}
-    <h2>🛒 Bazár</h2>
+    <h2 style="margin: 0.5rem;;">🛒 Bazár</h2>
 
     {# ✅ Filterbar – nastav premenné a includni #}
     {% set action_url = url_for('inzerat.bazar_verejny') %}

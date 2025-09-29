@@ -27,58 +27,6 @@
       <p class="empty">Zatiaľ žiadne novinky.</p>
     {% endif %}
   </div>
-
-  {# ===== MODAL „Zadať dopyt“ – unifikované triedy ===== #}
-  <div id="dopyt-form" class="modal-root" hidden aria-hidden="true" role="dialog" aria-labelledby="dopyt-title">
-    <div class="modal-backdrop" data-modal-close></div>
-    <div class="modal-card">
-      <form id="form-dopyt" method="POST" action="#">
-        <h3 id="dopyt-title">📢 Zadať dopyt</h3>
-
-        <div class="form-fields">
-          <label>Názov dopytu
-            <input type="text" name="nazov" placeholder="Hľadám kapelu na svadbu" required>
-          </label>
-
-          <div class="row-2">
-            <label>Dátum
-              <input type="date" name="datum" required>
-            </label>
-            <label>Čas (od – do)
-              <input type="text" name="cas" placeholder="19:00 – 00:00">
-            </label>
-          </div>
-
-          <div class="row-2">
-            <label>Mesto / Obec
-              <input type="text" name="mesto" placeholder="Bratislava" required>
-            </label>
-            <label>Rozpočet (EUR)
-              <input type="number" name="rozpocet" min="0" step="1" placeholder="500">
-            </label>
-          </div>
-
-          <label>Popis
-            <textarea name="popis" rows="6" placeholder="Typ akcie, žáner, dĺžka hrania, technické požiadavky…" required></textarea>
-          </label>
-
-          <div class="row-2">
-            <label>Kontakt (e-mail)
-              <input type="email" name="email" placeholder="tvoj@email.sk" required>
-            </label>
-            <label>Telefón
-              <input type="tel" name="telefon" placeholder="+421 9..">
-            </label>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn" data-modal-close>Zavrieť</button>
-          <button type="submit" class="btn primary">Odoslať dopyt</button>
-        </div>
-      </form>
-    </div>
-  </div>
 {% endblock %}
 
 {% block home_right %}

@@ -1,9 +1,4 @@
-<div id="dopyt-form"
-     class="modal-root"
-     aria-modal="true"
-     role="dialog"
-     hidden>
-
+<div id="dopyt-form" class="modal-root" aria-modal="true" role="dialog" hidden>
   <div class="modal-card">
     <button type="button" class="modal-close" data-modal-close aria-label="Zavrieť">✖</button>
     <h3 style="margin-top:0;">Pridať dopyt</h3>
@@ -16,111 +11,106 @@
       {{ (typy|default([], true))|tojson }}
     </script>
 
-    <!-- malá CSS značka pre hviezdičky -->
-    <style>
-      .req::after{ content:" *"; color:#c00; font-weight:700; }
-      .help{ font-size:.85rem; color:#555; margin:.2rem 0 0; }
-      .field-error{ color:#c00; font-size:.85rem; display:none; margin-top:.25rem; }
-      .field-error.show{ display:block; }
-    </style>
-
     <form id="dopyt-formular" method="post" action="{{ url_for('dopyty.pridaj_dopyt_post') }}" novalidate>
       <input type="text" name="website" style="display:none" autocomplete="off"> {# honeypot #}
 
-      <!-- 1) Kto objednáva -->
-      <div class="field-kto">
+      <div class="form-fields">
+        <!-- 1) Kto objednáva -->
         <label for="kto" class="req">Kto objednáva</label>
-        <select id="kto" name="kto" required>
-          <option value="">— vyber —</option>
-          <!-- naplní JS -->
-        </select>
-      </div>
-
-      <!-- 2) Typ akcie – vychádza z "kto" -->
-      <div>
-        <label for="typ_akcie" class="req">Typ akcie</label>
-        <select id="typ_akcie" name="typ_akcie" required disabled>
-          <option value="">Najprv vyber „Kto objednáva“</option>
-        </select>
-
-        <div id="typ-custom-wrap" style="display:none; margin-top:.5rem;">
-          <input type="text" name="typ_akcie_custom" placeholder="Upresni typ (napr. vernisáž)">
-        </div>
-      </div>
-
-      <!-- 3) Miesto -->
-      <div class="miesto-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-        <div>
-          <!-- len na zarovnanie – neviditeľný, ale drží miesto -->
-          <label for="mesto_id" class="label-spacer">Miesto (výber z miest)</label>
-          <select id="mesto_id" name="mesto_id">
+          <select id="kto" name="kto" required>
             <option value="">— vyber —</option>
-            {% set _m = (mesta if mesta is defined and mesta else (mesta_all if mesta_all is defined else [])) %}
-            {% for m in _m %}
-              <option value="{{ m.id }}">
-                {{ m.nazov }}{% if m.okres %}, {{ m.okres }}{% endif %}{% if m.kraj %}, {{ m.kraj }}{% endif %}
-              </option>
-            {% endfor %}
           </select>
-        </div>
+        </label>
+
+        <!-- 2) Typ akcie – vychádza z "kto" -->
         <div>
-          <label for="miesto">zadaj miesto (textom)</label>
-          <input id="miesto" name="miesto" type="text" placeholder="napr. Dom kultúry">
+          <label for="typ_akcie" class="req">Typ akcie</label>
+          <select id="typ_akcie" name="typ_akcie" required disabled>
+            <option value="">Najprv vyber „Kto objednáva“</option>
+          </select>
+          <div id="typ-custom-wrap" style="display:none; margin-top:.5rem;">
+            <input type="text" name="typ_akcie_custom" placeholder="Upresni typ (napr. vernisáž)">
+          </div>
         </div>
-      </div>
+
+        <!-- 3) Miesto -->
+        <div class="miesto-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+          <div>
+            <label for="mesto_name" class="label-spacer">Miesto (výber z miest)</label>
+            <!-- viditeľné pole s automatickými návrhmi -->
+            <input id="mesto_name" type="text" list="mesta_list" placeholder="napr. Bratislava" autocomplete="off">
+            <!-- sem uložíme ID vybraného mesta (to sa odošle do backendu) -->
+            <input type="hidden" id="mesto_id" name="mesto_id">
+            <datalist id="mesta_list">
+              {% set _m = (mesta if mesta is defined and mesta else (mesta_all if mesta_all is defined else [])) %}
+              {% for m in _m %}
+                <option
+                  value="{{ m.nazov }}{% if m.okres %}, {{ m.okres }}{% endif %}{% if m.kraj %}, {{ m.kraj }}{% endif %}"
+                  data-id="{{ m.id }}"></option>
+              {% endfor %}
+            </datalist>
+          </div>
+
+          <div>
+            <label for="miesto">zadaj miesto (textom)</label>
+            <input id="miesto" name="miesto" type="text" placeholder="napr. Dom kultúry">
+          </div>
+        </div>
+
+        <!-- 4) Dátum / čas -->
+        <div class="row-2">
+          <div>
+            <label for="datum">Dátum</label>
+            <input id="datum" name="datum" type="date">
+          </div>
+
+          <div>
+            <label>Čas (od – do)</label>
+            <div class="row-2" style="margin-top:.35rem;">
+              <input name="cas_od" type="time">
+              <input name="cas_do" type="time">
+            </div>
+          </div>
+        </div>
+
+        <!-- 5) Cena -->
+        <fieldset style="margin-top:.25rem;">
+          <legend>Cena</legend>
+          <label style="display:flex; gap:.5rem; align-items:center; margin-bottom:.35rem;">
+            <input type="radio" name="cena_typ" value="dohodou" checked>
+            <span>Cena dohodou</span>
+          </label>
+          <label style="display:flex; gap:.5rem; align-items:center;">
+            <input type="radio" name="cena_typ" value="rozpocet">
+            <span>Uveď rozpočet</span>
+          </label>
+          <div id="cena-rozpocet-wrap" style="display:none; margin-top:.5rem;">
+            <input type="number" step="1" min="0" name="rozpocet" placeholder="napr. 400">
+          </div>
+        </fieldset>
+
+        <!-- 6) Popis -->
+        <label for="popis">Popis</label>
+        <textarea id="popis" name="popis" rows="4" placeholder="Upresnite repertoár, techniku, dĺžku vystúpenia…"></textarea>
 
 
-      <!-- 4) Dátum / čas (nechávam voliteľné; ak chceš, pridaj required na dátum) -->
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem;">
-        <div>
-          <label for="datum">Dátum</label>
-          <input id="datum" name="datum" type="date">
-        </div>
-        <div>
-          <label>Čas (od – do)</label>
-          <div style="display:flex; gap:.5rem;">
-            <input name="cas_od" type="time" style="flex:1;">
-            <input name="cas_do" type="time" style="flex:1;">
+        <!-- 7) Kontakt -->
+        <div class="row-2">
+          <div>
+            <label for="meno" class="req">Meno / Organizácia</label>
+            <input id="meno" name="meno" type="text" required
+                  value="{{ current_user.prezyvka if current_user.is_authenticated else '' }}">
+          </div>
+          <div>
+            <label for="email" class="req">E-mail</label>
+            <input id="email" name="email" type="email" required
+                  value="{{ current_user.email if current_user.is_authenticated else '' }}">
           </div>
         </div>
       </div>
 
-      <!-- 5) Cena -->
-      <fieldset style="margin-top:.5rem;">
-        <legend>Cena</legend>
-        <label style="display:flex; gap:.5rem; align-items:center; margin-bottom:.35rem;">
-          <input type="radio" name="cena_typ" value="dohodou" checked>
-          <span>Cena dohodou</span>
-        </label>
-        <label style="display:flex; gap:.5rem; align-items:center;">
-          <input type="radio" name="cena_typ" value="rozpocet">
-          <span>Uveď rozpočet</span>
-        </label>
-        <div id="cena-rozpocet-wrap" style="display:none; margin-top:.5rem;">
-          <input type="number" step="1" min="0" name="rozpocet" placeholder="napr. 400">
-        </div>
-      </fieldset>
-
-      <!-- 6) Popis a kontakt -->
-      <div>
-        <label for="popis">Popis</label>
-        <textarea id="popis" name="popis" rows="4" placeholder="Upresnite repertoár, techniku, dĺžku vystúpenia…"></textarea>
-      </div>
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem;">
-        <div>
-          <label for="meno" class="req">Meno</label>
-          <input id="meno" name="meno" type="text" required
-                 value="{{ current_user.prezyvka if current_user.is_authenticated else '' }}">
-        </div>
-        <div>
-          <label for="email" class="req">E-mail</label>
-          <input id="email" name="email" type="email" required
-                 value="{{ current_user.email if current_user.is_authenticated else '' }}">
-        </div>
-      </div>
-
-      <div style="text-align:right; margin-top:.5rem;">
+      <div class="modal-actions">
+        <button type="button" class="btn" data-modal-close>Zavrieť</button>
         <button id="btn-odoslat-dopyt" type="button" class="btn primary">Odoslať dopyt</button>
       </div>
     </form>
@@ -129,9 +119,9 @@
 
 <script>
 (() => {
-  const root = document.getElementById('dopyt-form');
-  if (!root || root.dataset.bound === '1') return;
-  root.dataset.bound = '1';
+  document.querySelectorAll('#dopyt-form').forEach(root => {
+    if (!root || root.dataset.bound === '1') return;
+    root.dataset.bound = '1';
 
   // -------- helpers --------
   const getJSONLast = (id, fallback=[]) => {
@@ -177,7 +167,7 @@
     ine:'Iné'
   };
 
-  // --- tvrdé fallbacky pre prípad, že backend nič neposlal ---
+  // --- fallbacky ---
   const KATS_FALLBACK = [
     ['sukromna','Súkromná udalosť'],
     ['obec','Obec / mesto'],
@@ -259,7 +249,7 @@
 
   function ensureKtoOptions(){
     if (!ktoSel) return;
-    if (ktoSel.options.length > 1) return; // už je naplnené serverom
+    if (ktoSel.options.length > 1) return; // už naplnené serverom
     const frag = document.createDocumentFragment();
     KATS.forEach(([val,label])=>{
       const o = document.createElement('option');
@@ -333,11 +323,12 @@
     }
   });
 
-  // diagnostika do konzoly (vidíš hneď, čo sa načítalo)
   console.debug('[Dopyt modal] KATS:', KATS);
   console.debug('[Dopyt modal] TYPY count:', TYPY.length);
+  });
 })();
 </script>
+
 <script>
 (() => {
   const root = document.getElementById('dopyt-form');
@@ -346,40 +337,9 @@
   const mestoSel    = root.querySelector('#mesto_id');
   const mestoFilter = root.querySelector('#mesto_filter');
   if (!mestoSel || !mestoFilter) return;
-
-  // uložíme si originálne options (okrem prvej „— vyber —“)
-  const BASE = Array.from(mestoSel.options).slice(1).map(o => ({
-    value: o.value,
-    label: o.textContent.trim()
-  }));
-
-  // diakritika-insensitive porovnanie
-  const norm = s => (s || '').toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-  function rebuild(filterText){
-    const f = norm(filterText);
-    // vyfiltruj a ABECEDNE ZORADÍME PODĽA VIDITEĽNÉHO TEXTU
-    const list = BASE
-      .filter(o => norm(o.label).includes(f))
-      .sort((a,b) => a.label.localeCompare(b.label, 'sk', {sensitivity:'base'}));
-
-    // zachovaj prvú možnosť
-    mestoSel.innerHTML = '<option value="">— vyber —</option>';
-    const frag = document.createDocumentFragment();
-    list.forEach(o => {
-      const opt = document.createElement('option');
-      opt.value = o.value; opt.textContent = o.label;
-      frag.appendChild(opt);
-    });
-    mestoSel.appendChild(frag);
-  }
-
-  mestoFilter.addEventListener('input', () => rebuild(mestoFilter.value));
-  // init – prázdny filter = celý zoznam abecedne
-  rebuild('');
 })();
 </script>
+
 <script>
 (() => {
   const root = document.getElementById('dopyt-form');
@@ -388,24 +348,49 @@
   const form = root.querySelector('form');
   const submitBtn = root.querySelector('#btn-odoslat-dopyt');
 
-  // 1) Zablokuj Enter, okrem textarea (tam chceme nový riadok)
+  // Zablokuj Enter mimo textarea (tam povoliť nový riadok)
   form.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
       e.preventDefault();
     }
   });
 
-  // 2) Odoslanie výhradne klikom na tlačidlo
+  // Odoslanie výhradne klikom na tlačidlo
   if (submitBtn) {
     submitBtn.addEventListener('click', () => {
       if (form.checkValidity()) {
-        form.submit();            // prejde HTML5 validáciou a odošle
+        form.submit();
       } else {
-        form.reportValidity();    // ukáž chyby
+        form.reportValidity();
       }
     });
   }
 })();
 </script>
+<script>
+(() => {
+  const root = document.getElementById('dopyt-form');
+  if (!root) return;
 
+  const input = root.querySelector('#mesto_name');
+  const hidden = root.querySelector('#mesto_id');
+  const list = root.querySelector('#mesta_list');
+  if (!input || !hidden || !list) return;
 
+  function syncCityId(){
+    const val = (input.value || '').trim().toLowerCase();
+    let id = '';
+    // nájdi presnú zhodu podľa value (bez ohľadu na veľkosť písmen)
+    for (const opt of list.options){
+      if ((opt.value || '').trim().toLowerCase() === val){
+        id = opt.dataset.id || '';
+        break;
+      }
+    }
+    hidden.value = id; // ak nenašlo, necháme prázdne (backend to zvládne)
+  }
+
+  input.addEventListener('input', syncCityId);
+  input.addEventListener('change', syncCityId);
+})();
+</script>
