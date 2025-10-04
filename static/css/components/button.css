@@ -20,7 +20,7 @@ a.btn{
 .btn.primary{ background:var(--tlacidlo); color:#fff; }
 .btn.primary:hover{ background:var(--text); color:#fff; }
 
-.btn.sm{ padding:.35rem .7rem; font-size:.9rem; line-height:1.2; }
+.btn.sm{ padding:.2rem .7rem; font-size:.9rem; line-height:1.2; }
 
 .btn.ghost{ background:transparent; border:1px solid var(--tlacidlo); color:var(--tlacidlo); }
 .btn.ghost:hover{ background:var(--tlacidlo); color:#fff; }

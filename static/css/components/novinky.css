@@ -2,12 +2,12 @@
    📰 NOVINKY
    ====================== */
 .news{
-  display:grid; grid-template-columns:repeat(3,1fr); gap:2rem;
+  display:grid; grid-template-columns:repeat(4,1fr); gap:2rem;
   padding:2rem; background:var(--hover); text-align:left;
 }
 .news-box{
   background:#fff; border:1px solid var(--hover); border-radius:6px;
-  box-shadow:0 2px 8px rgba(0,0,0,.05); padding:1.5rem 1rem; transition:.3s; height:18rem;
+  box-shadow:0 2px 8px rgba(0,0,0,.05); padding:1.5rem 1rem; transition:.3s; height:10rem;
 }
 .news-box:hover{ transform:translateY(-5px); }
 .news-box h2{ margin-top:0; font-family:'Playfair Display',serif; font-size:1.3rem; color:var(--text); }

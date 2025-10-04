@@ -1,143 +1,142 @@
-/* =========================================
-   HOME (full-bleed 20% / 50% / 30%)
-   ========================================= */
-:root { --home-gap: 1.25rem; }
-
-/* Kontajner cez celú šírku viewportu (od okraja po okraj) */
-.home-grid{
-  width: 100vw;
-  max-width: 100vw;
-  margin-right: calc(50% - 50vw);
-
-  display: grid;
-  /* 2:5:3  ≈ 20% / 50% / 30% s minimami */
-  grid-template-columns:
-    minmax(200px, 2fr)   /* ľavý stĺpec */
-    minmax(400px, 5fr)   /* stred */
-    minmax(400px, 3fr);  /* pravý stĺpec */
-
-  gap: var(--home-gap);
-  box-sizing: border-box;
-  align-items: start;
-  overflow-x: clip;
+/* ===== HOME: vnútro v MAIN (1200px shell + 3 stĺpce) ===== */
+:root{
+  --shell-max: 1200px;   /* šírka stredu v main */
+  --gap: 20px;           /* medzera medzi stĺpcami vnútri shellu */
+  --col-side: 290px;
+  --col-center: calc(var(--shell-max) - (2*var(--col-side)) - (2*var(--gap))); /* ≈600px */
+  --sticky-gap: 8px;
+  --elev-2: 0 6px 18px rgba(0,0,0,.10);
+  --elev-hover: 0 10px 26px rgba(0,0,0,.12);
+  --page-col-gap: clamp(12px, 2vw, 24px);
+  --sb-w: 240px;  
 }
 
-/* Dôležité: nech sa deti vedia zmenšiť (bez roztláčania layoutu) */
-.home-grid > * { min-width: 0; }
+/* 1200px stred centrovaný v MAIN (sidebar rieši sidebar.css) */
+.home-shell{
+  max-width: var(--shell-max);
+  margin-inline: auto;
+}
 
-/* Bočné panely lepia hore pri scrolli (vizuál rieši .button-sidebar v sidebar.css) */
-.home-left,
+/* 3 stĺpce: 290 | ~600 | 290 */
+.home-grid{
+  display: grid;
+  grid-template-columns: var(--col-side) var(--col-center) var(--col-side);
+  gap: var(--gap);
+  align-items: start;
+}
+.home-grid > *{ min-width: 0; }
+
+/* Filtračná lišta (ak ju používaš) */
+.filter-bar{
+  position: sticky;
+  top: var(--header-h, 84px);
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  gap: .5rem;
+  padding: .4rem .6rem;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+.filter-chip{
+  appearance: none;
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: .35rem .7rem;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.filter-chip.is-active{ border-color: #1a73e8; color: #1a73e8; }
+
+/* KARTY (spoločné) */
+.feed-card{
+  background:#fff; border:1px solid #eee; border-radius:12px; overflow:hidden;
+  box-shadow: var(--elev-2);
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.feed-card:hover{ box-shadow: var(--elev-hover); transform: translateY(-1px); }
+.feed-card + .feed-card{ margin-top: 16px; }
+.feed-card .cover{
+  width:100%; display:block; background:#f7f7f7; object-fit:contain; cursor:zoom-in;
+}
+.feed-card .copy{ padding:12px 14px; }
+.feed-card .title{ margin:0 0 6px; font-size:1.05rem; font-weight:800; }
+.feed-card .meta{ color:#666; font-size:.92rem; }
+.feed-card .desc{ margin:.35rem 0 0; white-space:pre-wrap; }
+
+/* výšky obrázkov podľa stĺpca */
+.home-center .feed-card .cover{ height: 360px; }
+.home-left  .feed-card .cover,
+.home-right .feed-card .cover{ height: 200px; }
+
+/* Responzívne – pod 1200px stĺpce pod seba */
+@media (max-width: 1199px){
+  .home-shell{ max-width: 100%; }
+  .home-grid{ grid-template-columns: 1fr; }
+  .home-center .feed-card .cover{ height: 320px; }
+}
+@media (max-width: 640px){
+  .home-center .feed-card .cover{ height: 260px; }
+}
+
+/* ===== PAGE-GRID pre HOME: 1fr | 1200px | 1fr ===== */
+:root{
+  --shell-max: 1200px;                      /* máš už vyššie – nechávam pre istotu */
+  --page-col-gap: clamp(12px, 2vw, 24px);   /* medzera medzi 3 stĺpcami */
+  --page-gutter: 16px;
+}
+
+.page-grid{
+  display: grid;
+  grid-template-columns: 1fr minmax(0, var(--shell-max)) 1fr;
+  column-gap: var(--page-col-gap);
+  align-items: start;
+  padding-inline: var(--page-gutter);
+}
+
+/* Sidebar vľavo zarovnaj k stredu (doprava) a nech lepí pod header */
+.page-left{
+  display: grid;
+  justify-items: start;
+  top: calc(var(--header-h, 84px) + var(--sticky-gap));
+}
+.page-left .button-sidebar{
+  position: sticky;
+  top: calc(var(--header-h, 84px) + var(--sticky-gap));
+  align-self: start;
+  z-index: 2;
+}
 .home-right{
   position: sticky;
-  top: 84px;
+  top: calc(var(--header-h, 84px) + var(--sticky-gap));
   align-self: start;
+  z-index: 2;
 }
+/* Stredný stĺpec musí vedieť zmenšiť sa */
+.page-center{ min-width: 0; }
 
-/* Stred – bez umelých wrapperov; karta vo feede má vlastné pozadie */
-.home-center{ 
-  min-width: 0;
-}
-
-/* ===== Feed karty ===== */
-#home-feed{
-  width: 100%;
-  max-width: none;
-  margin: 0;
-}
-
-.feed-card{
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 12px;
-  overflow: hidden;
-  margin: 12px 0;
-  box-shadow: 0 4px 14px rgba(0,0,0,.06);
-}
-
-.feed-card .cover{
-  width: 100%;
-  height: 384px;          /* ~+20% oproti pôvodným ~320px */
-  object-fit: contain;    /* celá fotka bez orezu */
-  background: #f7f7f7;    /* “letterbox” pri iných pomeroch strán */
-  display: block;
-  cursor: zoom-in;
-}
-
-.feed-card .copy{ padding:12px 14px; }
-.feed-card .title{ margin:0 0 6px 0; font-size:1.1rem; }
-.feed-card .meta{ color:#666; font-size:.95rem; }
-.feed-card .desc{ margin:.35rem 0 0; white-space:pre-wrap; }
-.feed-card.is-ad{ border-left:4px solid rgba(182,140,98,.45); }
-.feed-card .badge{ background:#e6d2b8; padding:.05rem .4rem; border-radius:.4rem; font-size:.8rem; }
-
-@media (max-width: 640px){
-  .feed-card .cover{ height: 260px; }
-}
-
-/* ===== Lightbox (jednoduchý) ===== */
-.img-lightbox{
-  position: fixed;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,.85);
-  z-index: 1000;
-}
-.img-lightbox.open{ display: flex; }
-.img-lightbox img{
-  max-width: 95vw;
-  max-height: 95vh;
-  width: auto;
-  height: auto;
-  box-shadow: 0 12px 36px rgba(0,0,0,.35);
-  cursor: zoom-out;
-  border-radius: 6px;
-}
-.img-lightbox .close{
-  position: absolute;
-  top: 10px; right: 14px;
-  font-size: 28px;
-  line-height: 1;
-  color: #fff;
-  cursor: pointer;
-  user-select: none;
-}
-
-/* ===== Responsívne úpravy stĺpcov ===== */
+/* Tablet a menej: sidebar hore, stred ide na 100% šírky */
 @media (max-width: 1200px){
-  .home-grid{
-    grid-template-columns:
-      minmax(220px, 2fr)
-      minmax(480px, 5fr)
-      minmax(240px, 2.5fr);
-  }
-}
-
-@media (max-width: 980px){
-  /* skry pravý panel, stred získa priestor */
-  .home-right{ display:none; }
-  .home-grid{
-    grid-template-columns:
-      minmax(220px, 1fr)
-      minmax(0, 2fr);
-  }
-}
-
-@media (max-width: 760px){
-  /* všetko pod seba; bez sticky */
-  .home-grid{
+  .page-grid{
     grid-template-columns: 1fr;
-    gap: .9rem;
+    row-gap: 12px;
+    padding-inline: var(--page-gutter);
   }
-  .home-left{ position: static; top: auto; }
+  .page-left .button-sidebar{
+    position: static;
+    top: auto;
+    width: 100%;
+  }
+  .home-shell{ max-width: 100%; }
 }
 
-/* sidebar na všetkých stránkach */
-.button-sidebar,
-.home-left{
-  position: sticky;
-  top: var(--header-h, 84px);  /* presne toľko, koľko má header */
-  align-self: start;           /* dôležité pri CSS Grid */
-  z-index: 2;                  /* pod headerom, nad obsahom */
+@media (min-width: 1201px){
+  .page-left .button-sidebar{
+    position: fixed;
+    top: calc(var(--header-h, 84px) + 8px);
+    left: var(--sidebar-left, 12px);     /* ← sem budeme sypať hodnotu z JS */
+    width: var(--sb-w, 240px);
+    z-index: 5;
+  }
 }

@@ -135,24 +135,24 @@
     <button class="hamburger" onclick="toggleMenu()">☰</button>
     <div class="nav-wrapper">
       <nav class="main-nav">
-        <a href="{{ url_for('uzivatel.index') }}">Domov</a>
+        <a href="{{ url_for('uzivatel.index') }}">DOMOV</a>
 
         {% if current_user.is_authenticated %}
-          <a href="{{ url_for('dopyty.zobraz_dopyty') }}">📬 Dopyty</a>
+          <a href="{{ url_for('dopyty.zobraz_dopyty') }}">📬 DOPYTY</a>
           {% if current_user.typ_subjektu != 'ico' %}
-            <a href="{{ url_for('skupina.prehlad_skupin') }}">🎸 Skupiny</a>
-            <a href="{{ url_for('inzerat.bazar_verejny') }}">🛒 Bazár</a>
-            <a href="{{ url_for('komunita.hub') }}">Komunita</a>
+            <a href="{{ url_for('skupina.prehlad_skupin') }}">🎸 SKUPINY</a>
+            <a href="{{ url_for('inzerat.bazar_verejny') }}">🛒 BAZÁR</a>
+            <a href="{{ url_for('komunita.hub') }}">KOMUNITA</a>
           {% endif %}
-          <a href="#">e-shop</a>
-          <a href="#kontakt">Kontakt</a>
+          <!--<a href="#">e-shop</a>-->
+          <a href="#kontakt">KONTAKT</a>
         {% else %}
-          <a href="#" class="disabled-link" data-modal-open="#modal-login">📬 Dopyty</a>
-          <a href="#" class="disabled-link" data-modal-open="#modal-login">🎵 Skupiny</a>
-          <a href="#" class="disabled-link" data-modal-open="#modal-login">🛒 Bazár</a>
-          <a href="#" class="disabled-link" data-modal-open="#modal-login">Komunita</a>
-          <a href="#">e-shop</a>
-          <a href="#kontakt">Kontakt</a>
+          <a href="#" class="disabled-link" data-modal-open="#modal-login">📬 DOPYTY</a>
+          <a href="#" class="disabled-link" data-modal-open="#modal-login">🎵 SKUPINY</a>
+          <a href="#" class="disabled-link" data-modal-open="#modal-login">🛒 BAZÁR</a>
+          <a href="#" class="disabled-link" data-modal-open="#modal-login">KOMUNITA</a>
+          <!--<a href="#">e-shop</a>-->
+          <a href="#kontakt">KONTAKT</a>
         {% endif %}
       </nav>
     </div>
@@ -160,29 +160,40 @@
 </header>
 
   {# =======================
-    HOMEPAGE (FB štýl)
+          HOMEPAGE 
     ======================= #}
   {% if request.endpoint == 'uzivatel.index' %}
-    <div class="home-grid">
-      <!-- ĽAVÝ PANEL (jediný sidebar na home) -->
-      <aside class="button-sidebar home-left">
-        {% include 'includes/sidebox.html' %}
-      </aside>
+    <div class="page-grid">
+      <!-- ĽAVÝ fluid stĺpec (sidebar sa lepí k stredu) -->
+      <div class="page-left">
+        <aside class="button-sidebar">
+          {% include 'includes/sidebox.html' %}
+        </aside>
+      </div>
 
-      <!-- STRED -->
-      <main class="home-center">
-        {% block home_content %}{% endblock %}
+      <!-- STRED – 1200px shell (tvoj 3-stĺpcový home obsah) -->
+      <main class="page-center">
+        {% block home_filter %}{% endblock %}
+        <div class="home-shell">
+          <div class="home-grid">
+            <aside class="home-left">
+              {% block home_left %}{% endblock %}
+            </aside>
+
+            <section class="home-center" id="home-feed">
+              {% block home_content %}{% endblock %}
+            </section>
+
+            <aside class="home-right">
+              {% block home_right %}{% endblock %}
+            </aside>
+          </div>
+        </div>
       </main>
 
-      <!-- PRAVÝ PANEL -->
-      <aside class="home-right">
-        {% block home_right %}{% endblock %}
-      </aside>
+      <!-- PRAVÝ fluid stĺpec (vzduch/symetria) -->
+      <div class="page-right" aria-hidden="true"></div>
     </div>
-
-  {# =======================
-    OSTATNÉ STRÁNKY
-    ======================= #}
   {% else %}
     <div class="button-container">
       {% if current_user.is_authenticated %}
@@ -190,13 +201,14 @@
           {% include 'includes/sidebox.html' %}
         </aside>
       {% endif %}
-
-      <!-- ⚠️ JEDINÝ výskyt block content -->
       <main class="{{ 'main-content' if current_user.is_authenticated else 'main-no-sidebar' }}">
         {% block content %}{% endblock %}
       </main>
+
     </div>
+    
   {% endif %}
+
 
 {% include 'includes/novinky.html' %}
 {% include 'partials/flash.html' %}
@@ -240,7 +252,6 @@
   <h2>Kontaktujte nás</h2>
   <div class="kontakt-boxy">
     <div class="kontakt-box"><h3>Email</h3><p><a href="mailto:info@muzikuj.sk">info@muzikuj.sk</a></p></div>
-    <div class="kontakt-box"><h3>Telefón</h3><p>+421 900 123 456</p></div>
     <div class="kontakt-box"><h3>Sociálne siete</h3><p><a href="#">Facebook</a> | <a href="#">Instagram</a></p></div>
   </div>
 </section>
@@ -402,6 +413,7 @@
   new ResizeObserver(set).observe(hdr); // <- toto dorob
 })();
 </script>
+
 
 <script type="text/plain" data-cat="analytics" src="https://plausible.io/js/plausible.js" data-domain="muzikuj.sk" defer></script>
 

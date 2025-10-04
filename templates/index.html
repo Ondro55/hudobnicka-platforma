@@ -1,9 +1,48 @@
 {% extends 'base.html' %}
 {% block title %}Muzikuj.sk – Domov{% endblock %}
 
+{% block home_left %}
+  {# ĽAVÝ STĹPEC – nové videá (užší stĺpec) #}
+  <article class="feed-card">
+    <img src="/static/placeholder/videoL1.jpg" alt="" class="cover">
+    <div class="copy">
+      <h3 class="title">Nové video: Kapela One</h3>
+      <div class="meta">pred 1 dňom</div>
+      <a class="link" href="#">Sleduj »</a>
+    </div>
+  </article>
+
+  <article class="feed-card">
+    <img src="/static/placeholder/videoL2.jpg" alt="" class="cover">
+    <div class="copy">
+      <h3 class="title">Live session · Klub XYZ</h3>
+      <div class="meta">pred 3 dňami</div>
+      <a class="link" href="#">Sleduj »</a>
+    </div>
+  </article>
+
+  <article class="feed-card">
+    <img src="/static/placeholder/videoL3.jpg" alt="" class="cover">
+    <div class="copy">
+      <h3 class="title">Akustické duo</h3>
+      <div class="meta">pred týždňom</div>
+      <a class="link" href="#">Sleduj »</a>
+    </div>
+  </article>
+{% endblock %}
+
 {% block home_content %}
-  {# ========== STREDNÝ FEED ========== #}
-  <div id="home-feed">
+
+  {# ====== TENKÁ FILTRAČNÁ LIŠTA ====== #}
+  <div class="filter-bar" id="event-filter">
+    <button class="filter-chip is-active" data-region="all">Všetky</button>
+    <button class="filter-chip" data-region="zapad">Západ</button>
+    <button class="filter-chip" data-region="stred">Stred</button>
+    <button class="filter-chip" data-region="vychod">Východ</button>
+  </div>
+
+  {# ========== STREDNÝ FEED (UDALOSTI) ========== #}
+  <div id="home-feed" class="home-center">
     {% if feed and feed|length %}
       {% for kind, ts, obj in feed %}
         <article class="feed-card {{ 'is-ad' if kind=='ad' else 'is-event' }}">
@@ -30,5 +69,42 @@
 {% endblock %}
 
 {% block home_right %}
-  {# pravý stĺpec – zatiaľ prázdny alebo novinky neskôr #}
+  {# PRAVÝ STĹPEC – nové videá (užší stĺpec) #}
+  <article class="feed-card">
+    <img src="/static/placeholder/video1.jpg" alt="" class="cover">
+    <div class="copy">
+      <h3 class="title">Nové video</h3>
+      <div class="meta">Autor • 23.09.2025</div>
+      <p class="desc">Krátky popis videa…</p>
+      <a class="link" href="#">Sleduj »</a>
+    </div>
+  </article>
+
+  <article class="feed-card">
+    <img src="/static/placeholder/video2.jpg" alt="" class="cover">
+    <div class="copy">
+      <h3 class="title">Top video</h3>
+      <div class="meta">Autor • 18.09.2025</div>
+      <p class="desc">Najlajkovanejšie za týždeň.</p>
+      <a class="link" href="#">Sleduj »</a>
+    </div>
+  </article>
+
+  <article class="feed-card">
+    <img src="/static/placeholder/sutaz.jpg" alt="" class="cover">
+    <div class="copy">
+      <h3 class="title">Súťaž · September</h3>
+      <p class="desc">Pošli svoje video a vyhraj…</p>
+      <a class="link" href="#">Zapoj sa »</a>
+    </div>
+  </article>
+
+  <article class="feed-card">
+    <img src="/static/placeholder/promo.jpg" alt="" class="cover">
+    <div class="copy">
+      <h3 class="title">Promo</h3>
+      <p class="desc">Priestor pre partnerov alebo interné novinky.</p>
+      <a class="link" href="#">Viac info »</a>
+    </div>
+  </article>
 {% endblock %}

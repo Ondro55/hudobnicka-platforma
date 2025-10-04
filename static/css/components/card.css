@@ -24,7 +24,7 @@
   background:#f5f5f5;
 }
 .card h4{ margin:.25rem 0 0; font-size:1.05rem; }
-.card .meta{ color:#666; font-size:.9rem; }
+.card .meta{ color:#666; font-size:.8rem; }
 .card .row{ display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
 
 /* malé ikonové tlačidlo */

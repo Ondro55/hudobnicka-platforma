@@ -148,13 +148,13 @@
           <h4 style="margin:0 0 .5rem 0;">Odpovede</h4>
           {% for p in (selected_topic.posts or []) %}
             <div class="list-row" id="post-{{ p.id }}" style="display:block;padding:.75rem;">
-              <div class="meta" style="color:#666;margin-bottom:.25rem;">
+              <div class="meta" style="color:#666;margin-bottom:.5rem;">
                 🧑 {{ (p.autor.prezyvka or p.autor.meno) if p.autor else 'Používateľ' }}
                 • ⏱️ {{ p.vytvorene_at|localtime if p.vytvorene_at else '' }}
                 {% if p.is_answer %} • ✅ Najlepšia odpoveď{% endif %}
               </div>
               <div style="white-space:pre-wrap;">{{ p.body }}</div>
-              <div class="row-actions" style="margin-top:.35rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+              <div class="row-actions" style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap;">
                 {% if current_user.is_authenticated and selected_topic.autor_id == current_user.id and not p.is_answer %}
                   <form method="post" action="{{ url_for('forum.mark_best', post_id=p.id) }}" style="display:inline;">
                     {{ csrf_token() if csrf_token is defined }}
@@ -308,7 +308,7 @@
   .reply-pill{
     display:inline-flex; align-items:center; gap:.5rem;
     background:#f8fafc; border:1px solid #e5e7eb; border-radius:999px;
-    padding:.25rem .6rem; margin-bottom:.4rem; font-size:.95em;
+    padding:.25rem .6rem; margin-bottom:.4rem; font-size:.85em;
   }
   .reply-pill .pill-clear{
     background:transparent; border:none; cursor:pointer; color:#6b7280; padding:.1rem .3rem;

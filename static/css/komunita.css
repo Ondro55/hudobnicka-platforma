@@ -67,7 +67,7 @@
 .komunita-wrapper .filterbar input[type="text"]{
   width:auto !important; height:36px; padding:0 .6rem;   /* prekryje globálne width:100% */
 }
-.komunita-wrapper .filterbar input[name="q"]{ flex:1 1 260px; min-width:220px; }
+.komunita-wrapper .filterbar input[name="q"]{ flex:1 0 260px; min-width:220px; }
 .komunita-wrapper .filterbar .btn{ height:36px; }
 
 /* ============ GRIDY ============ */

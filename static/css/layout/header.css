@@ -1,31 +1,35 @@
 /* ======================
    🧭 HLAVIČKA GRID
    ====================== */
-.hlavicka-grid {
-  display: grid;
-  grid-template-areas:
-    "box1 box2"
-    "box1 box3";
-  min-height: 100px;
-  grid-template-columns: 1fr 2fr;
-  grid-template-rows: auto auto;
-  padding: 0.5rem 2rem;
-  background-color: var(--hover);
-  align-items: center;
-  gap: 0.5rem;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+.hlavicka-grid{
+  display:grid;
+  grid-template-areas: "box1 box3 box2";   /* box3 = NAV uprostred */
+  grid-template-columns: 1fr auto 1fr;     /* stred má prirodzenú šírku, okraje sa prispôsobia */
+  grid-template-rows: auto;
+  min-height:100px;
+  padding:.5rem 2rem;
+  background-color:var(--hover);
+  align-items:center;
+  gap:.5rem;
+  position:sticky; top:0; z-index:1000;
+  box-shadow:0 20px 16px -12px rgba(0,0,0,.22);
 }
-.box1 { grid-area: box1; }
-.box2 { grid-area: box2; }
+/* priradenie oblastí */
+.box1{ grid-area: box1; }                  /* logo/ľavá časť */
+.box2{
+  grid-area: box2;
+  place-self: start end;   /* = align-self:start + justify-self:end */
+}
+.box3{
+  align-items:center;        /* bolo: flex-end */
+}
 
-.box2-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-left: 5rem;
+.box2-wrapper{
+  display:flex;
+  justify-content:flex-end;  /* bolo: space-between */
+  align-items:flex-start;    /* bolo: center */
+  gap:1rem;
+  margin-left:0;             /* zahoď 5rem, robilo to „rozťahovanie“ */
 }
 
 /* Ikony sociálnych sietí */
@@ -52,16 +56,29 @@
 .logout-btn:hover { background: darkred; }
 
 /* Navigácia */
-.box3 {
-  display: flex; align-items: flex-end; justify-content: center;
-  height: 100%; min-height: 50px; padding: .5rem;
+.box3{
+  display:flex;
+  align-items:flex-end;         /* alebo center, ak chceš v strede na výšku */
+  justify-content:center;       /* toto nechaj */
+  height:100%;
+  min-height:40px;
+  padding:.5rem;
 }
-.main-nav { display: flex; justify-content: space-evenly; width: 100%; }
-.main-nav a {
-  text-decoration: none; color: var(--text); transition: color .3s;
-  padding: .5rem 1rem;
+
+.main-nav{
+  display:flex;
+  justify-content:center;
+  gap:1.1rem;          /* rozostupy medzi položkami */
+  width:auto;          /* žiadne width:100% */
+  margin-inline:auto;  /* istota centrovania */
 }
-.main-nav a:hover { color: var(--tlacidlo); }
+.main-nav a{
+  text-decoration:none;
+  color:var(--text);
+  transition:color .3s;
+  padding:.5rem 1rem;
+}
+.main-nav a:hover{ color:var(--tlacidlo); }
 .disabled-link { opacity: .5; pointer-events: auto; cursor: not-allowed; }
 
 /* Logo */
@@ -88,7 +105,14 @@
   .main-nav{ display:none; flex-direction:column; width:100%; margin-top:.5rem; }
   .main-nav.active{ display:flex; }
 }
+/* DESKTOP (≥769px) — NAV uprostred, hamburger skryť */
 @media (min-width:769px){
-  .main-nav{ display:flex !important; flex-direction:row; justify-content:flex-end; gap:1rem; }
+  .main-nav{
+    display:flex !important;
+    flex-direction:row;
+    justify-content:center;  /* centrovanie namiesto flex-end */
+    gap:1rem;
+  }
   .hamburger{ display:none; }
 }
+
