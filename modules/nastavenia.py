@@ -29,7 +29,7 @@ def _send_delete_email(to_email, subject, html_body):
     cfg = current_app.config
     msg = MIMEText(html_body, "html", "utf-8")
     msg["Subject"] = subject
-    msg["From"] = formataddr(("Muzikuj.sk", cfg.get("SMTP_SENDER", "noreply@muzikuj.sk")))
+    msg["From"] = formataddr(("muzikuj.sk", cfg.get("SMTP_SENDER", "noreply@muzikuj.sk")))
     msg["To"] = to_email
 
     context = ssl.create_default_context()

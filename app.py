@@ -53,7 +53,7 @@ ACCESS_FORM_HTML = """
 <!doctype html>
 <html lang="sk">
 <head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">
-<title>Prístup – Muzikuj.sk</title>
+<title>Prístup – muzikuj.sk</title>
 <style>
   body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0f172a;color:#e2e8f0}
   .card{background:#111827;padding:24px 28px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);min-width:320px}

@@ -220,7 +220,7 @@ def odoslat():
 
     # Ostatné kontexty / direct – pošli na odoslaný komu_email, ak existuje
     if komu_email:
-        subj = predmet or "Správa z Muzikuj.sk"
+        subj = predmet or "Správa z muzikuj.sk"
         try:
             ok = _send_email(komu_email, subj, text)
             if ok:
