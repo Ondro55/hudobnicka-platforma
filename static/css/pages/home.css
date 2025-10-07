@@ -29,7 +29,7 @@
 /* Filtračná lišta (ak ju používaš) */
 .filter-bar{
   position: sticky;
-  top: var(--header-h, 84px);
+  top: var(--header-h, 98px);
   z-index: 5;
   display: flex;
   justify-content: center;
@@ -37,6 +37,7 @@
   padding: .4rem .6rem;
   background: #fff;
   border-bottom: 1px solid #eee;
+  border-radius: 8px;
 }
 .filter-chip{
   appearance: none;
@@ -51,7 +52,7 @@
 
 /* KARTY (spoločné) */
 .feed-card{
-  background:#fff; border:1px solid #eee; border-radius:12px; overflow:hidden;
+  border-radius:12px; overflow:hidden;
   box-shadow: var(--elev-2);
   transition: box-shadow .18s ease, transform .18s ease;
 }
@@ -60,7 +61,7 @@
 .feed-card .cover{
   width:100%; display:block; background:#f7f7f7; object-fit:contain; cursor:zoom-in;
 }
-.feed-card .copy{ padding:12px 14px; }
+.feed-card .copy{ padding:12px 14px;}
 .feed-card .title{ margin:0 0 6px; font-size:1.05rem; font-weight:800; }
 .feed-card .meta{ color:#666; font-size:.92rem; }
 .feed-card .desc{ margin:.35rem 0 0; white-space:pre-wrap; }
@@ -93,6 +94,7 @@
   column-gap: var(--page-col-gap);
   align-items: start;
   padding-inline: var(--page-gutter);
+  padding: 8px;
 }
 
 /* Sidebar vľavo zarovnaj k stredu (doprava) a nech lepí pod header */

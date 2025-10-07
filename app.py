@@ -4,9 +4,11 @@ from datetime import timezone as dt_timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask import template_rendered, current_app, request, g
 from flask import Flask, flash, redirect, url_for
+from flask import session, render_template_string, make_response
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 from flask.signals import before_render_template
+import ipaddress
 # DB a modely
 from models import db, Pouzivatel, Mesto  # db je tu inicializované až nižšie
 
@@ -18,6 +20,104 @@ from features import has_feature, get_quota, user_plan
 # APLIKÁCIA & KONFIGURÁCIA
 # -----------------------------
 app = Flask(__name__, static_folder="static", static_url_path="/static")
+
+
+
+# --- GATE NASTAVENIA ---
+# tvoju verejnú IP nechaj v ENV: OWNER_IP
+OWNER_IP = os.getenv("OWNER_IP", "").strip()
+# kód, ktorý dáš testerom
+ACCESS_CODE = os.getenv("ACCESS_CODE", "muzikuj-test")
+# 1 = gate zapnutý, 0 = vypnutý (dá sa prepínať bez deployu)
+GATE_ENABLED = os.getenv("GATE_ENABLED", "1") == "1"
+
+# cesty voľné pre všetkých (healthcheck, stránka s kódom, robots, statika)
+OPEN_PATHS = {"/healthz", "/access", "/robots.txt"}
+
+def _safe_ip(ip: str) -> str:
+    try:
+        ipaddress.ip_address(ip)
+        return ip
+    except Exception:
+        return ""
+
+def get_client_ip() -> str:
+    # Render posiela skutočnú IP v X-Forwarded-For
+    xff = request.headers.get("X-Forwarded-For", "")
+    if xff:
+        first = xff.split(",")[0].strip()
+        return _safe_ip(first) or (request.remote_addr or "")
+    return request.remote_addr or ""
+
+ACCESS_FORM_HTML = """
+<!doctype html>
+<html lang="sk">
+<head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">
+<title>Prístup – Muzikuj.sk</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0f172a;color:#e2e8f0}
+  .card{background:#111827;padding:24px 28px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);min-width:320px}
+  h1{font-size:20px;margin:0 0 12px}
+  p{opacity:.8;margin:0 0 14px}
+  input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0b1220;color:#e2e8f0}
+  button{margin-top:12px;width:100%;padding:10px 12px;border-radius:10px;border:0;background:#22c55e;color:#0b1220;font-weight:600;cursor:pointer}
+  .err{color:#fca5a5;margin-top:10px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔑 Testovací prístup</h1>
+    <p>Zadajte prístupový kód.</p>
+    <form method="post">
+      <input name="code" placeholder="Prístupový kód" autofocus>
+      <button type="submit">Vstúpiť</button>
+      {% if error %}<div class="err">{{ error }}</div>{% endif %}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    </form>
+  </div>
+</body>
+</html>
+"""
+
+@app.route("/access", methods=["GET", "POST"])
+def access():
+    if request.method == "POST":
+        code = (request.form.get("code") or "").strip()
+        nxt = request.form.get("next") or "/"
+        if ACCESS_CODE and code == ACCESS_CODE:
+            session["guest_access_granted"] = True
+            return redirect(nxt)
+        return render_template_string(ACCESS_FORM_HTML, error="Nesprávny kód.", next=request.args.get("next"))
+    return render_template_string(ACCESS_FORM_HTML, error=None, next=request.args.get("next"))
+
+@app.route("/robots.txt")
+def robots():
+    # Počas testovania zablokuj indexáciu
+    resp = make_response("User-agent: *\nDisallow: /\n", 200)
+    resp.headers["Content-Type"] = "text/plain; charset=utf-8"
+    return resp
+
+@app.before_request
+def gatekeeper():
+    if not GATE_ENABLED:
+        return  # gate je vypnutý
+
+    p = request.path
+    if p in OPEN_PATHS or p.startswith("/static/"):
+        return
+
+    # voľný vstup pre teba podľa IP
+    client_ip = get_client_ip()
+    if OWNER_IP and client_ip == OWNER_IP:
+        return
+
+    # hostia s už zadaným kódom (session)
+    if session.get("guest_access_granted") is True:
+        return
+
+    # presmeruj na /access a po úspechu vráť na pôvodnú URL
+    nxt = request.full_path if request.query_string else request.path
+    return redirect(url_for("access", next=nxt))
 
 @before_render_template.connect_via(app)
 def _remember_tpl(sender, template, context, **extra):

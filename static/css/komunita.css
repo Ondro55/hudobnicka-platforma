@@ -26,7 +26,7 @@
 /* Tlačidlo “Správa” */
 .komunita-wrapper a.kom-msg-btn{
   display:inline-flex; align-items:center; gap:.4rem;
-  padding:.35rem .7rem; height:36px; background:var(--tlacidlo); color:#fff; text-decoration:none;
+  padding:.35rem .7rem; height:25px; background:var(--tlacidlo); color:#fff; text-decoration:none;
   border-radius:6px; font-weight:700; line-height:1.2; border:0; cursor:pointer; transition:background .2s ease;
 }
 .komunita-wrapper a.kom-msg-btn:hover{ background:var(--text); }

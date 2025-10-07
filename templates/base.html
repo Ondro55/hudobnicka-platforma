@@ -74,66 +74,76 @@
 
 <body data-zobraz="{{ zobraz_formular }}">
 
-<header class="hlavicka-grid">
-  <div class="box1"><div class="logo">muziku♪.sk</div></div>
+<header class="hlavicka">
 
-  <div class="box2">
-    <div class="box2-wrapper">
-      <div class="social-icons">
-        <a href="#"><img src="{{ url_for('static', filename='fb.png') }}" alt="Facebook"></a>
-        <a href="#"><img src="{{ url_for('static', filename='ig.png') }}" alt="Instagram"></a>
-      </div>
+  <!-- HORE: GRID #1 (box1 | box2) -->
+  <div class="hlavicka-top-grid">
+    <div class="box1">
+      <div class="logo">muziku♪.sk</div>
+    </div>
 
-      <div class="user-panel">
-        {% if current_user.is_authenticated %}
-          <a href="{{ url_for('spravy.inbox') }}"
-             class="msg-icon {{ 'has-unread' if neprecitane_count and neprecitane_count > 0 else '' }}"
-             aria-label="Správy" title="Správy">
-            <span class="icon">✉️</span>
-            {% if neprecitane_count and neprecitane_count > 0 %}
-              <span class="badge">{{ neprecitane_count }}</span>
-            {% endif %}
-          </a>
+    <div class="box2">
+      <div class="box2-wrapper">
+        <div class="social-icons">
+          <a href="#"><img src="{{ url_for('static', filename='fb.png') }}" alt="Facebook"></a>
+          <a href="#"><img src="{{ url_for('static', filename='ig.png') }}" alt="Instagram"></a>
+        </div>
 
-          {% set has_unread = (neprecitane_forum_count|default(0)|int) > 0 %}
-          <a href="{{ url_for('forum.goto_unread') if has_unread else url_for('komunita.hub', tab='forum') + '#tab-forum' }}"
-             class="msg-icon {{ 'has-unread' if has_unread else '' }}"
-             aria-label="Fórum" title="Fórum">
-            <span class="icon">💬</span>
-            {% if has_unread %}
-              <span class="badge">{{ neprecitane_forum_count|default(0)|int }}</span>
-            {% endif %}
-          </a>
-
-          <span class="user-info">
-            👋 {{ current_user.prezyvka }}
-            {% if current_user.is_admin %}
-              <span class="role-badge admin" title="Admin">Admin</span>
-            {% elif current_user.is_moderator %}
-              <span class="role-badge mod" title="Moderátor">Mod</span>
-            {% endif %}
-          </span>
-
-          
-          {% if current_user.is_admin or current_user.is_moderator %}
-            <a href="{{ url_for('moderacia.dashboard' if current_user.is_admin else 'moderacia.queue') }}" class="header-btn">
-              🛡️ {{ 'Admin' if current_user.is_admin else 'Moderácia' }}
+        <div class="user-panel">
+          {% if current_user.is_authenticated %}
+            <a href="{{ url_for('spravy.inbox') }}"
+               class="msg-icon {{ 'has-unread' if neprecitane_count and neprecitane_count > 0 else '' }}"
+               aria-label="Správy" title="Správy">
+              <span class="icon">✉️</span>
+              {% if neprecitane_count and neprecitane_count > 0 %}
+                <span class="badge">{{ neprecitane_count }}</span>
+              {% endif %}
             </a>
-          {% endif %}
 
-          <a href="{{ url_for('uzivatel.profil') }}" class="header-btn">Moje konto</a>
-          <a href="{{ url_for('uzivatel.logout') }}" class="header-btn logout-btn">Odhlásiť sa</a>
-        {% else %}
-          <a href="{{ url_for('uzivatel.login') }}" class="header-btn" data-modal-open="#modal-login">Prihlásiť sa</a>
-          <a href="{{ url_for('uzivatel.registracia') }}" class="header-btn" data-modal-open="#user-form-panel">Registrovať sa</a>
-        {% endif %}
+            {% set has_unread = (neprecitane_forum_count|default(0)|int) > 0 %}
+            <a href="{{ url_for('forum.goto_unread') if has_unread else url_for('komunita.hub', tab='forum') + '#tab-forum' }}"
+               class="msg-icon {{ 'has-unread' if has_unread else '' }}"
+               aria-label="Fórum" title="Fórum">
+              <span class="icon">💬</span>
+              {% if has_unread %}
+                <span class="badge">{{ neprecitane_forum_count|default(0)|int }}</span>
+              {% endif %}
+            </a>
+
+            <span class="user-info">
+              👋 {{ current_user.prezyvka }}
+              {% if current_user.is_admin %}
+                <span class="role-badge admin" title="Admin">Admin</span>
+              {% elif current_user.is_moderator %}
+                <span class="role-badge mod" title="Moderátor">Mod</span>
+              {% endif %}
+            </span>
+
+            {% if current_user.is_admin or current_user.is_moderator %}
+              <a href="{{ url_for('moderacia.dashboard' if current_user.is_admin else 'moderacia.queue') }}" class="header-btn">
+                🛡️ {{ 'Admin' if current_user.is_admin else 'Moderácia' }}
+              </a>
+            {% endif %}
+
+            <a href="{{ url_for('uzivatel.profil') }}" class="header-btn">Moje konto</a>
+            <a href="{{ url_for('uzivatel.logout') }}" class="header-btn logout-btn">Odhlásiť sa</a>
+          {% else %}
+            <a href="{{ url_for('uzivatel.login') }}" class="header-btn" data-modal-open="#modal-login">Prihlásiť sa</a>
+            <a href="{{ url_for('uzivatel.registracia') }}" class="header-btn" data-modal-open="#user-form-panel">Registrovať sa</a>
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="box3">
-    <button class="hamburger" onclick="toggleMenu()">☰</button>
-    <div class="nav-wrapper">
+  <!-- DOLE: GRID #2 (ľavý | stred-nav | pravý) -->
+  <div class="hlavicka-bottom-grid">
+    <div class="sub-left">
+      <!-- voľné miesto (oznam/filtre/nič) -->
+    </div>
+
+    <div class="sub-center">
+      <button class="hamburger" onclick="toggleMenu()">☰</button>
       <nav class="main-nav">
         <a href="{{ url_for('uzivatel.index') }}">DOMOV</a>
 
@@ -144,20 +154,29 @@
             <a href="{{ url_for('inzerat.bazar_verejny') }}">🛒 BAZÁR</a>
             <a href="{{ url_for('komunita.hub') }}">KOMUNITA</a>
           {% endif %}
-          <!--<a href="#">e-shop</a>-->
           <a href="#kontakt">KONTAKT</a>
         {% else %}
           <a href="#" class="disabled-link" data-modal-open="#modal-login">📬 DOPYTY</a>
           <a href="#" class="disabled-link" data-modal-open="#modal-login">🎵 SKUPINY</a>
           <a href="#" class="disabled-link" data-modal-open="#modal-login">🛒 BAZÁR</a>
           <a href="#" class="disabled-link" data-modal-open="#modal-login">KOMUNITA</a>
-          <!--<a href="#">e-shop</a>-->
           <a href="#kontakt">KONTAKT</a>
         {% endif %}
       </nav>
     </div>
+
+    <div class="sub-right">
+      <!-- voľné miesto (search/CTA/nič) -->
+    </div>
   </div>
 </header>
+<script>
+  function toggleMenu(){
+    const nav = document.querySelector('.main-nav');
+    if(nav) nav.classList.toggle('open');
+  }
+</script>
+
 
   {# =======================
           HOMEPAGE 
