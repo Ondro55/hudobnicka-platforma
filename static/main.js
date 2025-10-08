@@ -48,3 +48,4 @@ document.addEventListener('click', (e) => {
   if (!input) return;
   input.type = (input.type === 'password') ? 'text' : 'password';
 });
+
