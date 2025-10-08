@@ -1,0 +1,44 @@
+/* ===== Ikony – základ ===== */
+.icon{
+  width: 18px;               /* default veľkosť */
+  height: 18px;
+  stroke: currentColor;      /* ikona = farba textu rodiča */
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  display: inline-block;
+  vertical-align: middle;
+}
+.icon *{ vector-effect: non-scaling-stroke; } /* drží hrúbku pri scale */
+
+/* ===== Veľkosti ===== */
+.icon--sm{ width:16px; height:16px; }
+.icon--md{ width:18px; height:18px; } /* default */
+.icon--lg{ width:22px; height:22px; }
+.icon--xl{ width:26px; height:26px; }
+
+/* ===== Hrúbka ťahu ===== */
+.icon--thin{  stroke-width:1.5; }
+.icon--bold{  stroke-width:2.5; }
+
+/* ===== Farby podľa podkladu (aplikuj na obal / link) ===== */
+.on-dark{  color:#fff; }           /* biela ikona + text na tmavom pozadí */
+.on-light{ color:#3b2f1d; }        /* tmavá ikona + text na svetlom pozadí */
+.on-muted{ color:rgba(255,255,255,.75); } /* jemnejšie na tmavom */
+
+/* ===== S odstupom pre text (ikonka + label) ===== */
+.with-icon{
+  display:inline-flex; align-items:center; gap:.55rem;
+  text-decoration:none;
+}
+
+/* Voliteľné: tlačidlo len s ikonou */
+.icon-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:8px;
+  text-decoration:none;
+}
+.icon-btn--ghost{ background:transparent; }
+.icon-btn--soft{ background:rgba(255,255,255,.12); }
+.icon-btn:hover{ opacity:.9; }

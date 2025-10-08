@@ -33,14 +33,6 @@
 
 {% block home_content %}
 
-  {# ====== TENKÁ FILTRAČNÁ LIŠTA ====== #}
-  <div class="filter-bar" id="event-filter">
-    <button class="filter-chip is-active" data-region="all">Všetky</button>
-    <button class="filter-chip" data-region="zapad">Západ</button>
-    <button class="filter-chip" data-region="stred">Stred</button>
-    <button class="filter-chip" data-region="vychod">Východ</button>
-  </div>
-
   {# ========== STREDNÝ FEED (UDALOSTI) ========== #}
   <div id="home-feed" class="home-center">
     {% if feed and feed|length %}

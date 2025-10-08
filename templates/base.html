@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}Muzikuj{% endblock %}</title>
+  <title>{% block title %}muzikuj{% endblock %}</title>
   <script>
   (function () {
     try {
@@ -24,7 +24,12 @@
   </script>
 
   <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Open+Sans&display=swap" rel="stylesheet" />
+  
+ 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 
   <!-- 1) Tokens & Base -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=3) }}">
@@ -34,11 +39,11 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/header.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/sidebar.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/footer.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/banner.css') }}">
 
   <!-- 3) Components -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/button.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/modal.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/sidebar.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/alert.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/role-badge.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/header-icons.css') }}">
@@ -50,6 +55,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/notice.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/formbox.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/utils.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/icons.css') }}">
 
   <!-- 4) Forms -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
@@ -75,9 +81,8 @@
 <body data-zobraz="{{ zobraz_formular }}">
 
 <header class="hlavicka">
-
-  <!-- HORE: GRID #1 (box1 | box2) -->
-  <div class="hlavicka-top-grid">
+  <!-- RIADOK 1: box1 | box2 -->
+  <div class="hlavicka-top-row">
     <div class="box1">
       <div class="logo">muziku♪.sk</div>
     </div>
@@ -136,98 +141,199 @@
     </div>
   </div>
 
-  <!-- DOLE: GRID #2 (ľavý | stred-nav | pravý) -->
-  <div class="hlavicka-bottom-grid">
-    <div class="sub-left">
-      <!-- voľné miesto (oznam/filtre/nič) -->
-    </div>
-
-    <div class="sub-center">
+  <!-- RIADOK 2: NAV (1fr | 1200 | 1fr) -->
+  <div class="hlavicka-nav-row">
+    <div class="nav-cell">
       <button class="hamburger" onclick="toggleMenu()">☰</button>
       <nav class="main-nav">
-        <a href="{{ url_for('uzivatel.index') }}">DOMOV</a>
+
+        <a class="with-icon on-dark" href="{{ url_for('uzivatel.index') }}">
+          <svg class="icon icon--md" aria-hidden="true"><use href="#i-home"></use></svg>
+          Domov
+        </a>
 
         {% if current_user.is_authenticated %}
-          <a href="{{ url_for('dopyty.zobraz_dopyty') }}">📬 DOPYTY</a>
+          <a class="with-icon on-dark" href="{{ url_for('dopyty.zobraz_dopyty') }}">
+            <svg class="icon icon--md" aria-hidden="true"><use href="#i-dopyty"></use></svg>
+            Dopyty
+          </a>
+
           {% if current_user.typ_subjektu != 'ico' %}
-            <a href="{{ url_for('skupina.prehlad_skupin') }}">🎸 SKUPINY</a>
-            <a href="{{ url_for('inzerat.bazar_verejny') }}">🛒 BAZÁR</a>
-            <a href="{{ url_for('komunita.hub') }}">KOMUNITA</a>
+            <a class="with-icon on-dark" href="{{ url_for('skupina.prehlad_skupin') }}">
+              <svg class="icon icon--md" aria-hidden="true"><use href="#i-skupiny"></use></svg>
+              Skupiny
+            </a>
+
+            <a class="with-icon on-dark" href="{{ url_for('inzerat.bazar_verejny') }}">
+              <svg class="icon icon--md" aria-hidden="true"><use href="#i-bazar"></use></svg>
+              Bazár
+            </a>
+
+            <a class="with-icon on-dark" href="{{ url_for('komunita.hub') }}">
+              <svg class="icon icon--md" aria-hidden="true"><use href="#i-komunita"></use></svg>
+              Komunita
+            </a>
           {% endif %}
-          <a href="#kontakt">KONTAKT</a>
+
+          <a class="with-icon on-dark" href="#kontakt">
+            <svg class="icon icon--md" aria-hidden="true"><use href="#i-kontakt"></use></svg>
+            Kontakt
+          </a>
+
         {% else %}
-          <a href="#" class="disabled-link" data-modal-open="#modal-login">📬 DOPYTY</a>
-          <a href="#" class="disabled-link" data-modal-open="#modal-login">🎵 SKUPINY</a>
-          <a href="#" class="disabled-link" data-modal-open="#modal-login">🛒 BAZÁR</a>
-          <a href="#" class="disabled-link" data-modal-open="#modal-login">KOMUNITA</a>
-          <a href="#kontakt">KONTAKT</a>
+          <!-- pre neprihlásených (disabled-link) -->
+          <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
+            <svg class="icon icon--md" aria-hidden="true"><use href="#i-dopyty"></use></svg>
+            Dopyty
+          </a>
+          <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
+            <svg class="icon icon--md" aria-hidden="true"><use href="#i-skupiny"></use></svg>
+            Skupiny
+          </a>
+          <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
+            <svg class="icon icon--md" aria-hidden="true"><use href="#i-bazar"></use></svg>
+            Bazár
+          </a>
+          <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
+            <svg class="icon icon--md" aria-hidden="true"><use href="#i-komunita"></use></svg>
+            Komunita
+          </a>
+          <a class="with-icon on-dark" href="#kontakt">
+            <svg class="icon icon--md" aria-hidden="true"><use href="#i-kontakt"></use></svg>
+            Kontakt
+          </a>
         {% endif %}
       </nav>
     </div>
+  </div>
 
-    <div class="sub-right">
-      <!-- voľné miesto (search/CTA/nič) -->
-    </div>
+
+
+  <!-- RIADOK 3: 1fr | ĽAVÝ FILTER | STREDNÝ | PRAVÝ | 1fr (spolu 1200px) -->
+  <div class="hlavicka-strip-row">
+    <div aria-hidden="true"></div>
+
+    {% if request.endpoint == 'uzivatel.index' %}
+      <!-- ĽAVÝ FILTER (napr. videá) -->
+      <div class="filter-box">
+        <button class="chip sm is-active" data-video="all">Všetko</button>
+        <button class="chip sm" data-video="folklor">Folklór</button>
+        <button class="chip sm" data-video="rock">Hip hop</button>
+        <button class="chip sm" data-video="rock">Rock</button>
+        <label class="chip-select">
+          <select id="genreVideoSelect" aria-label="Žáner videí">
+            <option value="all">-Výber-</option>
+            <option value="rock">Rock</option>
+            <option value="folklor">Folklór</option>
+            <option value="hiphop">Hip hop</option>
+            <option value="jazz">Jazz</option>
+            <option value="pop">Pop</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- STREDNÝ FILTER (regióny) -->
+      <div class="filter-box">
+        <button class="chip is-active" data-region="all">Celé SK</button>
+        <button class="chip" data-region="zapad">Západ</button>
+        <button class="chip" data-region="stred">Stred</button>
+        <button class="chip" data-region="vychod">Východ</button>
+      </div>
+
+      <!-- PRAVÝ FILTER (napr. blogy/súťaže) -->
+      <div class="filter-box">
+        <button class="chip sm is-active" data-blog="all">Všetko</button>
+        <button class="chip sm" data-blog="folklor">Folklór</button>
+        <button class="chip sm" data-video="rock">Hip hop</button>
+        <button class="chip sm" data-blog="rock">Rock</button>
+        <label class="chip-select">
+          <select id="genreBlogSelect" aria-label="Žáner blogov">
+            <option value="all">-Výber-</option>
+            <option value="rock">Rock</option>
+            <option value="folklor">Folklór</option>
+            <option value="hiphop">Hip hop</option>
+            <option value="jazz">Jazz</option>
+            <option value="pop">Pop</option>
+          </select>
+        </label>
+      </div>
+    {% else %}
+      <!-- MIMO HOMEPAGE: uprostred info panel, kraje prázdne -->
+      <div></div>
+      <div class="filter-box banner-info">
+        <strong class="page-title">
+          {% block page_title %}
+            {{ (page_title or request.blueprint or request.endpoint) | replace('_',' ') | title }}
+          {% endblock %}
+
+        </strong>
+        {% if page_sub %}<span class="page-sub">{{ page_sub }}</span>{% endif %}
+      </div>
+      <div></div>
+    {% endif %}
+
+    <div aria-hidden="true"></div>
   </div>
 </header>
+
+
 <script>
   function toggleMenu(){
-    const nav = document.querySelector('.main-nav');
+    const nav = document.querySelector('.hlavicka .main-nav');
     if(nav) nav.classList.toggle('open');
   }
 </script>
 
 
-  {# =======================
+
+ {# =======================
           HOMEPAGE 
     ======================= #}
-  {% if request.endpoint == 'uzivatel.index' %}
-    <div class="page-grid">
-      <!-- ĽAVÝ fluid stĺpec (sidebar sa lepí k stredu) -->
-      <div class="page-left">
-        <aside class="button-sidebar">
-          {% include 'includes/sidebox.html' %}
-        </aside>
-      </div>
+{% if request.endpoint == 'uzivatel.index' %}
 
-      <!-- STRED – 1200px shell (tvoj 3-stĺpcový home obsah) -->
-      <main class="page-center">
-        {% block home_filter %}{% endblock %}
-        <div class="home-shell">
-          <div class="home-grid">
-            <aside class="home-left">
-              {% block home_left %}{% endblock %}
-            </aside>
+  <!-- 🔹 GRID celej stránky (posunutý pod fixed header+banner) -->
+  <div class="page-grid body-offset">
+    <div class="page-left">
+      <aside class="button-sidebar">
+        {% include 'includes/sidebox.html' %}
+      </aside>
+    </div>
 
-            <section class="home-center" id="home-feed">
-              {% block home_content %}{% endblock %}
-            </section>
+    <main class="page-center">
+      <div class="home-shell">
+        <div class="home-grid">
+          <aside class="home-left">
+            {% block home_left %}{% endblock %}
+          </aside>
 
-            <aside class="home-right">
-              {% block home_right %}{% endblock %}
-            </aside>
-          </div>
+          <section class="home-center" id="home-feed">
+            {% block home_content %}{% endblock %}
+          </section>
+
+          <aside class="home-right">
+            {% block home_right %}{% endblock %}
+          </aside>
         </div>
-      </main>
+      </div>
+    </main>
 
-      <!-- PRAVÝ fluid stĺpec (vzduch/symetria) -->
-      <div class="page-right" aria-hidden="true"></div>
-    </div>
-  {% else %}
-    <div class="button-container">
-      {% if current_user.is_authenticated %}
-        <aside class="button-sidebar">
-          {% include 'includes/sidebox.html' %}
-        </aside>
-      {% endif %}
-      <main class="{{ 'main-content' if current_user.is_authenticated else 'main-no-sidebar' }}">
-        {% block content %}{% endblock %}
-      </main>
+    <div class="page-right" aria-hidden="true"></div>
+  </div>
 
-    </div>
-    
-  {% endif %}
+{% else %}
 
+  <!-- 🔹 Layout bez home-gridu (tiež posunutý) -->
+  <div class="button-container body-offset">
+    {% if current_user.is_authenticated %}
+      <aside class="button-sidebar">
+        {% include 'includes/sidebox.html' %}
+      </aside>
+    {% endif %}
+    <main class="{{ 'main-content' if current_user.is_authenticated else 'main-no-sidebar' }}">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+{% endif %}
 
 {% include 'includes/novinky.html' %}
 {% include 'partials/flash.html' %}
@@ -244,6 +350,7 @@
 {% include 'modals/registracia.html' %}
 {% include 'includes/cookie_banner.html' %}
 {% include "modals/dopyt_form.html" %}
+{% include "includes/icons.html" %}
 <script src="{{ url_for('static', filename='js/cookies.js') }}" defer></script>
 
 
@@ -283,11 +390,6 @@
 <footer><p>&copy; 2025 muzikuj.sk | Všetky práva vyhradené</p>
   <a href="#" onclick="openCookieSettings();return false;">Nastavenia súkromia</a>
 </footer>
-
-<!-- Burger menu -->
-<script>
-  function toggleMenu(){ document.querySelector('.main-nav')?.classList.toggle('active'); }
-</script>
 
 <!-- Dedup modálov (ak by sa niekde vložili 2x) -->
 <script>
@@ -421,22 +523,81 @@
 })();
 </script>
 <script>
+  function setActive(groupSel, btn){
+    document.querySelectorAll(groupSel + ' .chip').forEach(b=>b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+  }
+
+  document.querySelectorAll('.filter-left .chip').forEach(b=>{
+    b.addEventListener('click', e=>{
+      setActive('.filter-left', e.currentTarget);
+      const g = e.currentTarget.dataset.video; // TODO: načítaj videá
+    });
+  });
+
+  document.querySelectorAll('.filter-center .chip').forEach(b=>{
+    b.addEventListener('click', e=>{
+      setActive('.filter-center', e.currentTarget);
+      const r = e.currentTarget.dataset.region; // TODO: načítaj podujatia
+    });
+  });
+
+  document.querySelectorAll('.filter-right .chip').forEach(b=>{
+    b.addEventListener('click', e=>{
+      setActive('.filter-right', e.currentTarget);
+      const t = e.currentTarget.dataset.blog; // TODO: načítaj blogy/súťaže
+    });
+  });
+</script>
+<script>
+  // VIDEO ľavý select
+  const genreVideoSel = document.getElementById('genreVideoSelect');
+  if (genreVideoSel) {
+    genreVideoSel.addEventListener('change', (e) => {
+      const genre = e.target.value; // all|rock|folklor|hiphop|...
+      // TODO: fetchLeftVideos(genre);
+    });
+  }
+
+  // BLOG pravý select
+  const genreBlogSel = document.getElementById('genreBlogSelect');
+  if (genreBlogSel) {
+    genreBlogSel.addEventListener('change', (e) => {
+      const genre = e.target.value;
+      // TODO: fetchRightBlogs(genre);
+    });
+  }
+</script>
+<script>
 (function(){
-  const hdr = document.querySelector('.hlavicka-grid');
-  if(!hdr) return;
-  const set = () => {
-    document.documentElement.style.setProperty('--header-h', hdr.getBoundingClientRect().height + 'px');
-  };
-  set();
-  window.addEventListener('resize', set);
-  new ResizeObserver(set).observe(hdr); // <- toto dorob
+  const $ = s => document.querySelector(s);
+  const header = $('.hlavicka');
+  const banner = $('.site-banner');
+  if(!header || !banner) return;
+
+  function updateHeights(){
+    // reflow, kým sú fixed
+    const h1 = header.getBoundingClientRect().height || 0;
+    // banner môže meniť výšku podľa obsahu/riadku filtra
+    const h2 = banner.getBoundingClientRect().height || 0;
+
+    // posuň banner hneď pod header
+    document.documentElement.style.setProperty('--header-top-h', h1 + 'px');
+    // súčet pre odsadenie obsahu a sticky prvkov
+    document.documentElement.style.setProperty('--chrome-h', (h1 + h2) + 'px');
+  }
+
+  // keď sa čokoľvek zmení (resize, fonty, breakpointy…)
+  const ro = new ResizeObserver(updateHeights);
+  ro.observe(header);
+  ro.observe(banner);
+  window.addEventListener('load', updateHeights);
+  window.addEventListener('resize', updateHeights);
+  updateHeights();
 })();
 </script>
 
-
 <script type="text/plain" data-cat="analytics" src="https://plausible.io/js/plausible.js" data-domain="muzikuj.sk" defer></script>
-
-
 
 <!-- Projektové skripty -->
 <script src="{{ url_for('static', filename='main.js') }}" defer></script>

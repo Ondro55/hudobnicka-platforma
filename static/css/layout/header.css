@@ -1,15 +1,19 @@
 /* =========================
-   HLAVIČKA – ČISTÁ VERZIA
+   HLAVIČKA – FINÁLNA VERZIA
    ========================= */
 
-/* fallback, ak by nebola v home.css */
+/* Konštanty */
 :root{
-  --shell-max: 1200px;
-  --header-top-h: 66px;
-  --header-bottom-h: 28px;
+  --shell-max: 1200px;        /* šírka stredového pásu (nav + filtre) */
+  --header-top-h: 50px;        /* výška horného riadku (logo + panel) */
+  --header-nav-h: 30px;        /* výška riadku s navigáciou */
+  --header-strip-h: 15px;      /* výška filtračného/info riadku */
+  --header-bg: #d0c3b1;
+  --col-center: calc(var(--shell-max) - (2*var(--col-side)) - (2*var(--gap))); /* ≈600px */
+  
 }
 
-/* obal hlavičky */
+/* OBAL HLAVIČKY */
 .hlavicka{
   position: sticky;
   top: 0;
@@ -17,52 +21,48 @@
   width: 100%;
   background: var(--hover);
   color: var(--text);
-  box-shadow: 0 8px 16px -8px rgba(0,0,0,.25);
+  box-shadow: 0 8px 16px -8px rgba(0,0,0,0.25);
 }
 
-/* ======================
-   HORE: box1 (logo) | box2 (panel)
-   ====================== */
-.hlavicka-top-grid{
+/* ========= RIADOK 1: box1 | box2 (logo vľavo, panel vpravo) ========= */
+.hlavicka-top-row{
   display: grid;
   grid-template-columns: 1fr auto; /* logo vľavo, panel vpravo */
   align-items: center;
-  gap: 16px;
   height: var(--header-top-h);
-  padding: .4rem 2rem;
+  padding: 0 24px;
   box-sizing: border-box;
-
 }
 
-/* logo absolútne vľavo */
-.box1 .logo{
+.hlavicka .logo{
   font-family: 'Playfair Display', serif;
   font-size: 2rem;
   font-weight: 700;
   margin: 0;
 }
 
-/* pravý panel */
-.box2 .box2-wrapper{
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+.hlavicka .box2 .box2-wrapper{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.social-icons{ display:flex; gap:.5rem; }
-.social-icons a{
+/* sociálne ikony */
+.hlavicka .social-icons{ display:flex; gap:.5rem; }
+.hlavicka .social-icons a{
   display:inline-block;
   background:#fff;
   padding:.3rem;
   border-radius:50%;
   box-shadow:0 0 3px rgba(0,0,0,.2);
 }
-.social-icons img{ width:24px; height:24px; display:block; }
+.hlavicka .social-icons img{ width:24px; height:24px; display:block; }
 
-.user-panel{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.header-btn{
+/* user panel */
+.hlavicka .user-panel{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.hlavicka .header-btn{
   background: transparent;
   border: 1px solid var(--tlacidlo);
   padding: 4px 9px;
@@ -73,55 +73,45 @@
   text-decoration: none;
   transition: .2s;
 }
-.header-btn:hover{ background: var(--tlacidlo); color:#fff; }
-.logout-btn{ background:red; color:#fff; border:1px solid black ; }
-.logout-btn:hover{ background:darkred; }
-.msg-icon{ position:relative; color: var(--text); text-decoration:none; }
-.msg-icon .badge{
+.hlavicka .header-btn:hover{ background: var(--tlacidlo); color:#fff; }
+.hlavicka .logout-btn{ background:red; color:#fff; border:1px solid black ; }
+.hlavicka .logout-btn:hover{ background:darkred; }
+.hlavicka .msg-icon{ position:relative; color: var(--text); text-decoration:none; }
+.hlavicka .msg-icon .badge{
   position:absolute; top:-6px; right:-10px;
   background:#ef4444; color:#fff; font-size:11px; padding:1px 5px;
   border-radius:10px; font-weight:700;
 }
 
-/* ======================
-   DOLE: 1fr | stred (1200) | 1fr
-   NAV je vždy na stred
-   ====================== */
-.hlavicka-bottom-grid{
-  display: grid;
+/* ========= RIADOK 2: (1fr | NAV(1200) | 1fr) ========= */
+.hlavicka-nav-row{
+  display:grid;
   grid-template-columns: 1fr minmax(0, var(--shell-max)) 1fr;
-  align-items: center;
-  height: var(--header-bottom-h);
-  background: rgba(255,255,255,0.05);
+  align-items:center;
+  height: var(--header-nav-h);
   box-sizing: border-box;
-  border-bottom: 1px solid #dfe5d9;   /* jemná deliaca linka */
-  box-shadow: ;
-}
+  
+  }
 
-.sub-left, .sub-right{ padding: 0; }   /* voľné, bez odsadenia */
-.sub-center{
+.hlavicka .nav-cell{
+  grid-column: 2; /* stredový stĺpec (1200px) */
   display:flex;
   align-items:center;
   justify-content:center;
-  max-width: var(--shell-max);
-  width: 100%;
-  margin-inline: auto;
-  padding: 0;
-  background-color: #fdfaf5;
-  border-radius: 8px 8px 0 0;
-  }
+  background: var(--header-bg);
+  border-radius: 6px 6px 0 0;
+}
 
-/* Navigácia */
-.main-nav{
+/* samotná navigácia */
+.hlavicka .main-nav{
   display:flex;
   align-items:center;
   justify-content:center;
   gap:.8rem;
-  flex-wrap: wrap;       /* ak sa nepomestí, zalomí sa – nepretečie */
-  max-width: 100%;
-  overflow: hidden;
+  flex-wrap: wrap;
+  width: 100%;
 }
-.main-nav a{
+.hlavicka .main-nav a{
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Open Sans", sans-serif;
   font-size: .92rem;
   font-weight: 600;
@@ -129,43 +119,133 @@
   color: var(--text);
   text-decoration: none;
   padding: .28rem .6rem;
-  border-radius: 6px;
+  
   transition: background .2s, color .2s;
 }
-.main-nav a:hover{ background: rgba(255,255,255,.10); }
-.disabled-link{ opacity:.5; cursor:not-allowed; }
+.hlavicka .main-nav a:hover{ background: rgba(255, 255, 255, 0.26); }
+.hlavicka .disabled-link{ opacity:.5; cursor:not-allowed; }
 
-/* Hamburger (ak ho používaš) */
-.hamburger{
+/* ========= RIADOK 3: 5 stĺpcov (1fr | L | C | P | 1fr) ========= */
+.hlavicka-strip-row{
+  --col-center: calc(var(--shell-max) - (2 * var(--col-side))); /* 👈 prepísanie len pre tento riadok */
+  display:grid;
+  grid-template-columns:
+    1fr
+    var(--col-side)
+    var(--col-center)
+    var(--col-side)
+    1fr;
+  align-items:center;
+  height: var(--header-strip-h);
+  box-sizing: border-box;
+  border-bottom: 1px solid #dfe5d9;
+  column-gap: 0;   /* 👈 toto pridaj */
+}
+
+/* 3 vnútorné boxy (ľavý, stredný, pravý) */
+.hlavicka .filter-box{
+  background: var(--header-bg);
+  padding: 6px 4px;
+  display:flex; align-items:center; gap:4px; justify-content:center;
+  min-height: 34px;
+}
+
+/* čipy + select */
+.hlavicka .chip{
+  appearance: none;
+  border: 1px solid #d9d1c4;
+  background: #fff;
+  color: #333;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: .28rem .55rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.hlavicka .chip:hover{ background: #faf7f1; }
+.hlavicka .chip.is-active{ border-color: #a97b2f; color: #a97b2f; }
+
+.hlavicka .chip-select{
+  border: 1px solid #d9d1c4;
+  background: #fff;
+  padding: .28rem .55rem;
+  border-radius: 999px;
+  font-size: .78rem;
+}
+
+/* INFO varianta mimo homepage */
+.hlavicka .banner-info{
+  grid-column: 2 / 5;
+  inline-size: var(--shell-max);  /* presne 1200 px */
+  max-inline-size: 100%;
+  justify-self: center;           /* vystredi v strede */
+  box-sizing: border-box;         /* padding sa ráta do 1200 */
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  border-radius: 0 0 6px 6px;
+  height: 46px;
+  }
+
+/* ak máš mobilný layout na 1 stĺpec */
+@media (max-width: 980px){
+  .hlavicka .banner-info{
+    grid-column: 1 / -1;   /* cez celú šírku na mobile */
+    max-width: 100%;
+  }
+}
+.hlavicka .banner-info .page-title{ font-weight:800; }
+.hlavicka .banner-info .page-sub{ color:#6b6358; }
+
+/* Hamburger (ak budeš chcieť použiť) */
+.hlavicka .hamburger{
   display:none;
   background:none; border:0;
   font-size:1.6rem; color:var(--text);
 }
 
-/* ======================
-   RESPONSIVE
-   ====================== */
+/* ============== RESPONSIVE ============== */
 @media (max-width: 980px){
-  .hlavicka-top-grid{
+  .hlavicka-top-row{
     grid-template-columns: 1fr;
+    height: auto;
+    padding: 8px 16px;
+    row-gap: 8px;
     text-align: center;
-    height: auto;
-    padding: .5rem 1rem;
   }
-  .box2 .box2-wrapper{ justify-content:center; }
+  .hlavicka .box2 .box2-wrapper{ justify-content:center; }
 
-  .hlavicka-bottom-grid{
+  .hlavicka-nav-row{
     grid-template-columns: 1fr;
     height: auto;
   }
-  .sub-left, .sub-right{ display:none; }
+  .hlavicka .nav-cell{ grid-column: 1; padding: 6px 8px; }
+  .hlavicka .main-nav{
+    display:none;
+    flex-direction:column;
+    text-align:center;
+    gap:6px;
+  }
+  .hlavicka .main-nav.open{ display:flex; }
+  .hlavicka .hamburger{ display:inline-block; }
 
-  .hamburger{ display:inline-block; }
-  .main-nav{ display:none; flex-direction:column; text-align:center; }
-  .main-nav.open{ display:flex; }
+  .hlavicka-strip-row{
+    grid-template-columns: 1fr;
+    row-gap: 6px;
+    height: auto;
+    padding: 6px 8px;
+  }
+  .hlavicka .filter-box{ border-radius: 10px; }
 }
 
 @media (min-width: 981px){
-  .hamburger{ display:none; }
-  .main-nav{ display:flex !important; }
+  .hlavicka .hamburger{ display:none; }
+  .hlavicka .main-nav{ display:flex !important; }
+}
+.hlavicka-strip-row > .filter-box:nth-of-type(2) {
+  border-radius: 0 0 0 6px;  /* ak je to prvý filter box */
+}
+.hlavicka-strip-row > .filter-box:nth-of-type(4) {
+  border-radius: 0 0 6px 0;  /* ak je to prvý filter box */
 }
