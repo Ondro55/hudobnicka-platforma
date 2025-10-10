@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+{% if current_user.is_authenticated and current_user.is_admin %}
+  <div class="admin-bar" style="display:flex;gap:.5rem;margin:.5rem 0;">
+    <form method="post" action="{{ url_for('podujatie.admin_publish', id=e.id) }}">
+      <button class="btn sm primary">Publikovať</button>
+    </form>
+    <form method="post" action="{{ url_for('podujatie.admin_reject', id=e.id) }}">
+      <button class="btn sm">Zamietnuť</button>
+    </form>
+    <form method="post" action="{{ url_for('podujatie.admin_force_delete', id=e.id) }}" onsubmit="return confirm('Naozaj zmazať?');">
+      <button class="btn sm danger">Zmazať</button>
+    </form>
+  </div>
+{% endif %}
+
+<main class="event-detail" style="padding:2rem;max-width:980px;margin-inline:auto;">
+  <article class="card" style="border:1px solid var(--border,#ddd);border-radius:12px;overflow:hidden;">
+    <header style="padding:1rem 1.25rem;border-bottom:1px solid var(--border,#eee);">
+      <h1 style="margin:.25rem 0 0;">{{ e.nazov }}</h1>
+      <div class="muted" style="margin-top:.25rem;font-size:.95rem;">
+        {{ e.start_dt.strftime('%d.%m.%Y • %H:%M') }}{% if e.miesto %} • {{ e.miesto }}{% endif %}
+      </div>
+    </header>
+
+    <div style="aspect-ratio:16/9;background:#f7f7f7;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <img src="{{ e.foto_url }}" alt="Obrázok podujatia" style="width:100%;height:100%;object-fit:cover;">
+    </div>
+
+    <div style="padding:1rem 1.25rem;">
+      {% if e.organizator %}
+        <p class="muted" style="margin:0 0 .5rem;">Organizátor: <strong>{{ e.organizator }}</strong></p>
+      {% endif %}
+      {% if e.popis %}
+        <p style="white-space:pre-wrap;line-height:1.5;">{{ e.popis }}</p>
+      {% endif %}
+    </div>
+
+    <footer style="padding:.75rem 1.25rem;border-top:1px solid var(--border,#eee);display:flex;justify-content:space-between;align-items:center;font-size:.9rem;opacity:.9;">
+      <span>Zverejnil: {{ e.autor.prezyvka if e.autor and e.autor.prezyvka else (e.autor.meno if e.autor else '—') }}</span>
+      <time datetime="{{ e.created_at.isoformat() }}">Pridané: {{ e.created_at.strftime('%d.%m.%Y') }}</time>
+    </footer>
+  </article>
+</main>
+{% endblock %}

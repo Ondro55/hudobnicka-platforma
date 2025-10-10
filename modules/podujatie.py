@@ -12,6 +12,17 @@ ALLOWED_EXT = {'png', 'jpg', 'jpeg', 'webp', 'gif'}  # SVG radšej nie (bezpečn
 
 podujatie_bp = Blueprint('podujatie', __name__, url_prefix='/podujatia')
 
+try:
+    from models import Mesto                # alebo: from models.mesto import Mesto
+    HAS_MESTO = True
+except Exception:
+    Mesto = None
+    HAS_MESTO = False
+
+# regiónové sady krajov
+KRAJE_ZAPAD  = {"Bratislavský", "Trnavský", "Nitriansky", "Trenčiansky"}
+KRAJE_STRED  = {"Žilinský", "Banskobystrický"}
+KRAJE_VYCHOD = {"Prešovský", "Košický"}
 
 # ====== P R Á V A ======
 def can_create_events(user) -> bool:
@@ -78,7 +89,7 @@ def moje():
 
     # Šablóna očakáva `event` (None pri vytváraní) a `action` pre <form action=...>
     return render_template(
-        'moje_podujatie.html',
+        'podujatie_moje.html',
         event=None,
         action=url_for('podujatie.vytvor'),
         aktivne=aktivne,
@@ -111,7 +122,7 @@ def edit(id):
     )
 
     return render_template(
-        'moje_podujatie.html',     # rovnaká šablóna, len predvyplnená
+        'podujatie_moje.html',     # rovnaká šablóna, len predvyplnená
         event=e,
         action=url_for('podujatie.update', id=e.id),
         aktivne=aktivne,
@@ -301,3 +312,167 @@ def zmaz(id):
     db.session.commit()
     flash("Podujatie zmazané.", "info")
     return redirect(url_for('podujatie.moje'))
+
+
+# ====== VEREJNÝ PREHĽAD + ARCHÍV ======
+@podujatie_bp.route('/', methods=['GET'])
+def index():
+    """
+    Verejný prehľad podujatí s jednotným filterbarom:
+    - q, mesto_id, organizator, od, do, oblast (all|zapad|stred|vychod)
+    - rozdelenie na 'aktuálne' (od včera vrátane) a 'archív' (staršie)
+    - archív zoskupený mesačne
+    """
+    now = datetime.utcnow()
+    threshold = now - timedelta(days=1)
+
+    # vstupy
+    q         = (request.args.get('q') or '').strip()
+    organiz   = (request.args.get('organizator') or '').strip()
+    d_od_raw  = (request.args.get('od') or '').strip()   # YYYY-MM-DD
+    d_do_raw  = (request.args.get('do') or '').strip()   # YYYY-MM-DD
+    mesto_id  = request.args.get('mesto_id')
+    oblast    = (request.args.get('oblast') or 'all').lower()
+
+    qry = Podujatie.query
+
+    # fulltext light
+    if q:
+        like = f"%{q}%"
+        from sqlalchemy import or_
+        qry = qry.filter(or_(
+            Podujatie.nazov.ilike(like),
+            Podujatie.popis.ilike(like),
+            Podujatie.miesto.ilike(like),
+            Podujatie.organizator.ilike(like),
+        ))
+
+    if organiz:
+        qry = qry.filter(Podujatie.organizator.ilike(f"%{organiz}%"))
+
+    # dátumy
+    if d_od_raw:
+        try:
+            d_od = datetime.strptime(d_od_raw, "%Y-%m-%d")
+            qry = qry.filter(Podujatie.start_dt >= d_od)
+        except ValueError:
+            pass
+    if d_do_raw:
+        try:
+            d_do = datetime.strptime(d_do_raw, "%Y-%m-%d") + timedelta(days=1)
+            qry = qry.filter(Podujatie.start_dt < d_do)
+        except ValueError:
+            pass
+
+    # konkrétne mesto (ak model Mesto existuje)
+    if HAS_MESTO and mesto_id:
+        try:
+            mid = int(mesto_id)
+            m = Mesto.query.get(mid)
+            if m:
+                # kým nemáme FK, porovnávame textové pole s názvom mesta
+                qry = qry.filter(Podujatie.miesto.ilike(m.nazov))
+        except ValueError:
+            pass
+
+    # oblasť (len ak je Mesto k dispozícii)
+    if HAS_MESTO and oblast in {"zapad", "stred", "vychod"}:
+        povolene = KRAJE_ZAPAD if oblast == "zapad" else KRAJE_STRED if oblast == "stred" else KRAJE_VYCHOD
+        sub = db.session.query(Mesto.nazov).filter(Mesto.kraj.in_(povolene)).subquery()
+        qry = qry.filter(Podujatie.miesto.in_(sub))
+
+    # rozdelenie
+    aktualne = (qry.filter(Podujatie.start_dt >= threshold)
+                   .order_by(Podujatie.start_dt.asc())
+                   .all())
+
+    archiv_vsetko = (qry.filter(Podujatie.start_dt < threshold)
+                        .order_by(Podujatie.start_dt.desc())
+                        .all())
+
+    # zoskup archív podľa (rok, mesiac)
+    archiv_po_mesiacoch = {}
+    for e in archiv_vsetko:
+        key = (e.start_dt.year, e.start_dt.month)
+        archiv_po_mesiacoch.setdefault(key, []).append(e)
+    mesiace = sorted(archiv_po_mesiacoch.keys(), reverse=True)
+
+    # select na mestá (ak je tabuľka)
+    mesta = Mesto.query.order_by(Mesto.nazov.asc()).all() if HAS_MESTO else []
+
+    return render_template(
+        "podujatia.html",
+        aktualne=aktualne,
+        archiv_po_mesiacoch=archiv_po_mesiacoch,
+        mesiace=mesiace,
+        mesta=mesta
+    )
+
+
+# ====== DETAIL (verejný) ======
+@podujatie_bp.route('/<int:id>', methods=['GET'])
+def detail_public(id):
+    e = Podujatie.query.get_or_404(id)
+    return render_template('podujatie_detail.html', e=e)
+
+# ====== ADMIN MODERÁCIA ======
+@podujatie_bp.route('/admin', methods=['GET'])
+@login_required
+def admin_list():
+    if not getattr(current_user, "is_admin", False):
+        abort(403)
+    pend = (Podujatie.query
+            .filter(Podujatie.stav == 'pending')
+            .order_by(Podujatie.created_at.asc())
+            .all())
+    return render_template('podujatia_admin.html', pending=pend)
+
+
+@podujatie_bp.route('/<int:id>/publish', methods=['POST'])
+@login_required
+def admin_publish(id):
+    if not getattr(current_user, "is_admin", False):
+        abort(403)
+    e = Podujatie.query.get_or_404(id)
+    e.stav = 'publikovane'
+    # nastav/obnov expiráciu (ak používaš konštantu, daj hore KEEP_DAYS_AFTER_START = 1)
+    e.delete_at = e.start_dt + timedelta(days=1)
+    db.session.commit()
+    flash("Podujatie publikované.", "success")
+    return redirect(request.referrer or url_for('podujatie.admin_list'))
+
+
+@podujatie_bp.route('/<int:id>/reject', methods=['POST'])
+@login_required
+def admin_reject(id):
+    if not getattr(current_user, "is_admin", False):
+        abort(403)
+    e = Podujatie.query.get_or_404(id)
+    e.stav = 'zamietnute'
+    db.session.commit()
+    flash("Podujatie zamietnuté.", "info")
+    return redirect(request.referrer or url_for('podujatie.admin_list'))
+
+
+@podujatie_bp.route('/<int:id>/force_delete', methods=['POST'])
+@login_required
+def admin_force_delete(id):
+    if not getattr(current_user, "is_admin", False):
+        abort(403)
+    e = Podujatie.query.get_or_404(id)
+
+    # zmaž súbor (ak je)
+    if e.foto_nazov:
+        path = os.path.join(_upload_dir(), e.foto_nazov)
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+
+    db.session.delete(e)
+    db.session.commit()
+    flash("Podujatie odstránené.", "warning")
+    return redirect(request.referrer or url_for('podujatie.admin_list'))
+
+

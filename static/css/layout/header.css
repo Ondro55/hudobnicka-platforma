@@ -199,6 +199,7 @@
   gap:8px;
   border-radius: 0 0 6px 6px;
   height: 46px;
+  font-size: 20px;
 }
 .hlavicka .banner-info .page-title{ font-weight:800; }
 .hlavicka .banner-info .page-sub{ color:#6b6358; }

@@ -5,6 +5,8 @@ from datetime import datetime
 from flask import url_for
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from alembic import op
+import sqlalchemy as sa
 
 db = SQLAlchemy()
 
@@ -783,17 +785,24 @@ class Podujatie(db.Model):
 
     nazov = db.Column(db.String(120), nullable=False)
     organizator = db.Column(db.String(120), nullable=True)
+
+    # POZOR: u teba 'miesto' slúži často ako mesto (kým nepridáme mesto_id)
     miesto = db.Column(db.String(120), nullable=True)
 
-    # dátum + čas začiatku (stačí jeden začiatok; prípadne neskôr doplníme koniec)
+    # dátum + čas začiatku
     start_dt = db.Column(db.DateTime, nullable=False)
 
     popis = db.Column(db.Text, nullable=True)
 
-    # presne 1 „bulletin“ fotka (ak chýba, zobrazíme default)
+    # 1 bulletin fotka
     foto_nazov = db.Column(db.String(255), nullable=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    # Moderovanie + expirácia
+    # values: 'pending' | 'publikovane' | 'zamietnute'
+    stav = db.Column(db.String(20), nullable=False, default='pending', index=True)
+    delete_at = db.Column(db.DateTime, nullable=True, index=True)
 
     autor = db.relationship('Pouzivatel', backref=db.backref('podujatia', lazy='dynamic'))
 
@@ -803,14 +812,24 @@ class Podujatie(db.Model):
         if self.foto_nazov:
             return url_for('static', filename=f'podujatia/{self.foto_nazov}')
         return url_for('static', filename='podujatia/event-default.svg')
-    
+
     @property
     def visible_until(self):
+        # fallback, ak delete_at nie je nastavené
         return (self.start_dt or datetime.utcnow()) + timedelta(days=1)
 
     @property
     def is_public_active(self):
         return datetime.utcnow() < self.visible_until
+
+    @property
+    def je_verejne(self) -> bool:
+        """Je zaraditeľné do verejného výpisu práve teraz?"""
+        if self.stav != 'publikovane':
+            return False
+        lim = self.delete_at or self.visible_until
+        return datetime.utcnow() < lim
+
 
 class Reklama(db.Model):
     __tablename__ = 'reklama'

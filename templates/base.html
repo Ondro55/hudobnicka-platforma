@@ -141,7 +141,6 @@
   </div>
 
   <!-- RIADOK 2: NAV (1fr | 1200 | 1fr) -->
-  <!-- RIADOK 2: NAV (1fr | 1200 | 1fr) -->
 <div class="hlavicka-nav-row">
   <div class="nav-cell">
 
@@ -161,6 +160,12 @@
       <a class="with-icon on-dark" href="{{ url_for('uzivatel.index') }}">
         <svg class="icon icon--md" aria-hidden="true"><use href="#i-home"></use></svg>
         Domov
+      </a>
+
+      <!-- NOVÉ: Podujatia (verejné) -->
+      <a class="with-icon on-dark" href="{{ url_for('podujatie.index') }}">
+        <svg class="icon icon--md" aria-hidden="true"><use href="#i-podujatia"></use></svg>
+        Podujatia
       </a>
 
       {% if current_user.is_authenticated %}
@@ -212,6 +217,7 @@
         </a>
       {% endif %}
     </nav>
+
 
     <!-- PRAVÁ ZÓNA: (rezerva, nechávam prázdne) -->
     <div class="nav-right"></div>
@@ -329,6 +335,39 @@
           </aside>
 
           <section class="home-center" id="home-feed">
+
+            <!-- MOBIL/TABLET: prepínač sekcií -->
+
+            <div class="m-tabs" role="tablist" aria-label="Sekcie">
+              <button class="m-tab is-active" data-tab="videa"  role="tab" aria-selected="true">Videa</button>
+              <button class="m-tab"          data-tab="pod"    role="tab" aria-selected="false">Podujatia</button>
+              <button class="m-tab"          data-tab="blogy"  role="tab" aria-selected="false">Blogy</button>
+            </div>
+
+            <!-- MOBIL/TABLET: panely -->
+             {% if current_user.is_admin %}
+                <div class="note" style="margin:10px 0;padding:8px 10px;border:1px dashed #ccc;border-radius:8px;font-size:.9rem;opacity:.75;">
+                  Filtre sú dočasne vypnuté – najprv doprogramujeme publikovanie videí/podujatí/blogov.
+                </div>
+              {% endif %}
+
+            <div class="m-panels">
+              <section class="m-panel is-active" data-panel="videa" role="tabpanel">
+                <div class="m-filter">{% include 'includes/filter_videa.html'  ignore missing %}</div>
+                <div class="m-feed" id="m-feed-videa"><!-- karty videí --></div>
+              </section>
+
+              <section class="m-panel" data-panel="pod" role="tabpanel" aria-hidden="true">
+                <div class="m-filter">{% include 'includes/filter_regiony.html' ignore missing%}</div>
+                <div class="m-feed" id="m-feed-pod"><!-- zoznam podujatí --></div>
+              </section>
+
+              <section class="m-panel" data-panel="blogy" role="tabpanel" aria-hidden="true">
+                <div class="m-filter">{% include 'includes/filter_blogy.html' ignore missing%}</div>
+                <div class="m-feed" id="m-feed-blogy"><!-- karty blogov --></div>
+              </section>
+            </div>
+
             {% block home_content %}{% endblock %}
           </section>
 
@@ -617,6 +656,32 @@
   window.addEventListener('resize', updateHeights);
   updateHeights();
 })();
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const tabs   = document.querySelectorAll('.m-tab');
+  const panels = document.querySelectorAll('.m-panel');
+  if (!tabs.length) return;
+
+  function activate(name){
+    tabs.forEach(t => {
+      const on = t.dataset.tab === name;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    panels.forEach(p => {
+      const on = p.dataset.panel === name;
+      p.classList.toggle('is-active', on);
+      p.setAttribute('aria-hidden', on ? 'false' : 'true');
+    });
+  }
+
+  tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.tab)));
+
+  // voliteľne: default sekciu podľa hash #pod/#blogy/#videa
+  const hash = location.hash.replace('#','');
+  if (hash && ['videa','pod','blogy'].includes(hash)) activate(hash);
+});
 </script>
 
 <script type="text/plain" data-cat="analytics" src="https://plausible.io/js/plausible.js" data-domain="muzikuj.sk" defer></script>

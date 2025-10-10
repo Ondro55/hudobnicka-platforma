@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block content %}
+<main class="events-page" style="padding:2rem;">
+
+   <!-- FILTERY (jednotný bar + chips regióny) -->
+  <form method="get" action="{{ url_for('podujatie.index') }}" class="filterbar" id="events-filter" aria-label="Filtre podujatí">
+    {% set oblast = request.args.get('oblast','all') %}
+    <div class="filter-box" style="display:flex;gap:.5rem;flex-wrap:wrap;">
+      <input type="hidden" name="oblast" id="fld-oblast" value="{{ oblast }}">
+      <button type="button" class="chip {{ 'is-active' if oblast=='all' else '' }}"   data-region="all">Celé SK</button>
+      <button type="button" class="chip {{ 'is-active' if oblast=='zapad' else '' }}" data-region="zapad">Západ</button>
+      <button type="button" class="chip {{ 'is-active' if oblast=='stred' else '' }}" data-region="stred">Stred</button>
+      <button type="button" class="chip {{ 'is-active' if oblast=='vychod' else '' }}" data-region="vychod">Východ</button>
+    </div>
+
+    <input class="fld grow" type="search" name="q" value="{{ request.args.get('q','') }}"
+           placeholder="Hľadať: názov, popis, miesto, organizátor">
+
+    <select class="fld" name="mesto_id" aria-label="Mesto">
+      <option value="">– Mesto –</option>
+      {% for m in mesta or [] %}
+        <option value="{{ m.id }}" {{ 'selected' if request.args.get('mesto_id')==m.id|string else '' }}>
+          {{ m.nazov }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <input class="fld" type="text" name="organizator" value="{{ request.args.get('organizator','') }}" placeholder="Organizátor">
+    <input class="fld" type="date" name="od" value="{{ request.args.get('od','') }}">
+    <input class="fld" type="date" name="do" value="{{ request.args.get('do','') }}">
+
+    <div class="filter-actions">
+      <button type="submit" class="btn primary">Filtrovať</button>
+      <a class="btn" href="{{ url_for('podujatie.index') }}">Reset</a>
+    </div>
+  </form>
+
+  <script>
+    // prepojenie CHIP -> hidden input 'oblast' + submit
+    (function(){
+      const form = document.getElementById('events-filter');
+      const fld  = document.getElementById('fld-oblast');
+      const chips = form.querySelectorAll('.chip[data-region]');
+      chips.forEach(ch => ch.addEventListener('click', () => {
+        fld.value = ch.getAttribute('data-region');
+        chips.forEach(c => c.classList.remove('is-active'));
+        ch.classList.add('is-active');
+        form.submit();
+      }));
+    })();
+  </script>
+
+  <!-- AKTUÁLNE -->
+  <section style="margin-top:1.25rem;">
+    <h2 style="margin:.25rem 0 1rem;">Aktuálne podujatia</h2>
+    {% if aktualne and aktualne|length %}
+      <div class="events-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;">
+        {% for e in aktualne %}
+          <article class="event-card card" style="display:flex;flex-direction:column;border:1px solid #e6e6e6;border-radius:12px;overflow:hidden;">
+            <a href="{{ url_for('podujatie.detail_public', id=e.id) }}" style="text-decoration:none;color:inherit;">
+              <div style="aspect-ratio:16/9;background:#f6f6f6;overflow:hidden;">
+                <img src="{{ e.foto_url }}" alt="Obrázok" style="width:100%;height:100%;object-fit:cover;">
+              </div>
+              <div style="padding:.75rem;">
+                <h3 style="margin:.25rem 0 .5rem;font-size:1.05rem;">{{ e.nazov }}</h3>
+                <div class="muted" style="font-size:.9rem;">
+                  {{ e.start_dt.strftime('%d.%m.%Y • %H:%M') }}{% if e.miesto %} • {{ e.miesto }}{% endif %}
+                </div>
+                {% if e.popis %}
+                  <p style="margin:.5rem 0 0;font-size:.92rem;line-height:1.35;">
+                    {{ e.popis[:160] }}{% if e.popis|length > 160 %}…{% endif %}
+                  </p>
+                {% endif %}
+              </div>
+              <footer style="padding:.5rem .75rem;border-top:1px solid #eee;font-size:.85rem;display:flex;justify-content:space-between;opacity:.9;">
+                <span>Zverejnil: {{ e.autor.prezyvka if e.autor and e.autor.prezyvka else (e.autor.meno if e.autor else '—') }}</span>
+                <time datetime="{{ e.created_at.isoformat() }}">{{ e.created_at.strftime('%d.%m.%Y') }}</time>
+              </footer>
+            </a>
+
+            {% if current_user.is_authenticated and current_user.is_admin %}
+              <div class="admin-actions" style="display:flex;gap:.5rem;padding:.6rem .75rem;border-top:1px dashed #eee;">
+                <form method="post" action="{{ url_for('podujatie.admin_publish', id=e.id) }}"><button class="btn sm primary">Publikovať</button></form>
+                <form method="post" action="{{ url_for('podujatie.admin_reject', id=e.id) }}"><button class="btn sm">Zamietnuť</button></form>
+                <form method="post" action="{{ url_for('podujatie.admin_force_delete', id=e.id) }}" onsubmit="return confirm('Naozaj zmazať?');"><button class="btn sm danger">Zmazať</button></form>
+              </div>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>Zatiaľ žiadne aktuálne podujatia.</p>
+    {% endif %}
+  </section>
+
+  <hr style="margin:1.5rem 0;">
+
+  <!-- ARCHÍV (mesačne) -->
+  <section>
+    <h2 style="margin:.25rem 0 1rem;">Archív podujatí</h2>
+    {% if mesiace and mesiace|length %}
+      {% for (y, m) in mesiace %}
+        {% set zoznam = archiv_po_mesiacoch[(y,m)] %}
+        <details style="border:1px solid #e6e6e6;border-radius:10px;margin:0 0 1rem;overflow:hidden;">
+          <summary style="padding:.6rem .85rem;cursor:pointer;font-weight:600;">
+            {{ "%02d"|format(m) }} / {{ y }} — {{ zoznam|length }} {{ 'záznam' if zoznam|length==1 else 'záznamy' if (zoznam|length in [2,3,4]) else 'záznamov' }}
+          </summary>
+          <div style="padding:.75rem .85rem .9rem;">
+            <div class="events-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;">
+              {% for e in zoznam %}
+                <article class="event-card card" style="display:flex;flex-direction:column;border:1px solid #e6e6e6;border-radius:12px;overflow:hidden;">
+                  <a href="{{ url_for('podujatie.detail_public', id=e.id) }}" style="text-decoration:none;color:inherit;">
+                    <div style="aspect-ratio:16/9;background:#f6f6f6;overflow:hidden;">
+                      <img src="{{ e.foto_url }}" alt="Obrázok" style="width:100%;height:100%;object-fit:cover;">
+                    </div>
+                    <div style="padding:.75rem;">
+                      <h3 style="margin:.25rem 0 .5rem;font-size:1.05rem;">{{ e.nazov }}</h3>
+                      <div class="muted" style="font-size:.9rem;">
+                        {{ e.start_dt.strftime('%d.%m.%Y • %H:%M') }}{% if e.miesto %} • {{ e.miesto }}{% endif %}
+                      </div>
+                      {% if e.popis %}
+                        <p style="margin:.5rem 0 0;font-size:.92rem;line-height:1.35;">
+                          {{ e.popis[:140] }}{% if e.popis|length > 140 %}…{% endif %}
+                        </p>
+                      {% endif %}
+                    </div>
+                    <footer style="padding:.5rem .75rem;border-top:1px solid #eee;font-size:.85rem;display:flex;justify-content:space-between;opacity:.9;">
+                      <span>Zverejnil: {{ e.autor.prezyvka if e.autor and e.autor.prezyvka else (e.autor.meno if e.autor else '—') }}</span>
+                      <time datetime="{{ e.created_at.isoformat() }}">{{ e.created_at.strftime('%d.%m.%Y') }}</time>
+                    </footer>
+                  </a>
+
+                  {% if current_user.is_authenticated and current_user.is_admin %}
+                    <div class="admin-actions" style="display:flex;gap:.5rem;padding:.6rem .75rem;border-top:1px dashed #eee;">
+                      <form method="post" action="{{ url_for('podujatie.admin_publish', id=e.id) }}"><button class="btn sm primary">Publikovať</button></form>
+                      <form method="post" action="{{ url_for('podujatie.admin_reject', id=e.id) }}"><button class="btn sm">Zamietnuť</button></form>
+                      <form method="post" action="{{ url_for('podujatie.admin_force_delete', id=e.id) }}" onsubmit="return confirm('Naozaj zmazať?');"><button class="btn sm danger">Zmazať</button></form>
+                    </div>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            </div>
+          </div>
+        </details>
+      {% endfor %}
+    {% else %}
+      <p>Archív je prázdny.</p>
+    {% endif %}
+  </section>
+
+</main>
+{% endblock %}
