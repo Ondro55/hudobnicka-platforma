@@ -49,3 +49,47 @@ document.addEventListener('click', (e) => {
   input.type = (input.type === 'password') ? 'text' : 'password';
 });
 
+// sidebar rozbalovacie menu //
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('menu-toggle');
+  const panel  = document.getElementById('user-menu');
+  if (!toggle || !panel) return;
+
+  // vytvoríme polopriesvitné pozadie (overlay), ak ešte nie je
+  let overlay = document.getElementById('user-menu-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'user-menu-overlay';
+    Object.assign(overlay.style, {
+      position:'fixed', inset:'0', background:'rgba(0,0,0,.35)',
+      opacity:'0', pointerEvents:'none', transition:'opacity .2s ease', zIndex:'1199'
+    });
+    document.body.appendChild(overlay);
+  }
+
+  function openPanel(){
+    panel.classList.add('open');
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'auto';
+    toggle.setAttribute('aria-expanded','true');
+    panel.setAttribute('aria-hidden','false');
+    // fokus do panela
+    const focusable = panel.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    focusable?.focus({preventScroll:true});
+    document.body.style.overflow = 'hidden';
+  }
+  function closePanel(){
+    panel.classList.remove('open');
+    overlay.style.opacity = '0';
+    overlay.style.pointerEvents = 'none';
+    toggle.setAttribute('aria-expanded','false');
+    panel.setAttribute('aria-hidden','true');
+    toggle.focus({preventScroll:true});
+    document.body.style.overflow = '';
+  }
+  function isOpen(){ return panel.classList.contains('open'); }
+
+  toggle.addEventListener('click', () => isOpen() ? closePanel() : openPanel());
+  overlay.addEventListener('click', closePanel);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) closePanel(); });
+});

@@ -39,8 +39,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/header.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/sidebar.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/footer.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/banner.css') }}">
-
+  
   <!-- 3) Components -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/button.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/modal.css') }}">
@@ -142,71 +141,83 @@
   </div>
 
   <!-- RIADOK 2: NAV (1fr | 1200 | 1fr) -->
-  <div class="hlavicka-nav-row">
-    <div class="nav-cell">
-      <button class="hamburger" onclick="toggleMenu()">☰</button>
-      <nav class="main-nav">
+  <!-- RIADOK 2: NAV (1fr | 1200 | 1fr) -->
+<div class="hlavicka-nav-row">
+  <div class="nav-cell">
 
-        <a class="with-icon on-dark" href="{{ url_for('uzivatel.index') }}">
-          <svg class="icon icon--md" aria-hidden="true"><use href="#i-home"></use></svg>
-          Domov
+    <!-- ĽAVÁ ZÓNA: Moje menu -->
+    <div class="nav-left">
+      {% if current_user.is_authenticated %}
+        <button class="menu-btn on-dark" id="menu-toggle" type="button" aria-controls="user-menu" aria-expanded="false">
+          <svg class="icon icon--md" aria-hidden="true"><use href="#i-menu"></use></svg>
+          Moje menu
+        </button>
+      {% endif %}
+    </div>
+
+
+    <!-- STRED: hlavná navigácia (bez zmeny) -->
+    <nav class="main-nav">
+      <a class="with-icon on-dark" href="{{ url_for('uzivatel.index') }}">
+        <svg class="icon icon--md" aria-hidden="true"><use href="#i-home"></use></svg>
+        Domov
+      </a>
+
+      {% if current_user.is_authenticated %}
+        <a class="with-icon on-dark" href="{{ url_for('dopyty.zobraz_dopyty') }}">
+          <svg class="icon icon--md" aria-hidden="true"><use href="#i-dopyty"></use></svg>
+          Dopyty
         </a>
 
-        {% if current_user.is_authenticated %}
-          <a class="with-icon on-dark" href="{{ url_for('dopyty.zobraz_dopyty') }}">
-            <svg class="icon icon--md" aria-hidden="true"><use href="#i-dopyty"></use></svg>
-            Dopyty
-          </a>
-
-          {% if current_user.typ_subjektu != 'ico' %}
-            <a class="with-icon on-dark" href="{{ url_for('skupina.prehlad_skupin') }}">
-              <svg class="icon icon--md" aria-hidden="true"><use href="#i-skupiny"></use></svg>
-              Skupiny
-            </a>
-
-            <a class="with-icon on-dark" href="{{ url_for('inzerat.bazar_verejny') }}">
-              <svg class="icon icon--md" aria-hidden="true"><use href="#i-bazar"></use></svg>
-              Bazár
-            </a>
-
-            <a class="with-icon on-dark" href="{{ url_for('komunita.hub') }}">
-              <svg class="icon icon--md" aria-hidden="true"><use href="#i-komunita"></use></svg>
-              Komunita
-            </a>
-          {% endif %}
-
-          <a class="with-icon on-dark" href="#kontakt">
-            <svg class="icon icon--md" aria-hidden="true"><use href="#i-kontakt"></use></svg>
-            Kontakt
-          </a>
-
-        {% else %}
-          <!-- pre neprihlásených (disabled-link) -->
-          <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
-            <svg class="icon icon--md" aria-hidden="true"><use href="#i-dopyty"></use></svg>
-            Dopyty
-          </a>
-          <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
+        {% if current_user.typ_subjektu != 'ico' %}
+          <a class="with-icon on-dark" href="{{ url_for('skupina.prehlad_skupin') }}">
             <svg class="icon icon--md" aria-hidden="true"><use href="#i-skupiny"></use></svg>
             Skupiny
           </a>
-          <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
+          <a class="with-icon on-dark" href="{{ url_for('inzerat.bazar_verejny') }}">
             <svg class="icon icon--md" aria-hidden="true"><use href="#i-bazar"></use></svg>
             Bazár
           </a>
-          <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
+          <a class="with-icon on-dark" href="{{ url_for('komunita.hub') }}">
             <svg class="icon icon--md" aria-hidden="true"><use href="#i-komunita"></use></svg>
             Komunita
           </a>
-          <a class="with-icon on-dark" href="#kontakt">
-            <svg class="icon icon--md" aria-hidden="true"><use href="#i-kontakt"></use></svg>
-            Kontakt
-          </a>
         {% endif %}
-      </nav>
-    </div>
-  </div>
 
+        <a class="with-icon on-dark" href="#kontakt">
+          <svg class="icon icon--md" aria-hidden="true"><use href="#i-kontakt"></use></svg>
+          Kontakt
+        </a>
+
+      {% else %}
+        <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
+          <svg class="icon icon--md" aria-hidden="true"><use href="#i-dopyty"></use></svg>
+          Dopyty
+        </a>
+        <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
+          <svg class="icon icon--md" aria-hidden="true"><use href="#i-skupiny"></use></svg>
+          Skupiny
+        </a>
+        <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
+          <svg class="icon icon--md" aria-hidden="true"><use href="#i-bazar"></use></svg>
+          Bazár
+        </a>
+        <a class="with-icon on-dark disabled-link" href="#" data-modal-open="#modal-login">
+          <svg class="icon icon--md" aria-hidden="true"><use href="#i-komunita"></use></svg>
+          Komunita
+        </a>
+        <a class="with-icon on-dark" href="#kontakt">
+          <svg class="icon icon--md" aria-hidden="true"><use href="#i-kontakt"></use></svg>
+          Kontakt
+        </a>
+      {% endif %}
+    </nav>
+
+    <!-- PRAVÁ ZÓNA: (rezerva, nechávam prázdne) -->
+    <div class="nav-right"></div>
+
+  </div>
+</div>
 
 
   <!-- RIADOK 3: 1fr | ĽAVÝ FILTER | STREDNÝ | PRAVÝ | 1fr (spolu 1200px) -->
@@ -275,6 +286,17 @@
     <div aria-hidden="true"></div>
   </div>
 </header>
+<!-- OFFCANVAS PANEL: Moje menu -->
+<aside id="user-menu" class="offcanvas" aria-hidden="true">
+  <div class="offcanvas-head">
+    <strong>Moje menu</strong>
+    <button type="button" class="offcanvas-close" aria-label="Zavrieť">×</button>
+  </div>
+
+  <div class="offcanvas-body">
+    {% include 'includes/sidebox.html' %}
+  </div>
+</aside>
 
 
 <script>
@@ -294,9 +316,9 @@
   <!-- 🔹 GRID celej stránky (posunutý pod fixed header+banner) -->
   <div class="page-grid body-offset">
     <div class="page-left">
-      <aside class="button-sidebar">
+      <!--<aside class="button-sidebar">
         {% include 'includes/sidebox.html' %}
-      </aside>
+      </aside>-->
     </div>
 
     <main class="page-center">
@@ -325,9 +347,9 @@
   <!-- 🔹 Layout bez home-gridu (tiež posunutý) -->
   <div class="button-container body-offset">
     {% if current_user.is_authenticated %}
-      <aside class="button-sidebar">
+      <!--<aside class="button-sidebar">
         {% include 'includes/sidebox.html' %}
-      </aside>
+      </aside>-->
     {% endif %}
     <main class="{{ 'main-content' if current_user.is_authenticated else 'main-no-sidebar' }}">
       {% block content %}{% endblock %}

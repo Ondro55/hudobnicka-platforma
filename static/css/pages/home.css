@@ -17,22 +17,22 @@
   margin-inline: auto;
 }
 
-/* 3 stĺpce: 290 | ~600 | 290 */
-/* 3 stĺpce: ľavý, stredný, pravý */
+
+/* 3 stĺpce: ľavý (fix), stred (elastic), pravý (fix) */
 .home-grid{
   display: grid;
-  grid-template-columns:
-    minmax(260px, 24%)         /* ľavý sidebar */
-    minmax(0, 1fr)             /* stredný stĺpec */
-    minmax(260px, 24%);        /* pravý sidebar */
+  grid-template-columns: var(--col-side) 1fr var(--col-side);  /* ← toto je pointa */
   gap: var(--gap);
   align-items: start;
   margin-top: 32px;
-  max-width: var(--shell-max); /* zaručí, že nepretečie */
-  margin-inline: auto;         /* centrovanie */
+  max-width: var(--shell-max);
+  margin-inline: auto;
   box-sizing: border-box;
 }
+/* dovoľ vnútorným blokom sa zmenšiť */
 .home-grid > *{ min-width: 0; }
+
+
 
 
 /* ======= CELÁ FILTRAČNÁ LIŠTA CEZ 3 STĹPCE ======= */
@@ -192,3 +192,4 @@
     z-index: 5;
   }
 }
+

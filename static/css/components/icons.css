@@ -1,7 +1,5 @@
 /* ===== Ikony – základ ===== */
 .icon{
-  width: 18px;               /* default veľkosť */
-  height: 18px;
   stroke: currentColor;      /* ikona = farba textu rodiča */
   fill: none;
   stroke-linecap: round;
