@@ -5,27 +5,27 @@
 <section class="komunita-wrapper" style="padding:2rem;">
 
   <header style="display:flex;justify-content:space-between;align-items:end;gap:1rem;margin-bottom:1rem;">
-    
-
     {% if current_user.is_authenticated %}
-      <a class="btn primary" href="{{ url_for('skupina.skupina') }}">
-        ➕ Vytvoriť / spravovať skupinu
-      </a>
+      <a class="btn primary" href="{{ url_for('skupina.skupina') }}">➕ Vytvoriť / spravovať skupinu</a>
     {% else %}
       <a class="btn" href="{{ url_for('uzivatel.login') }}">Prihlásiť sa</a>
     {% endif %}
   </header>
-
-  {# jednotná filter lišta ako v komunite/bazári #}
+  
+  {# jednotná filter lišta #}
   {% set action_url = url_for('skupina.prehlad_skupin') %}
   {% set placeholder = 'Hľadať skupiny…' %}
   {% set btn_label = 'Hľadať' %}
   {% set show_mesto = True %}
-  {% set show_zaner = False %}
+  {% set show_zaner = True %}  {# <- zapnuté #}
   {% set show_kategoria = False %}
-  {% set q = q %}
-  {% set mesto = mesto %}
+
+  {# voliteľne: ak backend posiela zoznam žánrov #}
+  {% set zanre_all = zanre_all if zanre_all is defined else [] %}
+  {% set selected_zanre = request.args.getlist('zaner') %}
+
   {% include "includes/filterbar.html" %}
+
 
   {# hlavička stĺpcov (5 stĺpcov) #}
   <div class="columns-head" style="font-size:.85rem;color:#666;margin:.5rem 0;">

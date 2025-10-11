@@ -2,7 +2,7 @@
 .btn,
 button.btn,
 a.btn{
-  display:inline-flex;
+  display: inline;
   align-items:center;
   justify-content:center;
   gap:.4rem;

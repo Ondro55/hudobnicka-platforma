@@ -4,26 +4,71 @@
 {% block content %}
 <section class="profil-page">
   <div class="profil-grid">
-    <!-- ĽAVÝ panel: fotka -> názov -> akcie (rovnako ako profil) -->
+    <!-- ĽAVÝ panel -->
     <aside class="profil-left">
+
+      {# AK SKUPINA NEEXISTUJE -> vytvárací formulár #}
+      {% if not skupina %}
+        <h2 class="profil-nick" style="margin:0 0 .75rem 0;">Vytvoriť skupinu</h2>
+        <form method="POST" action="{{ url_for('skupina.pridaj_skupinu') }}" class="form-profil" style="max-width:640px;">
+          {{ csrf_token() if csrf_token is defined }}
+
+          <div class="form-row">
+            <label>Názov skupiny *</label>
+            <input type="text" name="nazov" required>
+          </div>
+
+          <div class="form-row">
+            <label>Typ skupiny</label>
+            <select name="typ" class="input-line" required>
+              <option value="">— vyber —</option>
+              <option value="hudobna">Hudobná</option>
+              <option value="tanecna">Tanečná</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label>Žáner / žánre</label>
+            <select name="zaner" class="input-line" multiple size="8">
+              {% for g in GENRE_CHOICES %}
+                <option value="{{ g }}">{{ g }}</option>
+              {% endfor %}
+            </select>
+            <small>Podrž Ctrl/Cmd pre výber viacerých.</small>
+          </div>
+
+          <div class="form-row">
+            <label>Mesto / obec</label>
+            <input type="text" name="mesto">
+          </div>
+
+          <div class="form-row"><label>E-mail (kontakt)</label><input type="email" name="email"></div>
+          <div class="form-row"><label>Web</label><input type="text" name="web" placeholder="https://..."></div>
+          <div class="form-row"><label>O skupine</label><textarea name="popis" rows="4"></textarea></div>
+
+          <div class="form-row btn-row">
+            <button type="submit" class="btn primary">➕ Vytvoriť skupinu</button>
+          </div>
+        </form>
+
+      {% else %}
+      {# SKUPINA EXISTUJE -> vizitka + edit #}
+
       <div class="profil-fotka-wrapper">
-        {% set pf = (skupina.profil_fotka_skupina if skupina else None) %}
-
+        {% set pf = skupina.profil_fotka_skupina %}
         <img class="profilovka avatar"
-            src="{{ url_for('static', filename='profilovky_skupina/' ~ (pf or 'avatar-group.svg')) }}"
-            data-fallback="{{ url_for('static', filename='profilovky_skupina/avatar-group.svg') }}"
-            alt="Skupinová fotka"
-            loading="lazy">
+             src="{{ url_for('static', filename='profilovky_skupina/' ~ (pf or 'avatar-group.svg')) }}"
+             data-fallback="{{ url_for('static', filename='profilovky_skupina/avatar-group.svg') }}"
+             alt="Skupinová fotka" loading="lazy">
 
-        {% if is_owner_group and skupina and skupina.profil_fotka_skupina %}
+        {% if is_owner_group and skupina.profil_fotka_skupina %}
           <a href="{{ url_for('skupina.odstranit_fotku_skupina') }}"
-            class="foto-action delete"
-            title="Odstrániť fotku"
-            onclick="return confirm('Naozaj odstrániť profilovú fotku skupiny?');">✖</a>
+             class="foto-action delete"
+             title="Odstrániť fotku"
+             onclick="return confirm('Naozaj odstrániť profilovú fotku skupiny?');">✖</a>
         {% endif %}
 
         {% if is_owner_group %}
-          <!-- rovnaký overlay "✏️" ako na profile -->
           <form action="{{ url_for('skupina.upload_fotka_skupina') }}"
                 method="post" enctype="multipart/form-data"
                 class="profil-upload-fotky">
@@ -33,53 +78,92 @@
         {% endif %}
       </div>
 
-      <!-- Názov skupiny + pero na úpravu (iba vlastník) -->
       <div class="profil-nickline">
         <h2 class="profil-nick" style="display:flex;align-items:center;gap:.5rem;margin:0;">
-          {{ (skupina and skupina.nazov) or 'Moja skupina' }}
+          {{ skupina.nazov }}
           {% if is_owner_group %}
             <button id="editGroupButton" class="edit-icon" title="Upraviť skupinu" type="button">✏️</button>
           {% endif %}
         </h2>
       </div>
 
-      {% if skupina %}
-      <!-- Zobrazenie údajov (view) -->
+      <!-- VIEW blok -->
       <div id="groupView" class="profil-udaje" style="margin-top:.5rem;">
-        <p><strong>Mesto / obec:</strong> {{ skupina.mesto or '—' }}</p>
-        <p><strong>Hudobný žáner:</strong> {{ skupina.zaner or '—' }}</p>
-        {% if skupina.web %}<p><strong>Web:</strong> <a href="{{ skupina.web }}" target="_blank" rel="noopener">{{ skupina.web }}</a></p>{% endif %}
-        {% if skupina.email %}<p><strong>E-mail:</strong> {{ skupina.email }}</p>{% endif %}
-      </div>
-      {% endif %}
+        <p><strong>Typ skupiny:</strong>
+          {% if skupina.typ == 'hudobna' %}Hudobná
+          {% elif skupina.typ == 'tanecna' %}Tanečná
+          {% else %}—{% endif %}
+        </p>
 
-      <!-- Editačný formulár (skrytý, ukáže sa perom) -->
-      {% if is_owner_group and skupina %}
+        <p><strong>Žánre:</strong>
+          {% if skupina.zaner and skupina.zaner|trim %}
+            {{ skupina.zaner }}
+          {% else %}—{% endif %}
+        </p>
+
+        <p><strong>Mesto / obec:</strong> {{ skupina.mesto or '—' }}</p>
+
+        <p><strong>Web:</strong>
+          {% if skupina.web and skupina.web|trim %}
+            <a href="{{ skupina.web }}" target="_blank" rel="noopener">{{ skupina.web }}</a>
+          {% else %}—{% endif %}
+        </p>
+
+        <p><strong>E-mail:</strong> {{ skupina.email or '—' }}</p>
+        <div class="sekcia" style="margin-top:.75rem;">
+          <h3>O skupine</h3>
+          <p>{{ skupina.popis or '—' }}</p>
+        </div>
+      </div>
+
+      <!-- EDIT FORM -->
+      {% if is_owner_group %}
       <form id="groupEditForm" method="POST" action="{{ url_for('skupina.upravit') }}" style="display:none;" class="form-profil">
         <div class="form-row">
           <label>Názov</label>
           <input type="text" name="nazov" value="{{ skupina.nazov }}" required>
         </div>
+
+        <div class="form-row">
+          <label>Typ skupiny</label>
+          <select name="typ" class="input-line" required>
+            <option value="">— vyber —</option>
+            <option value="hudobna" {{ 'selected' if skupina.typ == 'hudobna' else '' }}>Hudobná</option>
+            <option value="tanecna" {{ 'selected' if skupina.typ == 'tanecna' else '' }}>Tanečná</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>Žáner / žánre</label>
+          {% set selected = (skupina.zaner.split(',') if skupina.zaner else []) %}
+          <select name="zaner" class="input-line" multiple size="8">
+            {% for g in GENRE_CHOICES %}
+              <option value="{{ g }}" {{ 'selected' if g in selected else '' }}>{{ g }}</option>
+            {% endfor %}
+          </select>
+          <small>Podrž Ctrl/Cmd pre výber viacerých.</small>
+        </div>
+
         <div class="form-row">
           <label>Mesto / obec</label>
           <input type="text" name="mesto" value="{{ skupina.mesto or '' }}">
         </div>
-        <div class="form-row">
-          <label>Hudobný žáner</label>
-          <input type="text" name="zaner" value="{{ skupina.zaner or '' }}">
-        </div>
+
         <div class="form-row">
           <label>E-mail</label>
           <input type="email" name="email" value="{{ skupina.email or '' }}">
         </div>
+
         <div class="form-row">
           <label>Web</label>
           <input type="text" name="web" value="{{ skupina.web or '' }}">
         </div>
+
         <div class="form-row">
           <label>O skupine</label>
           <textarea name="popis">{{ skupina.popis or '' }}</textarea>
         </div>
+
         <div class="form-row btn-row">
           <button type="submit" class="btn primary">💾 Uložiť zmeny</button>
           <button type="button" id="cancelGroupEdit" class="btn ghost">Zrušiť</button>
@@ -87,8 +171,7 @@
       </form>
       {% endif %}
 
-      {% if not is_owner_group and skupina %}
-        <!-- návštevník: pošli správu zakladateľovi -->
+      {% if not is_owner_group %}
         <a class="btn primary sm" style="margin-top:.75rem;"
            href="{{ url_for('spravy.napisat',
                             komu_id=skupina.zakladatel_id,
@@ -97,71 +180,44 @@
           ✉️ Pošli správu
         </a>
       {% endif %}
+
+      {% endif %} {# /if skupina existuje #}
     </aside>
 
-    <!-- Pravá biela karta (rovnaké bloky ako profil) -->
+    <!-- PRAVÁ karta -->
     <div class="profil-right">
       <div class="profil-right-card">
-        {% if not skupina %}
-          <section class="sekcia">
-            <h3>Vytvoriť skupinu</h3>
-            <p>Zatiaľ nemáš vytvorenú skupinu. Vyplň základné údaje:</p>
 
-            <form method="POST" action="{{ url_for('skupina.pridaj_skupinu') }}" class="form-profil" style="max-width:640px;">
-              {{ csrf_token() if csrf_token is defined }}
-
-              <div class="form-row">
-                <label>Názov skupiny *</label>
-                <input type="text" name="nazov" required>
-              </div>
-
-              <div class="form-row"><label>Mesto / obec</label><input type="text" name="mesto"></div>
-              <div class="form-row"><label>Hudobný žáner</label><input type="text" name="zaner"></div>
-              <div class="form-row"><label>E-mail (kontakt)</label><input type="email" name="email"></div>
-              <div class="form-row"><label>Web</label><input type="text" name="web" placeholder="https://..."></div>
-              <div class="form-row"><label>O skupine</label><textarea name="popis" rows="4"></textarea></div>
-
-              <div class="form-row btn-row">
-                <button type="submit" class="btn primary">➕ Vytvoriť skupinu</button>
-              </div>
+        {% if skupina %}
+          <div class="sekcia-profil">
+            <h4>Pozvať člena</h4>
+            <form method="POST" action="{{ url_for('skupina.pozvi_clena', id=skupina.id) }}" class="form-skupina" style="margin-top:.5rem;">
+              <label for="target">Zadaj prezývku, email alebo ID</label>
+              <input type="text" id="target" name="target" placeholder="napr. jozo123 alebo jozo@mail.sk" required>
+              <button type="submit">➕ Poslať pozvánku</button>
             </form>
-          </section>
-        {% else %}
-          <section class="sekcia">
-            <h3>O skupine</h3>
-            <p>{{ skupina.popis or '—' }}</p>
-          </section>
-          {% if skupina %}
-            <div class="sekcia-profil">
-              <h4>Pozvať člena</h4>
-              <form method="POST" action="{{ url_for('skupina.pozvi_clena', id=skupina.id) }}" class="form-skupina" style="margin-top:.5rem;">
-                <label for="target">Zadaj prezývku, email alebo ID</label>
-                <input type="text" id="target" name="target" placeholder="napr. jozo123 alebo jozo@mail.sk" required>
-                <button type="submit">➕ Poslať pozvánku</button>
-              </form>
-            </div>
+          </div>
 
-            <div class="sekcia-profil">
-              <h4>Čakajúce pozvánky</h4>
-              {% set pend = skupina.pozvanky | selectattr('stav','equalto','pending') | list %}
-              {% if pend %}
-                <ul>
-                  {% for inv in pend %}
-                    <li>
-                      {{ inv.pozvany.prezyvka or inv.pozvany.email }} –
-                      platná do: {{ inv.expires_at.strftime('%d.%m.%Y %H:%M') if inv.expires_at else '—' }}
-                      <a href="{{ url_for('skupina.prijmi_pozvanku_view', token=inv.token) }}" class="btn sm">Kópia linku</a>
-                      <form method="POST" action="{{ url_for('skupina.zrus_pozvanku', token=inv.token) }}" style="display:inline" onsubmit="return confirm('Zrušiť túto pozvánku?');">
-                        <button class="btn sm" type="submit">Zrušiť</button>
-                      </form>
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <p class="sekcia-empty">Žiadne čakajúce pozvánky.</p>
-              {% endif %}
-            </div>
-          {% endif %}
+          <div class="sekcia-profil">
+            <h4>Čakajúce pozvánky</h4>
+            {% set pend = skupina.pozvanky | selectattr('stav','equalto','pending') | list %}
+            {% if pend %}
+              <ul>
+                {% for inv in pend %}
+                  <li>
+                    {{ inv.pozvany.prezyvka or inv.pozvany.email }} –
+                    platná do: {{ inv.expires_at.strftime('%d.%m.%Y %H:%M') if inv.expires_at else '—' }}
+                    <a href="{{ url_for('skupina.prijmi_pozvanku_view', token=inv.token) }}" class="btn sm">Kópia linku</a>
+                    <form method="POST" action="{{ url_for('skupina.zrus_pozvanku', token=inv.token) }}" style="display:inline" onsubmit="return confirm('Zrušiť túto pozvánku?');">
+                      <button class="btn sm" type="submit">Zrušiť</button>
+                    </form>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="sekcia-empty">Žiadne čakajúce pozvánky.</p>
+            {% endif %}
+          </div>
 
           <section class="sekcia">
             <h3>Členovia</h3>
@@ -169,8 +225,7 @@
               <ul>
                 {% for clen in skupina.clenovia %}
                   <li>
-                    <a class="clen-link"
-                      href="{{ url_for('uzivatel.verejny_profil', user_id=clen.id) }}">
+                    <a class="clen-link" href="{{ url_for('uzivatel.verejny_profil', user_id=clen.id) }}">
                       {{ clen.prezyvka or (clen.meno ~ ' ' ~ clen.priezvisko)|trim }}
                     </a>{% if clen.instrument %} – {{ clen.instrument }}{% endif %}
                   </li>
@@ -188,21 +243,13 @@
                 {% set max_foto = 20 %}
                 {% set pocet = (skupina.galeria or [])|length %}
                 {% set zostava = (max_foto - pocet) if pocet < max_foto else 0 %}
-                <form method="POST"
-                      action="{{ url_for('skupina.nahraj_fotku_skupina') }}"
-                      enctype="multipart/form-data"
-                      id="upload-form-gal-group">
-                  <input type="file"
-                        id="upload-foto-group"
-                        name="fotos"
-                        accept="image/*"
-                        multiple
-                        hidden
-                        {% if zostava == 0 %}disabled{% endif %}
-                        onchange="this.form.submit()">
+                <form method="POST" action="{{ url_for('skupina.nahraj_fotku_skupina') }}"
+                      enctype="multipart/form-data" id="upload-form-gal-group">
+                  <input type="file" id="upload-foto-group" name="fotos" accept="image/*"
+                         multiple hidden {% if zostava == 0 %}disabled{% endif %} onchange="this.form.submit()">
                   <label for="upload-foto-group"
-                        class="btn primary sm {% if zostava == 0 %}disabled{% endif %}"
-                        {% if zostava == 0 %}title="Limit {{ max_foto }} fotiek je naplnený"{% else %}title="Nahrať fotky (môžeš označiť viac)"{% endif %}>
+                         class="btn primary sm {% if zostava == 0 %}disabled{% endif %}"
+                         {% if zostava == 0 %}title="Limit {{ max_foto }} fotiek je naplnený"{% else %}title="Nahrať fotky (môžeš označiť viac)"{% endif %}>
                     ➕ Nahrať
                   </label>
                   <small class="gal-limit">
@@ -213,22 +260,20 @@
             </div>
 
             {% if skupina.galeria and skupina.galeria|length > 0 %}
-            <div class="galeria-wrapper">
-              {% for foto in skupina.galeria %}
-                <div class="foto-blok">
-                  <img src="{{ url_for('static', filename='galeria_skupina/' ~ foto.nazov_suboru) }}"
-                       alt="Foto skupiny" class="galeria-foto">
-                  {% if is_owner_group %}
-                    <form method="POST"
-                          action="{{ url_for('skupina.zmaz_fotku_skupina', id=foto.id) }}"
-                          class="delete-form"
-                          onsubmit="return confirm('Naozaj chceš zmazať túto fotku?');">
-                      <button type="submit" class="delete-btn" title="Zmazať">✖</button>
-                    </form>
-                  {% endif %}
-                </div>
-              {% endfor %}
-            </div>
+              <div class="galeria-wrapper">
+                {% for foto in skupina.galeria %}
+                  <div class="foto-blok">
+                    <img src="{{ url_for('static', filename='galeria_skupina/' ~ foto.nazov_suboru) }}"
+                         alt="Foto skupiny" class="galeria-foto">
+                    {% if is_owner_group %}
+                      <form method="POST" action="{{ url_for('skupina.zmaz_fotku_skupina', id=foto.id) }}"
+                            class="delete-form" onsubmit="return confirm('Naozaj chceš zmazať túto fotku?');">
+                        <button type="submit" class="delete-btn" title="Zmazať">✖</button>
+                      </form>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
             {% else %}
               <p class="sekcia-empty">Zatiaľ bez fotiek.</p>
             {% endif %}
@@ -241,35 +286,36 @@
             </div>
 
             {% if is_owner_group %}
-            <form action="{{ url_for('skupina.pridaj_video_skupina', id=skupina.id) }}"
-                  method="POST" class="profil-videoform">
-              <input type="text" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
-              <input type="text" name="popis" placeholder="Krátky popis (voliteľné)">
-              <button type="submit" class="btn primary">➕ Pridať video</button>
-            </form>
+              <form action="{{ url_for('skupina.pridaj_video_skupina', id=skupina.id) }}"
+                    method="POST" class="profil-videoform">
+                <input type="text" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
+                <input type="text" name="popis" placeholder="Krátky popis (voliteľné)">
+                <button type="submit" class="btn primary">➕ Pridať video</button>
+              </form>
             {% endif %}
 
             {% if skupina.videa and skupina.videa|length > 0 %}
-            <div class="profil-video-grid">
-              {% for video in skupina.videa %}
-                <div class="profil-youtube-video">
-                  <iframe src="https://www.youtube.com/embed/{{ video.youtube_url | youtube_id }}"
-                          title="YouTube video" frameborder="0" allowfullscreen></iframe>
-                  {% if video.popis %}<p class="video-popis">{{ video.popis }}</p>{% endif %}
-                  {% if is_owner_group %}
-                    <form action="{{ url_for('skupina.zmaz_video_skupina', id=video.id) }}"
-                          method="POST" class="delete-form">
-                      <button type="submit" class="delete-btn" title="Zmazať video"
-                              onclick="return confirm('Naozaj chceš zmazať video?')">✖</button>
-                    </form>
-                  {% endif %}
-                </div>
-              {% endfor %}
-            </div>
+              <div class="profil-video-grid">
+                {% for video in skupina.videa %}
+                  <div class="profil-youtube-video">
+                    <iframe src="https://www.youtube.com/embed/{{ video.youtube_url | youtube_id }}"
+                            title="YouTube video" frameborder="0" allowfullscreen></iframe>
+                    {% if video.popis %}<p class="video-popis">{{ video.popis }}</p>{% endif %}
+                    {% if is_owner_group %}
+                      <form action="{{ url_for('skupina.zmaz_video_skupina', id=video.id) }}"
+                            method="POST" class="delete-form">
+                        <button type="submit" class="delete-btn" title="Zmazať video"
+                                onclick="return confirm('Naozaj chceš zmazať video?')">✖</button>
+                      </form>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
             {% else %}
               <p class="sekcia-empty">Zatiaľ bez videí.</p>
             {% endif %}
           </section>
+
         {% endif %}
       </div>
     </div>
@@ -277,7 +323,7 @@
 </section>
 
 <script>
-  // fallback na default obrázok, ak chýba súbor
+  // fallback avatar
   document.addEventListener('error', function(e){
     var img = e.target;
     if (!(img instanceof HTMLImageElement) || !img.classList.contains('avatar')) return;
@@ -286,7 +332,7 @@
     img.src = fb;
   }, true);
 
-  // prepínanie editácie skupiny (ako na profile)
+  // toggle edit
   (function(){
     var btn   = document.getElementById('editGroupButton');
     if (!btn) return;

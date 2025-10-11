@@ -85,9 +85,9 @@
 
 /* Varianta bez sidebaru (detaily stránok a pod.) */
 .main-no-sidebar{
-  max-width:1100px;
+  max-width:1200px;
   margin:0 auto;
-  padding:0 12px;
+  padding:0;
   box-sizing:border-box;
 }
 

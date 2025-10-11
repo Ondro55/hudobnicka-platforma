@@ -529,6 +529,7 @@ class Skupina(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nazov = db.Column(db.String(100), nullable=False)
     zaner = db.Column(db.String(100))
+    typ   = db.Column(db.String(20), index=True)
     mesto = db.Column(db.String(100))
     email = db.Column(db.String(120))
     web = db.Column(db.String(255))
@@ -558,6 +559,7 @@ class VideoPouzivatel(db.Model):
     youtube_url = db.Column(db.String(255), nullable=False)
     popis = db.Column(db.String(255))
     pouzivatel_id = db.Column(db.Integer, db.ForeignKey('pouzivatel.id'), nullable=False)
+    zanre = db.Column(db.String(255), nullable=True)
 
     pouzivatel = db.relationship('Pouzivatel', back_populates='videa')
 
@@ -579,6 +581,7 @@ class VideoSkupina(db.Model):
     youtube_url = db.Column(db.String(300), nullable=False)
     popis = db.Column(db.String(200))
     skupina_id = db.Column(db.Integer, db.ForeignKey('skupina.id'), nullable=False)
+    zanre = db.Column(db.String(255), nullable=True)
 
     skupina = db.relationship('Skupina', back_populates='videa')
 

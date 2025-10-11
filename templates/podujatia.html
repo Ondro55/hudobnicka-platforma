@@ -5,26 +5,16 @@
    <!-- FILTERY (jednotný bar + chips regióny) -->
   <form method="get" action="{{ url_for('podujatie.index') }}" class="filterbar" id="events-filter" aria-label="Filtre podujatí">
     {% set oblast = request.args.get('oblast','all') %}
-    <div class="filter-box" style="display:flex;gap:.5rem;flex-wrap:wrap;">
-      <input type="hidden" name="oblast" id="fld-oblast" value="{{ oblast }}">
-      <button type="button" class="chip {{ 'is-active' if oblast=='all' else '' }}"   data-region="all">Celé SK</button>
-      <button type="button" class="chip {{ 'is-active' if oblast=='zapad' else '' }}" data-region="zapad">Západ</button>
-      <button type="button" class="chip {{ 'is-active' if oblast=='stred' else '' }}" data-region="stred">Stred</button>
-      <button type="button" class="chip {{ 'is-active' if oblast=='vychod' else '' }}" data-region="vychod">Východ</button>
-    </div>
+    <input type="hidden" name="oblast" id="fld-oblast" value="{{ oblast }}">
 
-    <input class="fld grow" type="search" name="q" value="{{ request.args.get('q','') }}"
-           placeholder="Hľadať: názov, popis, miesto, organizátor">
-
+    <!-- zvyšok filtrov zostáva -->
+    <input class="fld grow" type="search" name="q" value="{{ request.args.get('q','') }}" placeholder="Hľadať…">
     <select class="fld" name="mesto_id" aria-label="Mesto">
       <option value="">– Mesto –</option>
       {% for m in mesta or [] %}
-        <option value="{{ m.id }}" {{ 'selected' if request.args.get('mesto_id')==m.id|string else '' }}>
-          {{ m.nazov }}
-        </option>
+        <option value="{{ m.id }}" {{ 'selected' if request.args.get('mesto_id')==m.id|string else '' }}>{{ m.nazov }}</option>
       {% endfor %}
     </select>
-
     <input class="fld" type="text" name="organizator" value="{{ request.args.get('organizator','') }}" placeholder="Organizátor">
     <input class="fld" type="date" name="od" value="{{ request.args.get('od','') }}">
     <input class="fld" type="date" name="do" value="{{ request.args.get('do','') }}">
@@ -35,12 +25,19 @@
     </div>
   </form>
 
+  <!-- REGIÓNY: samostatná lišta pod filtrom -->
+  <div class="region-chips">
+    <button type="button" class="chip {{ 'is-active' if oblast=='all' else '' }}"   data-region="all">Celé SK</button>
+    <button type="button" class="chip {{ 'is-active' if oblast=='zapad' else '' }}" data-region="zapad">Západ</button>
+    <button type="button" class="chip {{ 'is-active' if oblast=='stred' else '' }}" data-region="stred">Stred</button>
+    <button type="button" class="chip {{ 'is-active' if oblast=='vychod' else '' }}" data-region="vychod">Východ</button>
+  </div>
+
   <script>
-    // prepojenie CHIP -> hidden input 'oblast' + submit
     (function(){
       const form = document.getElementById('events-filter');
       const fld  = document.getElementById('fld-oblast');
-      const chips = form.querySelectorAll('.chip[data-region]');
+      const chips = document.querySelectorAll('.region-chips .chip[data-region]');
       chips.forEach(ch => ch.addEventListener('click', () => {
         fld.value = ch.getAttribute('data-region');
         chips.forEach(c => c.classList.remove('is-active'));
@@ -49,6 +46,7 @@
       }));
     })();
   </script>
+
 
   <!-- AKTUÁLNE -->
   <section style="margin-top:1.25rem;">
@@ -72,7 +70,7 @@
                   </p>
                 {% endif %}
               </div>
-              <footer style="padding:.5rem .75rem;border-top:1px solid #eee;font-size:.85rem;display:flex;justify-content:space-between;opacity:.9;">
+              <footer style="padding:.2rem .75rem;border-top:1px solid #eee;font-size:.85rem;display:flex;justify-content:space-between;opacity:.9; font-size: 11px; border-radius: 0 0 6px 6px;">
                 <span>Zverejnil: {{ e.autor.prezyvka if e.autor and e.autor.prezyvka else (e.autor.meno if e.autor else '—') }}</span>
                 <time datetime="{{ e.created_at.isoformat() }}">{{ e.created_at.strftime('%d.%m.%Y') }}</time>
               </footer>

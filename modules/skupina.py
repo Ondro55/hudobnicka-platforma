@@ -1,16 +1,17 @@
-# skupina.py (upravené)
+# modules/skupina.py
 
 import os, secrets, time
 from uuid import uuid4
 from datetime import datetime, timedelta
-
+from utils.genres import join_csv, normalize_genre, GENRE_CHOICES
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, abort
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload
 
 from models import db, Skupina, Pouzivatel, GaleriaSkupina, VideoSkupina, SkupinaPozvanka
+
 
 # Povolené prípony (zjednotené a doplnené o webp)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -24,7 +25,6 @@ def _is_spravca(skupina: Skupina, user: Pouzivatel) -> bool:
     return bool(skupina and user and skupina.zakladatel_id == user.id)
 
 def _gen_token() -> str:
-    # krátky, URL-safe token
     return secrets.token_urlsafe(24)[:48]
 
 
@@ -47,7 +47,11 @@ def skupina():
     )
     if not moja:
         flash("Zatiaľ nemáš vytvorenú žiadnu skupinu.", "info")
-    return render_template('moja_skupina.html', pouzivatel=current_user, skupina=moja)
+    return render_template('moja_skupina.html',
+                           pouzivatel=current_user,
+                           skupina=moja,
+                           GENRE_CHOICES=GENRE_CHOICES)
+
 
 # =========================
 #   Vytvorenie skupiny
@@ -55,16 +59,22 @@ def skupina():
 @skupina_bp.route('/pridaj_skupinu', methods=['POST'])
 @login_required
 def pridaj_skupinu():
-    nazov = request.form.get('nazov')
-    zaner = request.form.get('zaner')
+    nazov = (request.form.get('nazov') or '').strip()
+    typ   = (request.form.get('typ') or '').strip()          # ← NOVÉ
     mesto = request.form.get('mesto')
     email = request.form.get('email')
     web   = request.form.get('web')
     popis = request.form.get('popis')
 
+    # single aj multi-select žánrov
+    sel_zanre = request.form.getlist('zaner') or ([request.form.get('zaner')] if request.form.get('zaner') else [])
+    from utils.genres import join_csv
+    zaner_csv = join_csv(sel_zanre)  # napr. "Rock,Folklór" alebo None
+
     nova_skupina = Skupina(
         nazov=nazov,
-        zaner=zaner,
+        typ=typ,                 # ← ulož typ
+        zaner=zaner_csv,         # ← normalizované CSV
         mesto=mesto,
         email=email,
         web=web,
@@ -76,9 +86,9 @@ def pridaj_skupinu():
 
     db.session.add(nova_skupina)
     db.session.commit()
-
     flash('Skupina bola úspešne vytvorená ✅', 'success')
     return redirect(url_for('skupina.skupina'))
+
 
 
 # =========================
@@ -88,17 +98,20 @@ def pridaj_skupinu():
 @login_required
 def upravit():
     skupina = current_user.skupina_clen[0] if current_user.skupina_clen else None
-
     if not skupina:
         flash("Nemáš žiadnu skupinu na úpravu.", "danger")
-        return redirect(url_for('skupina.skupina'))  # FIX endpoint
+        return redirect(url_for('skupina.skupina'))
 
-    skupina.nazov = request.form.get('nazov')
-    skupina.zaner = request.form.get('zaner')
+    skupina.nazov = (request.form.get('nazov') or '').strip()
+    skupina.typ   = (request.form.get('typ') or '').strip()   # ← NOVÉ
     skupina.mesto = request.form.get('mesto')
     skupina.email = request.form.get('email')
     skupina.web   = request.form.get('web')
     skupina.popis = request.form.get('popis')
+
+    sel_zanre = request.form.getlist('zaner') or ([request.form.get('zaner')] if request.form.get('zaner') else [])
+    from utils.genres import join_csv
+    skupina.zaner = join_csv(sel_zanre)  # ← normalizované CSV (alebo None)
 
     db.session.commit()
     flash("Skupina bola úspešne upravená ✅", "success")
@@ -393,10 +406,14 @@ def prijmi_pozvanku(token):
     flash(f'Pripojené do skupiny: {skupina.nazov}', 'success')
     return redirect(url_for('skupina.skupina'))
 
+from sqlalchemy import or_, func
+from utils.genres import join_csv  # už máš
+
 @skupina_bp.route('/skupiny', methods=['GET'])
 def prehlad_skupin():
     q = (request.args.get('q') or '').strip()
     mesto = (request.args.get('mesto') or '').strip()
+    selected_genres = request.args.getlist('zaner')
 
     qry = (Skupina.query
            .options(joinedload(Skupina.zakladatel))
@@ -408,9 +425,35 @@ def prehlad_skupin():
                              Skupina.popis.ilike(like)))
     if mesto:
         qry = qry.filter(Skupina.mesto == mesto)
+    if selected_genres:
+        qry = qry.filter(or_(*[Skupina.zaner.ilike(f"%{g}%") for g in selected_genres]))
 
     skupiny = qry.all()
-    return render_template('skupiny.html', skupiny=skupiny, q=q, mesto=mesto)
+
+    # --- vyrob zoznam žánrov do filtra ---
+    rows = db.session.query(func.distinct(Skupina.zaner))\
+        .filter(Skupina.zaner.isnot(None), Skupina.zaner != "")\
+        .order_by(Skupina.zaner).all()
+
+    # rozbaľ CSV a ZNORMALIZUJ (ľudové → Folklór, atď.)
+    from itertools import chain
+    db_genres = set()
+    for (csvval,) in rows:
+        parts = [p.strip() for p in (csvval or "").split(",") if p and p.strip()]
+        for p in parts:
+            db_genres.add(normalize_genre(p))
+
+    # union s pevnou ponukou
+    all_genres = sorted(set(GENRE_CHOICES) | db_genres)
+
+    return render_template(
+        'skupiny.html',
+        skupiny=skupiny,
+        q=q,
+        mesto=mesto,
+        zanre_all=all_genres,          # ← kompletný výber do filtra
+        selected_genres=selected_genres
+    )
 
 
 @skupina_bp.route('/skupiny/<int:id>', methods=['GET'])

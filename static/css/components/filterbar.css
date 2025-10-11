@@ -13,7 +13,8 @@
 
 /* polia */
 .filterbar .fld{
-  min-width:180px;
+  min-width:0;
+  flex: 1 1 8rem;
   padding:.45rem .6rem;
   border:1px solid #ddd;
   border-radius:.5rem;
@@ -61,4 +62,20 @@
     width:100%;
     justify-content:flex-end;
   }
+}
+
+.region-chips{
+  display:flex;
+  justify-content:center;
+  gap:.5rem;
+  flex-wrap:wrap;
+  margin:.6rem 0 1rem;
+}
+.region-chips .chip{
+  font-weight:600;
+  padding:.5rem .8rem;
+}
+.region-chips .chip.is-active{
+  border-color: var(--primary, #4b7bec);
+  background: color-mix(in srgb, var(--primary, #4b7bec) 12%, white);
 }
